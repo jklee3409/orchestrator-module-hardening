@@ -19,6 +19,7 @@ public class TestController {
 
     @GetMapping("/healthCheck")
     public String healthCheck() {
+
         log.trace("healthCheck");
         log.debug("healthCheck");
         log.info("healthCheck");
