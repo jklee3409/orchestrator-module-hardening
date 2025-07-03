@@ -16,4 +16,14 @@ public class TestController {
         log.error("test");
         return "test";
     }
+
+    @GetMapping("/healthCheck")
+    public String healthCheck() {
+        log.trace("healthCheck");
+        log.debug("healthCheck");
+        log.info("healthCheck");
+        log.warn("healthCheck");
+        log.error("healthCheck");
+        return "healthCheck";
+    }
 }

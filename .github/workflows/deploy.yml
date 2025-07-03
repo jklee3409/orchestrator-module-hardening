@@ -41,15 +41,16 @@ jobs:
       - name: ECR에 Docker 이미지 Push하기
         run: docker push ${{ steps.login-ecr.outputs.registry }}/capstone-server:latest
 
-      - name: SSH로 EC2에 접속하기
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script_stop: true
-          script: |
-            docker stop capstone-server || true
-            docker rm capstone-server || true
-            docker pull ${{ steps.login-ecr.outputs.registry }}/capstone-server:latest
-            docker run -d --name capstone-server -p 8080:8080 ${{ steps.login-ecr.outputs.registry }}/capstone-server:latest
+      - name: 압축하기
+        run: tar -czvf $GITHUB_SHA.tar.gz appspec.yml scripts
+
+      - name: S3에 프로젝트 폴더 업로드하기
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.tar.gz s3://capstone-server/$GITHUB_SHA.tar.gz
+
+      - name: Code Deploy를 활용해 EC2에 프로젝트 코드 배포
+        run: aws deploy create-deployment
+          --application-name capstone-server
+          --deployment-config-name CodeDeployDefault.AllAtOnce
+          --deployment-group-name production
+          --s3-location bucket=capstone-server,bundleType=tgz,key=$GITHUB_SHA.tar.gz
+
