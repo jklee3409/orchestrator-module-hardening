@@ -1,7 +1,8 @@
 #!/bin/bash
 
 echo "--------------- 서버 배포 시작 -----------------"
-cd /home/ubuntu/capstone-server
-sudo fuser -k -n tcp 8080 || true
-nohup java -jar project.jar > ./output.log 2>&1 &
+docker stop capstone-server || true
+docker rm capstone-server || true
+docker pull 221082211696.dkr.ecr.ap-northeast-2.amazonaws.com/capstone-server/capstone-server:latest
+docker run -d --name capstone-server -p 8080:8080 221082211696.dkr.ecr.ap-northeast-2.amazonaws.com/capstone-server/capstone-server:latest
 echo "--------------- 서버 배포 끝 -----------------"
