@@ -23,6 +23,7 @@ public class TestController {
         log.trace("healthCheck");
         log.debug("healthCheck");
         log.info("healthCheck");
+        log.info("마지막 무중단 배포 테스트");
         log.warn("healthCheck");
         log.error("healthCheck");
         return "healthCheck";
