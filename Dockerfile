@@ -13,8 +13,8 @@ ENTRYPOINT ["/sbin/tini", "--"]
 COPY ./build/libs/*SNAPSHOT.jar project.jar
 
 # promtail 다운로드 및 설정
-RUN curl -L -o promtail.zip https://github.com/grafana/loki/releases/download/v2.9.2/promtail-linux-amd64.zip && \
-    unzip promtail.zip && \
+RUN curl -L -o promtail https://github.com/grafana/loki/releases/download/v2.9.2/promtail-linux-amd64 && \
+    chmod +x promtail && \
     mv promtail-linux-amd64 promtail && \
     chmod +x promtail && \
     rm promtail.zip
