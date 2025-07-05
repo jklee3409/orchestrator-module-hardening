@@ -3,7 +3,7 @@ FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
 # 필요한 패키지 설치: unzip, curl, tini (Debian 기반이므로 apt 사용)
-RUN apt-get update && apt-get install -y unzip curl tini
+RUN apt-get update && apt-get install -y unzip curl tini bash
 
 # tini를 ENTRYPOINT로 설정
 ENTRYPOINT ["/usr/bin/tini", "--"]
