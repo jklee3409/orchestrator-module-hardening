@@ -1,6 +1,15 @@
 #!/bin/bash
 
 echo "--------------- 서버 배포 시작 -----------------"
+if ! command -v docker &> /dev/null; then
+  echo "Docker not found. Installing Docker..."
+  sudo apt update
+  sudo apt install -y docker.io
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  sudo usermod -aG docker ubuntu
+fi
+
 # AWS CLI 설치 (ubuntu 24.04에서는 apt로 설치 불가)
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip -q awscliv2.zip
