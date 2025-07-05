@@ -10,10 +10,14 @@ if ! command -v docker &> /dev/null; then
   sudo usermod -aG docker ubuntu
 fi
 
-# AWS CLI 설치 (ubuntu 24.04에서는 apt로 설치 불가)
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip -q awscliv2.zip
-sudo ./aws/install
+if ! command -v aws &> /dev/null; then
+  echo "Installing AWS CLI..."
+  cd /tmp
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip -q awscliv2.zip
+  sudo ./aws/install
+fi
+
 aws ecr get-login-password --region ap-northeast-2 | \
 docker login --username AWS --password-stdin 221082211696.dkr.ecr.ap-northeast-2.amazonaws.com
 sudo docker stop capstone-server || true
