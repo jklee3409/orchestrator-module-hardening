@@ -25,4 +25,4 @@ COPY promtail-config.yaml /app/promtail-config.yaml
 RUN mkdir -p /app/logs
 
 # Spring Boot + Promtail 동시에 실행
-CMD sh -c "java -jar project.jar > /app/logs/app.log 2>&1 & ./promtail -config.file=/app/promtail-config.yaml & wait -n"
+CMD bash -c "java -jar project.jar > /app/logs/app.log 2>&1 & ./promtail -config.file=/app/promtail-config.yaml & wait -n"
