@@ -10,12 +10,12 @@ if ! command -v docker &> /dev/null; then
   sudo usermod -aG docker ubuntu
 fi
 
+# AWS CLI 설치
 if ! command -v aws &> /dev/null; then
   echo "Installing AWS CLI..."
-  cd /tmp
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip -q awscliv2.zip
-  sudo ./aws/install
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  sudo /tmp/aws/install
 fi
 
 aws ecr get-login-password --region ap-northeast-2 | \
