@@ -19,13 +19,8 @@ public class TestController {
 
     @GetMapping("/healthCheck")
     public String healthCheck() {
-
-        log.trace("healthCheck");
-        log.debug("healthCheck");
         log.info("healthCheck");
-        log.info("마지막 무중단 배포 테스트");
-        log.warn("healthCheck");
-        log.error("healthCheck");
+        log.info("25.07.10");
         return "healthCheck";
     }
 }
