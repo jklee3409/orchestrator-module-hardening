@@ -2,11 +2,14 @@ package eureca.capstone.project.orchestrator.controller.user;
 
 import eureca.capstone.project.orchestrator.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.dto.request.orchestrator.SignUpRequestDto;
+import eureca.capstone.project.orchestrator.dto.request.user.UpdateUserPasswordRequestDto;
 import eureca.capstone.project.orchestrator.dto.response.user.CreateUserResponseDto;
+import eureca.capstone.project.orchestrator.dto.response.user.UpdateUserPasswordResponseDto;
 import eureca.capstone.project.orchestrator.service.user.UserOrchestrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +25,12 @@ public class UserController {
     public BaseResponseDto<CreateUserResponseDto> signup(@RequestBody SignUpRequestDto signUpRequestDto) {
         BaseResponseDto<CreateUserResponseDto> response = userOrchestrationService.signup(signUpRequestDto);
 //        if (response.getStatusCode() != 200) throw new NotSuccessStatusCodeException(); // client 에서 코드 관리
+        return response;
+    }
+
+    @PutMapping("/password")
+    public BaseResponseDto<UpdateUserPasswordResponseDto> updateUserPassword(@RequestBody UpdateUserPasswordRequestDto updateUserPasswordRequestDto) {
+        BaseResponseDto<UpdateUserPasswordResponseDto> response = userOrchestrationService.updateUserPassword(updateUserPasswordRequestDto);
         return response;
     }
 }

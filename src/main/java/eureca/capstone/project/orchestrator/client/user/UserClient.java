@@ -2,7 +2,9 @@ package eureca.capstone.project.orchestrator.client.user;
 
 import eureca.capstone.project.orchestrator.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.dto.request.user.CreateUserRequestDto;
+import eureca.capstone.project.orchestrator.dto.request.user.UpdateUserPasswordRequestDto;
 import eureca.capstone.project.orchestrator.dto.response.user.CreateUserResponseDto;
+import eureca.capstone.project.orchestrator.dto.response.user.UpdateUserPasswordResponseDto;
 import eureca.capstone.project.orchestrator.util.WebClientUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,16 @@ public class UserClient {
                 userServiceUri + "/user/", // 이거 어디선거 한곳에서 관리해야할거 같음
                 createUserRequestDto,
                 new ParameterizedTypeReference<>() {
+                }
+        );
+    }
+
+    public BaseResponseDto<UpdateUserPasswordResponseDto> updateUserPassword(
+            UpdateUserPasswordRequestDto updateUserPasswordRequestDto) {
+        return webClientUtil.put(
+                userServiceUri + "/user/password",
+                updateUserPasswordRequestDto,
+                new ParameterizedTypeReference<>(){
                 }
         );
     }
