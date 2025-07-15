@@ -1,11 +1,12 @@
 package eureca.capstone.project.orchestrator.pay.entity;
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataTransactionHistory;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "pay_history_detail")
-public class PayHistoryDetail {
+public class PayHistoryDetail extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pay_history_detail_id")
@@ -15,7 +16,7 @@ public class PayHistoryDetail {
     @OneToOne(fetch = FetchType.LAZY)
     private PayHistory payHistory;
 
-    @JoinColumn(name = "transaction_history_id")
+    @JoinColumn(name = "data_transaction_history_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private DataTransactionHistory dataTransactionHistory;
 }

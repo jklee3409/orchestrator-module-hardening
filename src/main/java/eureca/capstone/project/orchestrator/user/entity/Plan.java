@@ -1,6 +1,7 @@
 package eureca.capstone.project.orchestrator.user.entity;
 
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
 import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Table(name = "plan")
-public class Plan {
+public class Plan extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

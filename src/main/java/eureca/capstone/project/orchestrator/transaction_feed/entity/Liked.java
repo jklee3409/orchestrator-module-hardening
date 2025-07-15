@@ -1,11 +1,12 @@
 package eureca.capstone.project.orchestrator.transaction_feed.entity;
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
 
 @Table(name = "liked")
 @Entity
-public class Liked {
+public class Liked extends BaseEntity {
     @Column(name = "liked_id")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

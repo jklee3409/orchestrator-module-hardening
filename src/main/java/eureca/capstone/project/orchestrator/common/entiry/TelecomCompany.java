@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Table(name = "telecom_company")
-public class TelecomCompany {
+public class TelecomCompany extends BaseEntity{
 
     @Column(name = "telecom_company_id")
     @Id

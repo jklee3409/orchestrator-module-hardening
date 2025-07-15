@@ -9,7 +9,7 @@ import jakarta.persistence.*;
 public class PayHistory extends BaseEntity {
     // TODO 변동 시간을 BaseEntity로 대체하는것은 어떠한가
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pay_history_id")
     private Long payHistoryId;
 

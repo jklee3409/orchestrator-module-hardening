@@ -8,7 +8,7 @@ import jakarta.persistence.*;
 @Entity
 public class Bids extends BaseEntity {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "bids_id")
     private Long bidsId;
 

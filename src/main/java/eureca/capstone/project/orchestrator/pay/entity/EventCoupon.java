@@ -1,10 +1,11 @@
 package eureca.capstone.project.orchestrator.pay.entity;
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
 import jakarta.persistence.*;
 
 @Table(name = "event_coupon")
 @Entity
-public class EventCoupon {
+public class EventCoupon extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "event_coupon_id")
