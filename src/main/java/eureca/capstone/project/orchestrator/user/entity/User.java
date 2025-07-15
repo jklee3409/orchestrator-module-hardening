@@ -26,6 +26,7 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @JoinColumn(name = "telecom_company_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private TelecomCompany telecomCompany;
 
@@ -37,6 +38,7 @@ public class User extends BaseEntity {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
 
