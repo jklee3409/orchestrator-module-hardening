@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.auth.entity;
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Entity
 @Table(name = "role_authority")
-public class RoleAuthority {
+public class RoleAuthority extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long role_authority_id;

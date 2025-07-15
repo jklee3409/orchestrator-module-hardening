@@ -1,13 +1,9 @@
 package eureca.capstone.project.orchestrator.user.entity;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,14 +15,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Table(name = "plan")
-public class Plan {
+public class Plan extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long planId;
 
-//    @Enumerated(EnumType.STRING)
-////    private TelecomCompany telecomCompany;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private TelecomCompany telecomCompany;
 
     private String planName;
     private Integer monthlyDataMb;

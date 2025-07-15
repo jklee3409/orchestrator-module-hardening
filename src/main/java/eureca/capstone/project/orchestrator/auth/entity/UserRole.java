@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.auth.entity;
 
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
+import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,11 +14,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Entity
 @Table(name = "user_role")
-public class UserRole {
+public class UserRole extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long user_role_id;
-    private Long user_id;
+
+    @ManyToOne
+    private User user;
 
     @JoinColumn(name = "role_id")
     @ManyToOne(fetch = FetchType.LAZY)
