@@ -1,6 +1,6 @@
 package eureca.capstone.project.orchestrator.user.repository;
 
-import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.user.entity.Plan;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

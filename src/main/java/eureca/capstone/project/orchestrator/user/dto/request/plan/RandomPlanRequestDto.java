@@ -1,6 +1,6 @@
 package eureca.capstone.project.orchestrator.user.dto.request.plan;
 
-import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import lombok.Builder;
 import lombok.Data;
 

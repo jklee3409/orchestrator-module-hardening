@@ -1,11 +1,13 @@
 package eureca.capstone.project.orchestrator.user.service.impl;
 
-import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.entity.Status;
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailAlreadyExistsException;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
+import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private final StatusManager statusManager;
+
     private final UserRepository userRepository;
     private final TelecomCompanyRepository telecomCompanyRepository;
 
@@ -47,6 +51,8 @@ public class UserServiceImpl implements UserService {
             TelecomCompany telecomCompany = telecomCompanyRepository.findById(
                     createUserRequestDto.getTelecomCompanyId()).orElseThrow(TelecomCompanyNotFoundException::new);
 
+            Status pendingStatus = statusManager.getStatus("USER", "EMAIL_VERIFICATION_PENDING");
+
             log.info("[createUser] 사용자 등록 시작: {}", createUserRequestDto.getEmail());
             User user = User.builder()
                     .email(createUserRequestDto.getEmail())
@@ -55,6 +61,7 @@ public class UserServiceImpl implements UserService {
                     .phoneNumber(createUserRequestDto.getPhoneNumber())
                     .provider(createUserRequestDto.getProvider())
                     .telecomCompany(telecomCompany)
+                    .status(pendingStatus)
                     .build();
             log.info("[createUser] 사용자 등록 완료: {}", user.getEmail());
 
