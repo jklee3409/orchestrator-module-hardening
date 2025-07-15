@@ -9,13 +9,16 @@ import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailAlreadyExistsException;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user.GetUserProfileRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
@@ -105,5 +108,15 @@ public class UserServiceImpl implements UserService {
             log.error("[createUser] 사용자 등록 중 오류 발생: {}", e.getMessage(), e);
             throw new InternalServerException(ErrorCode.USER_CREATE_FAIL);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetUserProfileResponseDto getUserProfile(GetUserProfileRequestDto getUserProfileRequestDto) {
+        log.info("[getUserProfiles] 사용자 프로필 조회 요청");
+
+        return GetUserProfileResponseDto.fromUser(
+                userRepository.findById(getUserProfileRequestDto.getUserId()).orElseThrow(UserNotFoundException::new)
+        );
     }
 }
