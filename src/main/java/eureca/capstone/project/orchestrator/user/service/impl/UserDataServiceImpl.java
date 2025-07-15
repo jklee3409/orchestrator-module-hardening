@@ -2,8 +2,11 @@ package eureca.capstone.project.orchestrator.user.service.impl;
 
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user_data.GetUserDataStatusResponseDto;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
@@ -37,5 +40,19 @@ public class UserDataServiceImpl implements UserDataService {
             log.error("[createUserData] 사용자 데이터 등록 중 오류 발생: {}", e.getMessage(), e);
             throw new InternalServerException(ErrorCode.USER_DATA_CREATE_FAIL);
         }
+    }
+
+    @Override
+    public GetUserDataStatusResponseDto getUserDataStatus(GetUserDataStatusRequestDto getUserDataStatusRequestDto) {
+        log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", getUserDataStatusRequestDto.getUserId());
+
+        UserData userData = findUserById(getUserDataStatusRequestDto.getUserId());
+
+        return GetUserDataStatusResponseDto.fromEntity(userData);
+    }
+
+    private UserData findUserById(Long userId) {
+        return userDataRepository.findByUserId(userId)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
