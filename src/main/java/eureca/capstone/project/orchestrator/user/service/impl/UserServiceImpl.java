@@ -53,6 +53,17 @@ public class UserServiceImpl implements UserService {
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
 
+    /**
+     * 새로운 사용자를 생성합니다.
+     * 이메일 중복 확인 후 사용자 정보를 저장하고, 사용자 역할을 부여합니다.
+     * 또한 랜덤 요금제를 할당하고 사용자 데이터 레코드를 생성합니다.
+     *
+     * @param createUserRequestDto 사용자 생성에 필요한 정보(이메일, 비밀번호, 닉네임, 전화번호, 통신사 ID 등)
+     * @return 생성된 사용자의 ID
+     * @throws EmailAlreadyExistsException 이미 존재하는 이메일인 경우
+     * @throws TelecomCompanyNotFoundException 존재하지 않는 통신사 ID인 경우
+     * @throws InternalServerException 사용자 생성 중 오류 발생 시
+     */
     @Override
     @Transactional
     public CreateUserResponseDto createUser(CreateUserRequestDto createUserRequestDto) {
@@ -117,6 +128,14 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    /**
+     * 사용자 프로필 정보를 조회합니다.
+     * 사용자 ID를 기반으로 사용자 정보를 조회하여 프로필 정보를 반환합니다.
+     *
+     * @param getUserProfileRequestDto 조회할 사용자의 ID
+     * @return 사용자 프로필 정보 (이메일, 닉네임, 전화번호, 통신사)
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     */
     @Override
     @Transactional(readOnly = true)
     public GetUserProfileResponseDto getUserProfile(GetUserProfileRequestDto getUserProfileRequestDto) {
@@ -127,6 +146,14 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    /**
+     * 사용자의 닉네임을 업데이트합니다.
+     * 사용자 ID를 기반으로 사용자를 찾아 새로운 닉네임으로 업데이트합니다.
+     *
+     * @param updateUserNicknameRequestDto 사용자 ID와 새로운 닉네임
+     * @return 업데이트된 사용자 ID와 닉네임
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     */
     @Override
     @Transactional
     public UpdateNicknameResponseDto updateUserNickname(UpdateNicknameRequestDto updateUserNicknameRequestDto) {
@@ -144,6 +171,15 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    /**
+     * 사용자의 비밀번호를 업데이트합니다.
+     * 사용자 ID 또는 이메일을 기반으로 사용자를 찾아 새로운 비밀번호로 업데이트합니다.
+     * 비밀번호는 암호화되어 저장됩니다.
+     *
+     * @param updatePasswordRequestDto 사용자 ID 또는 이메일과 새로운 비밀번호
+     * @return 업데이트된 사용자 ID
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     */
     @Override
     @Transactional
     public UpdatePasswordResponseDto updateUserPassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
@@ -157,6 +193,12 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    /**
+     * 전체 활성 사용자 수와 당일 가입한 사용자 수를 조회합니다.
+     * 활성 상태인 사용자의 총 수와 오늘 생성된 사용자의 수를 계산합니다.
+     *
+     * @return 전체 활성 사용자 수와 당일 가입자 수
+     */
     @Override
     @Transactional(readOnly = true)
     public GetUserCountResponseDto getUserCount() {
@@ -177,6 +219,15 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    /**
+     * 비밀번호 업데이트를 위해 사용자를 찾는 내부 메서드입니다.
+     * 사용자 ID 또는 이메일을 기반으로 사용자를 조회합니다.
+     * 
+     * @param updatePasswordRequestDto 사용자 ID 또는 이메일 정보
+     * @return 조회된 사용자 엔티티
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     * @throws InternalServerException 유효한 파라미터가 없는 경우
+     */
     private User findUserForUpdatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
         if (updatePasswordRequestDto.getUserId() != null) {
             log.info("[findUserForUpdatePassword] ID 로 사용자 조회: {}", updatePasswordRequestDto.getUserId());

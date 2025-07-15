@@ -28,6 +28,13 @@ public class UserDataServiceImpl implements UserDataService {
 
     private final UserDataRepository userDataRepository;
 
+    /**
+     * 사용자 데이터 레코드를 생성합니다.
+     * 사용자 ID, 요금제 ID, 월간 데이터 용량, 데이터 리셋 일자 등의 정보를 포함한 사용자 데이터를 생성합니다.
+     *
+     * @param createUserDataRequestDto 사용자 데이터 생성에 필요한 정보(사용자 ID, 요금제 ID, 월간 데이터 용량, 리셋 일자 등)
+     * @throws InternalServerException 사용자 데이터 생성 중 오류 발생 시
+     */
     @Override
     @Transactional
     public void createUserData(CreateUserDataRequestDto createUserDataRequestDto) {
@@ -47,6 +54,14 @@ public class UserDataServiceImpl implements UserDataService {
         }
     }
 
+    /**
+     * 사용자의 데이터 현황을 조회합니다.
+     * 사용자 ID를 기반으로 사용자의 보유 데이터, 판매 가능 데이터, 구매 데이터 현황을 조회합니다.
+     *
+     * @param getUserDataStatusRequestDto 조회할 사용자의 ID
+     * @return 사용자의 데이터 현황
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     */
     @Override
     public GetUserDataStatusResponseDto getUserDataStatus(GetUserDataStatusRequestDto getUserDataStatusRequestDto) {
         log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", getUserDataStatusRequestDto.getUserId());
@@ -56,6 +71,15 @@ public class UserDataServiceImpl implements UserDataService {
         return GetUserDataStatusResponseDto.fromEntity(userData);
     }
 
+    /**
+     * 사용자의 보유 데이터를 판매 가능한 데이터로 전환합니다.
+     * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 보유 데이터에서 차감하고 판매 가능한 데이터로 전환합니다.
+     *
+     * @param createSellableDataRequestDto 사용자 ID와 판매 가능한 데이터로 전환할 양
+     * @return 업데이트된 사용자의 총 데이터와 판매 가능한 데이터
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     * @throws InternalServerException 보유 데이터가 부족하거나 전환 중 오류 발생 시
+     */
     @Override
     @Transactional
     public CreateSellableDataResponseDto createSellableData(CreateSellableDataRequestDto createSellableDataRequestDto) {
@@ -83,6 +107,16 @@ public class UserDataServiceImpl implements UserDataService {
         }
     }
 
+    /**
+     * 사용자의 판매 가능한 데이터를 차감합니다.
+     * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 판매 가능한 데이터에서 차감합니다.
+     * 데이터 판매 시 사용됩니다.
+     *
+     * @param deductSellableDataRequestDto 사용자 ID와 차감할 데이터 양
+     * @return 업데이트된 사용자의 판매 가능한 데이터
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     * @throws InternalServerException 판매 가능한 데이터가 부족하거나 차감 중 오류 발생 시
+     */
     @Override
     @Transactional
     public DeductSellableDataResponseDto deductSellableData(DeductSellableDataRequestDto deductSellableDataRequestDto) {
@@ -109,6 +143,16 @@ public class UserDataServiceImpl implements UserDataService {
         }
     }
 
+    /**
+     * 사용자의 구매 데이터를 충전합니다.
+     * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 구매 데이터에 추가합니다.
+     * 데이터 충전권을 사용해서 데이터 충전 시 사용됩니다.
+     *
+     * @param addBuyerDataRequestDto 사용자 ID와 충전할 데이터 양
+     * @return 업데이트된 사용자의 구매 데이터
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     * @throws InternalServerException 데이터 충전 중 오류 발생 시
+     */
     @Override
     @Transactional
     public AddBuyerDataResponseDto chargeBuyerData(AddBuyerDataRequestDto addBuyerDataRequestDto) {
@@ -131,6 +175,13 @@ public class UserDataServiceImpl implements UserDataService {
         }
     }
 
+    /**
+     * 사용자 ID로 사용자 데이터를 조회하는 내부 메서드입니다.
+     * 
+     * @param userId 조회할 사용자의 ID
+     * @return 조회된 사용자 데이터 엔티티
+     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
+     */
     private UserData findUserById(Long userId) {
         return userDataRepository.findByUserId(userId)
                 .orElseThrow(UserNotFoundException::new);
