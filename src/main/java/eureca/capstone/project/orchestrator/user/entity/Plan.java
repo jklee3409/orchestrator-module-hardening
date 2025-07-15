@@ -1,13 +1,8 @@
 package eureca.capstone.project.orchestrator.user.entity;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,8 +20,8 @@ public class Plan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long planId;
 
-//    @Enumerated(EnumType.STRING)
-////    private TelecomCompany telecomCompany;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private TelecomCompany telecomCompany;
 
     private String planName;
     private Integer monthlyDataMb;

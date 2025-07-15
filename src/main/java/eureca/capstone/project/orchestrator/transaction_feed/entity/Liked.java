@@ -1,0 +1,21 @@
+package eureca.capstone.project.orchestrator.transaction_feed.entity;
+
+import eureca.capstone.project.orchestrator.user.entity.User;
+import jakarta.persistence.*;
+
+@Table(name = "liked")
+@Entity
+public class Liked {
+    @Column(name = "liked_id")
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long likedId;
+
+    @JoinColumn(name = "transaction_feed_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private TransactionFeed transactionFeed;
+
+    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User user;
+}

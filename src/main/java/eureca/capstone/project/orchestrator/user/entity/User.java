@@ -1,15 +1,9 @@
 package eureca.capstone.project.orchestrator.user.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entiry.Status;
+import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,37 +20,33 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(name = "uk_user_email", columnNames = "email")
         }
 )
-public class User {
+// TODO 이메일에 유니크 제약조건 거는건 어떠한가
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-//    @Enumerated(EnumType.STRING)
-////    private TelecomCompany telecomCompany;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private TelecomCompany telecomCompany;
 
     private String email;
     private String password;
     private String nickname;
 
     @Column(name = "phone_number")
-    private String phone;
+    private String phoneNumber;
 
-//    @Enumerated(EnumType.STRING)
-////    private Status status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Status status;
 
     private String provider;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
     public void updateUserNickname(String nickname) {
         this.nickname = nickname;
-        this.updatedAt = LocalDateTime.now();
     }
 
     public void updateUserPassword(String password) {
         this.password = password;
-        this.updatedAt = LocalDateTime.now();
     }
 }
