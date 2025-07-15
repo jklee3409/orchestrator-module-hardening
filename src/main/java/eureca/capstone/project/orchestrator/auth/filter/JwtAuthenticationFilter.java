@@ -2,11 +2,12 @@ package eureca.capstone.project.orchestrator.auth.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
+import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
+import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
-import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
-import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -17,9 +18,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -60,6 +68,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 토큰이 유효한지 검증 (만료시간 + 시그니처 검증, 만약 예외발생시 catch 로 처리)
             jwtUtil.isValidToken(token);
+
+            Long userId = jwtUtil.extractUserId(token);
+            String email = jwtUtil.extractEmail(token);
+            Set<String> roles = jwtUtil.extractRoles(token);
+            Set<String> authorities = jwtUtil.extractAuthorities(token);
+
+            // roles + authorities → GrantedAuthority 리스트로 통합
+            List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
+            for (String role : roles) grantedAuthorities.add(new SimpleGrantedAuthority(role)); // ROLE_ 접두사 이미 포함돼 있음
+            for (String authority : authorities) grantedAuthorities.add(new SimpleGrantedAuthority(authority)); // 그대로 READ, WRITE 등
+
+
+            // UserDetails 생성
+            CustomUserDetailsDto userDetails =
+                    new CustomUserDetailsDto(userId, email, "", grantedAuthorities);
+
+            // 인증 객체 생성 및 SecurityContext 등록
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (ExpiredJwtException e) {
             log.warn("ExpiredJwtException {}", e.getMessage());
             writeErrorResponse(response, ErrorCode.TOKEN_EXPIRED);

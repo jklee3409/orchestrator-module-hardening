@@ -37,6 +37,7 @@ public class User extends BaseEntity {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
 
