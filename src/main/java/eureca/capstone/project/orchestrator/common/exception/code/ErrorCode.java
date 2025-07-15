@@ -23,6 +23,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(20000, "USER_NOT_FOUND", "해당 사용자를 찾을 수 없습니다."),
     USER_EMAIL_ALREADY_EXISTS(20001, "USER_EMAIL_ALREADY_EXISTS", "중복된 email 입니다."),
     USER_CREATE_FAIL(20002, "USER_CREATE_FAIL", "사용자 등록 중 오류가 발생했습니다."),
+    INVALID_PARAMETER(20003, "INVALID_PARAMETER", "유효하지 않은 파라미터입니다."),
 
     // USER_DATA 관련 에러 코드 (20051 ~ 20100)
     USER_DATA_CREATE_FAIL(20051, "USER_DATA_CREATE_FAIL", "사용자 데이터 등록 중 오류가 발생했습니다."),
