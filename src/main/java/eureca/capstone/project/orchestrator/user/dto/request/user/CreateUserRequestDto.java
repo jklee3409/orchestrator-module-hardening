@@ -26,7 +26,7 @@ public class CreateUserRequestDto {
     private String password; // 비밀번호 (암호화된 값)
 
     @NotBlank(message = "전화번호는 필수입니다.")
-    private String phone;
+    private String phoneNumber;
 
     private String provider;
 }
