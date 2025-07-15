@@ -4,6 +4,7 @@ public class FilterConstant {
     // 화이트리스트 (인증 없이 접근 허용할 경로)
     public static final String[] whiteList = {
             "/healthCheck",
+            "/user/",
             "/auth/login",
 
             "/auth/crypto-password",

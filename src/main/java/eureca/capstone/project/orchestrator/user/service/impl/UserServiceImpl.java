@@ -1,5 +1,8 @@
 package eureca.capstone.project.orchestrator.user.service.impl;
 
+import eureca.capstone.project.orchestrator.auth.entity.UserRole;
+import eureca.capstone.project.orchestrator.auth.repository.RoleRepository;
+import eureca.capstone.project.orchestrator.auth.repository.UserRoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
@@ -18,24 +21,26 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
+    private final PasswordEncoder passwordEncoder;
     private final StatusManager statusManager;
-
-    private final UserRepository userRepository;
-    private final TelecomCompanyRepository telecomCompanyRepository;
-
     private final PlanService planService;
     private final UserDataService userDataService;
+    private final UserRepository userRepository;
+    private final TelecomCompanyRepository telecomCompanyRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -56,7 +61,7 @@ public class UserServiceImpl implements UserService {
             log.info("[createUser] 사용자 등록 시작: {}", createUserRequestDto.getEmail());
             User user = User.builder()
                     .email(createUserRequestDto.getEmail())
-                    .password(createUserRequestDto.getPassword())
+                    .password(passwordEncoder.encode(createUserRequestDto.getPassword()))
                     .nickname(createUserRequestDto.getNickname())
                     .phoneNumber(createUserRequestDto.getPhoneNumber())
                     .provider(createUserRequestDto.getProvider())
@@ -65,6 +70,16 @@ public class UserServiceImpl implements UserService {
                     .build();
             User savedUser = userRepository.save(user);
             log.info("[createUser] 사용자 등록 완료: {}", user.getEmail());
+
+            // 역할과 권한 부여
+
+            UserRole userRole = UserRole.builder()
+                    .user(savedUser)
+                    .role(roleRepository.findRoleByName("ROLE_USER"))
+                    .build();
+
+            userRoleRepository.save(userRole);
+
 
             // 랜덤 요금제 조회
             RandomPlanRequestDto planReq = RandomPlanRequestDto.builder()
@@ -79,6 +94,7 @@ public class UserServiceImpl implements UserService {
                     .monthlyDataMb(randomPlan.getMonthlyDataMb())
                     .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
                     .build();
+
             userDataService.createUserData(userDataReq);
 
             return CreateUserResponseDto.builder()
