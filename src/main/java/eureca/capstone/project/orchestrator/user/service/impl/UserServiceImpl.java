@@ -20,6 +20,7 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePassword
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
@@ -28,6 +29,9 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -150,6 +154,26 @@ public class UserServiceImpl implements UserService {
 
         return UpdatePasswordResponseDto.builder()
                 .userId(user.getUserId())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetUserCountResponseDto getUserCount() {
+        log.info("[getUserCount] 전체 및 당일 가입자 수 조회 요청");
+
+        Status activeStatus = statusManager.getStatus("USER", "ACTIVE");
+        long totalUserCount = userRepository.countByStatus(activeStatus);
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
+        long todayUserCount = userRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+
+        log.info("[getUserCount] 조회 완료 - 전체 활성 사용자: {}명, 당일 신규 가입자: {}명", totalUserCount, todayUserCount);
+
+        return GetUserCountResponseDto.builder()
+                .totalUserCount(totalUserCount)
+                .todayUserCount(todayUserCount)
                 .build();
     }
 
