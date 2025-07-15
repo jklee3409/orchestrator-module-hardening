@@ -1,0 +1,102 @@
+package eureca.capstone.project.orchestrator.auth.filter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
+import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
+import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
+import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
+import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@Slf4j
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+    private final CookieUtil cookieUtil;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        // 현재 요청 매핑 정보 추출
+        String requestURI = request.getRequestURI();
+        log.info("[JwtFilter] Incoming request URI: {}", requestURI);
+        // 화이트리스트 통과 처리
+        if (isPassListed(requestURI)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        String authHeader;
+        // 헤더 값 추출 (액세스 토큰에 대한 요청인지, 토큰 재발급에 대한 요청인지 경로값으로 구분)
+        if (requestURI.equals(FilterConstant.REFRESH_PATH)) {
+            String refreshTokenByCookie = cookieUtil.extractTokenFromCookie(request);
+            log.info("[JwtFilter] Refresh token by cookie is: {}", refreshTokenByCookie);
+            authHeader = "Bearer " + refreshTokenByCookie;
+        } else {
+            authHeader = request.getHeader("Authorization");
+        }
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Authorization header missing or invalid: {}", authHeader);
+            writeErrorResponse(response, ErrorCode.MISSING_TOKEN);
+            return;
+        }
+
+        // 헤더에서 jwt 토큰 값만 추출
+        String token = authHeader.substring(7);
+        try {
+            // 토큰이 유효한지 검증 (만료시간 + 시그니처 검증, 만약 예외발생시 catch 로 처리)
+            jwtUtil.isValidToken(token);
+        } catch (ExpiredJwtException e) {
+            log.warn("ExpiredJwtException {}", e.getMessage());
+            writeErrorResponse(response, ErrorCode.TOKEN_EXPIRED);
+            return;
+        } catch (SignatureException e) {
+            log.warn("SignatureException {}", e.getMessage());
+            writeErrorResponse(response, ErrorCode.INVALID_SIGNATURE);
+            return;
+        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
+            log.warn("MalformedJwtException |  UnsupportedJwtException | IllegalArgumentException {}", e.getMessage());
+            writeErrorResponse(response, ErrorCode.MALFORMED_TOKEN);
+            return;
+        }
+        chain.doFilter(request, response);
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
+        log.info("ErrorCode : {}", errorCode);
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        BaseResponseDto<ErrorResponseDto> fail = BaseResponseDto.fail(errorCode);
+        log.info("fail : {}", fail);
+
+        String json = new ObjectMapper().writeValueAsString(fail);
+        response.getWriter().write(json);
+    }
+
+    private boolean isPassListed(String uri) {
+        for (String path : FilterConstant.whiteList) {
+            if (path.endsWith("/**")) {
+                String basePath = path.replace("/**", "");
+                if (uri.startsWith(basePath)) return true;
+            } else {
+                if (uri.equals(path)) return true;
+            }
+        }
+        return false;
+    }
+}
