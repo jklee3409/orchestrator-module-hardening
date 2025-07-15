@@ -9,6 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface PlanRepository extends JpaRepository<Plan, Long> {
 
-    @Query(value = "SELECT * FROM plan WHERE telecom_company = :telecomCompany ORDER BY RAND() LIMIT 1", nativeQuery = true)
+    @Query("SELECT p FROM Plan p WHERE p.telecomCompany = :telecomCompany ORDER BY FUNCTION('RAND')")
     Optional<Plan> findRandomPlanByTelecomCompany(@Param("telecomCompany") TelecomCompany telecomCompany);
 }
