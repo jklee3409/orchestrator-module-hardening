@@ -3,10 +3,12 @@ package eureca.capstone.project.orchestrator.user.service.impl;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.user.dto.request.user_data.AddBuyerDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.DeductSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddBuyerDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
@@ -104,6 +106,28 @@ public class UserDataServiceImpl implements UserDataService {
         } catch (Exception e) {
             log.error("[deductSellableData] 판매 가능 데이터 차감 도중 오류 발생");
             throw new InternalServerException(ErrorCode.SELLABLE_DATA_DEDUCT_FAIL);
+        }
+    }
+
+    @Override
+    @Transactional
+    public AddBuyerDataResponseDto chargeBuyerData(AddBuyerDataRequestDto addBuyerDataRequestDto) {
+        log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", addBuyerDataRequestDto.getUserId());
+        try {
+            UserData userData = findUserById(addBuyerDataRequestDto.getUserId());
+
+            userData.addBuyerData(addBuyerDataRequestDto.getAmount());
+            log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전 완료. 최종 구매 데이터: {}",
+                    userData.getUserId(), userData.getBuyerDataMb());
+
+            return AddBuyerDataResponseDto.builder()
+                    .userId(userData.getUserId())
+                    .buyerDataMb(userData.getBuyerDataMb())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[chargeBuyerData] 구매 데이터 충전 중 오류 발생");
+            throw new InternalServerException(ErrorCode.BUYER_DATA_CHARGE_FAIL);
         }
     }
 
