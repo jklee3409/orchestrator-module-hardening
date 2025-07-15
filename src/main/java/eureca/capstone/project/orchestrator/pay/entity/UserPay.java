@@ -17,7 +17,7 @@ public class UserPay extends BaseEntity {
 
     @Id
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private Long userId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
