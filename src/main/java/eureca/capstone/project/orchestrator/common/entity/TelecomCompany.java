@@ -1,4 +1,4 @@
-package eureca.capstone.project.orchestrator.common.entiry;
+package eureca.capstone.project.orchestrator.common.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "status")
-public class Status extends BaseEntity{
+@Table(name = "telecom_company")
+public class TelecomCompany extends BaseEntity{
 
-    @Column(name = "status_id")
+    @Column(name = "telecom_company_id")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long statusId;
+    private Long telecomCompanyId;
 
-    private String statusName;
+    private String name;
 }

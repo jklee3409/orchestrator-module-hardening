@@ -1,4 +1,4 @@
-package eureca.capstone.project.orchestrator.common.entiry;
+package eureca.capstone.project.orchestrator.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

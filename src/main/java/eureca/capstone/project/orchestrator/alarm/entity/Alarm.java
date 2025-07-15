@@ -1,7 +1,7 @@
 package eureca.capstone.project.orchestrator.alarm.entity;
 
-import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
-import eureca.capstone.project.orchestrator.common.entiry.Status;
+import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
