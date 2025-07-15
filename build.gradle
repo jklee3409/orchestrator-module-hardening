@@ -24,17 +24,59 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Lombok (컴파일 시 전용)
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // WebClient 관련 의존성
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    // Spring Web (MVC + Tomcat)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Spring Data JPA (Hibernate, 트랜잭션 포함)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // MySQL JDBC 드라이버
+    runtimeOnly 'com.mysql:mysql-connector-j'
 
     // Swagger/OpenAPI (springdoc-openapi)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+    // QueryDSL
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+
+    // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.security:spring-security-crypto'
+
+    // Redis (Lettuce 기반)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // JWT (JWT)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // 테스트
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// clean 시 Q 클래스 디렉토리 삭제
+clean {
+    delete file('build/generated/sources/annotationProcessor/java/main')
+}
+
+tasks.named('bootJar') {
+    mainClass.set('eureca.capstone.project.orchestrator.OrchestratorApplication')
+}
+
+tasks.named('compileJava') {
+    // 컴파일 시 옵션 추가
+    options.compilerArgs += ['-parameters'] // 메서드 파라미터 이름 유지
+    options.annotationProcessorPath = configurations.annotationProcessor // Annotation Processor 경로 지정
 }
 
 tasks.named('test') {

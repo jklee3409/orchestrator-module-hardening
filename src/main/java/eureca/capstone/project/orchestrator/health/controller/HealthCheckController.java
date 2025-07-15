@@ -1,4 +1,4 @@
-package eureca.capstone.project.orchestrator.controller;
+package eureca.capstone.project.orchestrator.health.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
