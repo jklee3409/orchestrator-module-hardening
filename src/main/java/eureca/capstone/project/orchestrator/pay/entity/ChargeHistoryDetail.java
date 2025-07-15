@@ -1,6 +1,6 @@
 package eureca.capstone.project.orchestrator.pay.entity;
 
-import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

@@ -15,9 +15,28 @@ public enum ErrorCode {
     REFRESH_TOKEN_MISMATCH(10005, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Refresh Token, 요청값의 Refresh Token 값 불일치"),
     EMAIL_TOKEN_MISMATCH(10006, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Email Token, 요청값의 Email Token 값 불일치"),
     BLACK_LIST_FOUND(10007, "BLACK_LIST_FOUND", "블랙리스트애 등록된 인원 입니다."),
-    BLOCK_OAUTH_USER(10008, "BLOCK_OAUTH_USER", "해당 계정은 차단된 OAuth User 입니다.");
+    BLOCK_OAUTH_USER(10008, "BLOCK_OAUTH_USER", "해당 계정은 차단된 OAuth User 입니다."),
 
     // user 관련 에러코드 (20000 ~ 29999)
+
+    // USER 관련 에러 코드 (20000 ~ 20050)
+    USER_NOT_FOUND(20000, "USER_NOT_FOUND", "해당 사용자를 찾을 수 없습니다."),
+    USER_EMAIL_ALREADY_EXISTS(20001, "USER_EMAIL_ALREADY_EXISTS", "중복된 email 입니다."),
+    USER_CREATE_FAIL(20002, "USER_CREATE_FAIL", "사용자 등록 중 오류가 발생했습니다."),
+
+    // USER_DATA 관련 에러 코드 (20051 ~ 20100)
+    USER_DATA_CREATE_FAIL(20051, "USER_DATA_CREATE_FAIL", "사용자 데이터 등록 중 오류가 발생했습니다."),
+    USER_TOTAL_DATA_LACK(20052, "USER_TOTAL_DATA_LACK", "사용자 보유 데이터가 부족합니다."),
+    SELLABLE_DATA_CREATE_FAIL(20053, "SELLABLE_DATA_CREATE_FAIL", "보유 데이터에서 판매 가능한 데이터로 전환 중 오류가 발생했습니다"),
+    USER_SELLABLE_DATA_LACK(20054, "USER_SELLABLE_DATA_LACK", "사용자 판매 가능 데이터가 부족합니다."),
+    SELLABLE_DATA_DEDUCT_FAIL(20055, "SELLABLE_DATA_DEDUCT_FAIL", "판매 가능 데이터 차감 도중 오류가 발생했습니다."),
+    SELLABLE_DATA_COMPENSATE_FAIL(20056, "SELLABLE_DATA_COMPENSATE_FAIL", "판매 가능데이터 차감 보상 도중 오류가 발생했습니다"),
+    BUYER_DATA_CHARGE_FAIL(20057, "BUYER_DATA_CHARGE_FAIL", "구매 데이터 충전 도중 오류가 발생했습니다."),
+    BUYER_DATA_COMPENSATE_FAIL(20057, "BUYER_DATA_COMPENSATE_FAIL", "구매 데이터 충전 보상 도중 오류가 발생했습니다."),
+
+    // PLAN 관련 에러 코드 (20101 ~ 20150)
+    RANDOM_PLAN_RETURN_FAIL(20101, "RANDOM_PLAN_RETURN_FAIL", "랜덤 요금제 조회 중 오류가 발생했습니다.");
+
 
     // transaction_feed 관련 에러코드 (30000 ~ 39999)
 

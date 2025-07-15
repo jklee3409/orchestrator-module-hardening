@@ -1,8 +1,8 @@
 package eureca.capstone.project.orchestrator.transaction_feed.entity;
 
-import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
-import eureca.capstone.project.orchestrator.common.entiry.Status;
-import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entity.Status;
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
 
@@ -21,6 +21,12 @@ public class TransactionFeed extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
+    @Column(name="title")
+    private String title;
+
+    @Column(name="content")
+    private String content;
+
     @JoinColumn(name = "telecome_company_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private TelecomCompany telecomCompany;
@@ -28,6 +34,9 @@ public class TransactionFeed extends BaseEntity {
     @JoinColumn(name = "sales_type_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private SalesType salesType;
+
+    @Column(name = "sales_price")
+    private Long salesPrice;
 
     @Column(name = "sales_data_amount")
     private Long salesDataAmount;
@@ -41,4 +50,7 @@ public class TransactionFeed extends BaseEntity {
     @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
+
+    @Column(name = "is_deleted")
+    private boolean isDeleted;
 }

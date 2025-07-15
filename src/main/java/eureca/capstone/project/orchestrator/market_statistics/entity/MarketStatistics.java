@@ -1,7 +1,7 @@
 package eureca.capstone.project.orchestrator.market_statistics.entity;
 
-import eureca.capstone.project.orchestrator.common.entiry.BaseEntity;
-import eureca.capstone.project.orchestrator.common.entiry.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
