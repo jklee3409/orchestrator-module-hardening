@@ -5,9 +5,11 @@ import eureca.capstone.project.orchestrator.common.exception.custom.InternalServ
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user_data.DeductSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.GetUserDataStatusResponseDto;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
@@ -28,7 +30,6 @@ public class UserDataServiceImpl implements UserDataService {
     @Transactional
     public void createUserData(CreateUserDataRequestDto createUserDataRequestDto) {
         log.info("[createUserData] 사용자 데이터 등록 요청");
-
         try {
             log.info("[createUserData] 사용자 데이터 레코드 등록 시작: userId={}", createUserDataRequestDto.getUserId());
             UserData createUserData = userDataRepository.save(CreateUserDataRequestDto.toEntity(createUserDataRequestDto));
@@ -57,7 +58,6 @@ public class UserDataServiceImpl implements UserDataService {
     @Transactional
     public CreateSellableDataResponseDto createSellableData(CreateSellableDataRequestDto createSellableDataRequestDto) {
         log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", createSellableDataRequestDto.getUserId());
-
         try {
             UserData userData = findUserById(createSellableDataRequestDto.getUserId());
 
@@ -78,6 +78,32 @@ public class UserDataServiceImpl implements UserDataService {
         } catch (Exception e) {
             log.error("[createSellableData] 보유 데이터에서 판매 가능한 데이터로 전환 도중 오류 발생");
             throw new InternalServerException(ErrorCode.SELLABLE_DATA_CREATE_FAIL);
+        }
+    }
+
+    @Override
+    @Transactional
+    public DeductSellableDataResponseDto deductSellableData(DeductSellableDataRequestDto deductSellableDataRequestDto) {
+        log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", deductSellableDataRequestDto.getUserId());
+        try {
+            UserData userData = findUserById(deductSellableDataRequestDto.getUserId());
+
+            if (userData.getSellableDataMb() < deductSellableDataRequestDto.getAmount()) {
+                throw new InternalServerException(ErrorCode.USER_SELLABLE_DATA_LACK);
+            }
+
+            userData.deductSellableData(deductSellableDataRequestDto.getAmount());
+            log.info("[deductSellableData] 사용자 {} 판매 가능 데이터 차감 완료. 최종 판매 가능 데이터: {}",
+                    userData.getUserId(), userData.getSellableDataMb());
+
+            return DeductSellableDataResponseDto.builder()
+                    .userId(userData.getUserId())
+                    .sellableDataMb(userData.getSellableDataMb())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[deductSellableData] 판매 가능 데이터 차감 도중 오류 발생");
+            throw new InternalServerException(ErrorCode.SELLABLE_DATA_DEDUCT_FAIL);
         }
     }
 
