@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.GetUserProfile
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
@@ -53,5 +54,12 @@ public class UserController {
     public BaseResponseDto<UpdatePasswordResponseDto> updateUserPassword(@Valid @RequestBody UpdatePasswordRequestDto request) {
         UpdatePasswordResponseDto response = userService.updateUserPassword(request);
         return BaseResponseDto.success(response);
+    }
+
+    @GetMapping("/count")
+    @Operation(summary = "전체 및 당일 가입자 수 조회", description = "전체 활성 가입자 수와 당일 가입자 수를 반환합니다.")
+    public BaseResponseDto<GetUserCountResponseDto> getUserCount() {
+        GetUserCountResponseDto userCountResponseDto = userService.getUserCount();
+        return BaseResponseDto.success(userCountResponseDto);
     }
 }
