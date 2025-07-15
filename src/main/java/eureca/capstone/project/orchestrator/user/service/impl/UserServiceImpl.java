@@ -63,6 +63,7 @@ public class UserServiceImpl implements UserService {
                     .telecomCompany(telecomCompany)
                     .status(pendingStatus)
                     .build();
+            User savedUser = userRepository.save(user);
             log.info("[createUser] 사용자 등록 완료: {}", user.getEmail());
 
             // 랜덤 요금제 조회
@@ -73,10 +74,10 @@ public class UserServiceImpl implements UserService {
 
             // 사용자 데이터 레코드 생성
             CreateUserDataRequestDto userDataReq = CreateUserDataRequestDto.builder()
-                    .userId(user.getUserId())
+                    .userId(savedUser.getUserId())
                     .planId(randomPlan.getPlanId())
                     .monthlyDataMb(randomPlan.getMonthlyDataMb())
-                    .resetDataAt(user.getCreatedAt().getDayOfMonth())
+                    .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
                     .build();
             userDataService.createUserData(userDataReq);
 
