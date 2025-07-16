@@ -33,4 +33,5 @@ public class UserAuthority extends BaseEntity {
 
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
+
 }
