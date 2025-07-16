@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
+    private final RedisService redisService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -54,7 +56,7 @@ public class SecurityConfig {
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 등록
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtUtil, cookieUtil),
+                        new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService),
                         UsernamePasswordAuthenticationFilter.class
                 )
 

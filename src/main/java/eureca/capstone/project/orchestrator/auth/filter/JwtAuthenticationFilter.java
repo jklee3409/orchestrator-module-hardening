@@ -5,9 +5,12 @@ import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.constant.RedisConstant;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
+import eureca.capstone.project.orchestrator.common.exception.custom.BlackListUserException;
+import eureca.capstone.project.orchestrator.common.service.RedisService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -29,12 +32,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.RedisBlackListUser;
+
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
+    private final RedisService redisService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
@@ -76,12 +82,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Set<String> roles = jwtUtil.extractRoles(token);
             Set<String> authorities = jwtUtil.extractAuthorities(token);
 
+            // 블랙리스트 유저 확인 및 Exception 처리
+            if (redisService.hasKey(RedisBlackListUser + userId)) {
+                log.error("[doFilterInternal 메서드] BlackListUserException 발생");
+                throw new BlackListUserException();
+            }
+
             // roles + authorities → GrantedAuthority 리스트로 통합
             List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
             for (String role : roles) grantedAuthorities.add(new SimpleGrantedAuthority(role)); // ROLE_ 접두사 이미 포함돼 있음
             for (String authority : authorities)
                 grantedAuthorities.add(new SimpleGrantedAuthority(authority)); // 그대로 READ, WRITE 등
-
 
             // UserDetails 생성
             CustomUserDetailsDto userDetails =
