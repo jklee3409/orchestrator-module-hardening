@@ -35,19 +35,19 @@ public class UserData extends BaseEntity {
         this.sellableDataMb += amount;
     }
 
-    public void deductSellableData(Integer amount) {
+    public void deductSellableData(Long amount) {
         this.sellableDataMb -= amount;
     }
 
-    public void addSellableData(Integer amount) {
+    public void addSellableData(Long amount) {
         this.sellableDataMb += amount;
     }
 
-    public void addBuyerData(Integer amount) {
+    public void addBuyerData(Long amount) {
         this.buyerDataMb += amount;
     }
 
-    public void deductBuyerData(Integer amount) {
+    public void deductBuyerData(Long amount) {
         this.buyerDataMb -= amount;
     }
 }
