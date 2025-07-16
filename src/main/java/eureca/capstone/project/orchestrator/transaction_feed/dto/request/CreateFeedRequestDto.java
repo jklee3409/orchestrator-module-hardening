@@ -8,8 +8,8 @@ import lombok.Getter;
 public class CreateFeedRequestDto {
     String title;
     String content;
-    Long TelecomCompany;
-    Long SalesType;
+    Long TelecomCompanyId;
+    Long SalesTypeId;
     Long salesPrice;
     Long salesDataAmount;
     Long defaultImageNumber;
