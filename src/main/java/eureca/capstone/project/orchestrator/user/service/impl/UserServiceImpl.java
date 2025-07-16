@@ -14,7 +14,6 @@ import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepo
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user.GetUserProfileRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
@@ -132,38 +131,34 @@ public class UserServiceImpl implements UserService {
      * 사용자 프로필 정보를 조회합니다.
      * 사용자 ID를 기반으로 사용자 정보를 조회하여 프로필 정보를 반환합니다.
      *
-     * @param getUserProfileRequestDto 조회할 사용자의 ID
+     * @param email 조회할 사용자의 email
      * @return 사용자 프로필 정보 (이메일, 닉네임, 전화번호, 통신사)
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
     @Override
     @Transactional(readOnly = true)
-    public GetUserProfileResponseDto getUserProfile(GetUserProfileRequestDto getUserProfileRequestDto) {
+    public GetUserProfileResponseDto getUserProfile(String email) {
         log.info("[getUserProfiles] 사용자 프로필 조회 요청");
-
-        return GetUserProfileResponseDto.fromUser(
-                userRepository.findById(getUserProfileRequestDto.getUserId()).orElseThrow(UserNotFoundException::new)
-        );
+        User user = findUserByEmail(email);
+        return GetUserProfileResponseDto.fromUser(user);
     }
 
     /**
      * 사용자의 닉네임을 업데이트합니다.
      * 사용자 ID를 기반으로 사용자를 찾아 새로운 닉네임으로 업데이트합니다.
      *
-     * @param updateUserNicknameRequestDto 사용자 ID와 새로운 닉네임
+     * @param updateUserNicknameRequestDto 새로운 닉네임
      * @return 업데이트된 사용자 ID와 닉네임
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
     @Override
     @Transactional
-    public UpdateNicknameResponseDto updateUserNickname(UpdateNicknameRequestDto updateUserNicknameRequestDto) {
-        log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트", updateUserNicknameRequestDto.getUserId());
+    public UpdateNicknameResponseDto updateUserNickname(String email, UpdateNicknameRequestDto updateUserNicknameRequestDto) {
+        log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트", email);
 
-        Optional<User> optionalUser = userRepository.findById(updateUserNicknameRequestDto.getUserId());
-
-        User user = optionalUser.orElseThrow(UserNotFoundException::new);
+        User user = findUserByEmail(email);
         user.updateUserNickname(updateUserNicknameRequestDto.getNickname());
-        log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트 완료. 변경된 닉네임: {}", updateUserNicknameRequestDto.getUserId(), user.getNickname());
+        log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트 완료. 변경된 닉네임: {}", email, user.getNickname());
 
         return UpdateNicknameResponseDto.builder()
                 .userId(user.getUserId())
@@ -182,10 +177,10 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public UpdatePasswordResponseDto updateUserPassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
+    public UpdatePasswordResponseDto updateUserPassword(String email, UpdatePasswordRequestDto updatePasswordRequestDto) {
         log.info("[updateUserPassword] 비밀번호 업데이트 요청");
 
-        User user = findUserForUpdatePassword(updatePasswordRequestDto);
+        User user = findUserByEmail(email);
         user.updateUserPassword(passwordEncoder.encode(updatePasswordRequestDto.getPassword()));
 
         return UpdatePasswordResponseDto.builder()
@@ -219,25 +214,7 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    /**
-     * 비밀번호 업데이트를 위해 사용자를 찾는 내부 메서드입니다.
-     * 사용자 ID 또는 이메일을 기반으로 사용자를 조회합니다.
-     * 
-     * @param updatePasswordRequestDto 사용자 ID 또는 이메일 정보
-     * @return 조회된 사용자 엔티티
-     * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
-     * @throws InternalServerException 유효한 파라미터가 없는 경우
-     */
-    private User findUserForUpdatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
-        if (updatePasswordRequestDto.getUserId() != null) {
-            log.info("[findUserForUpdatePassword] ID 로 사용자 조회: {}", updatePasswordRequestDto.getUserId());
-            return userRepository.findById(updatePasswordRequestDto.getUserId()).orElseThrow(UserNotFoundException::new);
-        }
-        else if (updatePasswordRequestDto.getEmail() != null) {
-            log.info("[findUserForUpdatePassword] 이메일로 사용자 조회: {}", updatePasswordRequestDto.getEmail());
-            return userRepository.findByEmail(updatePasswordRequestDto.getEmail())
-                    .orElseThrow(UserNotFoundException::new);
-        }
-        else throw new InternalServerException(ErrorCode.INVALID_PARAMETER);
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
     }
 }

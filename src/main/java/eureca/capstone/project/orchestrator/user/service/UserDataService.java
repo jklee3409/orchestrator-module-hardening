@@ -1,7 +1,6 @@
 package eureca.capstone.project.orchestrator.user.service;
 
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddBuyerDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
@@ -10,8 +9,8 @@ import eureca.capstone.project.orchestrator.user.dto.response.user_data.GetUserD
 
 public interface UserDataService {
     void createUserData(CreateUserDataRequestDto createUserDataRequestDto);
-    GetUserDataStatusResponseDto getUserDataStatus(GetUserDataStatusRequestDto getUserDataStatusRequestDto);
-    CreateSellableDataResponseDto createSellableData(UpdateUserDataRequestDto updateUserDataRequestDto);
+    GetUserDataStatusResponseDto getUserDataStatus(String email);
+    CreateSellableDataResponseDto createSellableData(String email, UpdateUserDataRequestDto updateUserDataRequestDto);
     DeductSellableDataResponseDto deductSellableData(UpdateUserDataRequestDto updateUserDataRequestDto);
     AddBuyerDataResponseDto chargeBuyerData(UpdateUserDataRequestDto updateUserDataRequestDto);
 }
