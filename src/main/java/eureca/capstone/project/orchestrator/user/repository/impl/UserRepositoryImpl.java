@@ -36,7 +36,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .innerJoin(userRole.role, role)
                 .innerJoin(roleAuthority).on(roleAuthority.role.eq(role))
                 .innerJoin(roleAuthority.authority, authority)
-                .where(user.email.eq(email)) // email 기준 필터링
+                .where(user.email.eq(email), user.status.code.eq("ACTIVE")) // email, ACTIVE 기준 필터링
                 .fetch();
 
         log.info("[findUserInformation] 쿼리 실행 결과 size: {}", result.size());
