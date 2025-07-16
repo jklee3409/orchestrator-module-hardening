@@ -44,7 +44,7 @@ class PlanServiceImplTest {
                 .planId(1L)
                 .telecomCompany(telecomCompany)
                 .planName("테스트 요금제")
-                .monthlyDataMb(5000)
+                .monthlyDataMb(5000L)
                 .build();
     }
 

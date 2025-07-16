@@ -1,6 +1,8 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
+import eureca.capstone.project.orchestrator.auth.entity.UserAuthority;
+import eureca.capstone.project.orchestrator.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -20,6 +24,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CustomUserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
+    private final UserAuthorityRepository userAuthorityRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -31,6 +36,17 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
         Set<String> roles = userInformationDto.getRoles();
         Set<String> authorities = userInformationDto.getAuthorities();
         log.info("role : {}", roles);
+        log.info("authorities : {}", authorities);
+
+        // 제재 당한 권한이 있는지 확인 및 기존 권한에서 제외 및 로그 출력
+        List<UserAuthority> blockUserList = userAuthorityRepository
+                .findUserAuthorityByUserId(userInformationDto.getUserId());
+        Set<String> blockUserAuthority = blockUserList.stream()
+                .map(blockUser -> blockUser.getAuthority().getName())
+                .collect(Collectors.toSet());
+        authorities.removeAll(blockUserAuthority);
+        log.info("blockUserList : {}", blockUserList);
+        log.info("blockUserAuthority : {}", blockUserAuthority);
         log.info("authorities : {}", authorities);
 
         // 권한과 역할을 담을 변수 생성

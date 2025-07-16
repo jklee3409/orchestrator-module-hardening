@@ -11,6 +11,6 @@ public interface UserDataService {
     void createUserData(CreateUserDataRequestDto createUserDataRequestDto);
     GetUserDataStatusResponseDto getUserDataStatus(String email);
     CreateSellableDataResponseDto createSellableData(String email, UpdateUserDataRequestDto updateUserDataRequestDto);
-    DeductSellableDataResponseDto deductSellableData(Long userId, Integer amount);
-    AddBuyerDataResponseDto chargeBuyerData(Long userId, Integer amount);
+    DeductSellableDataResponseDto deductSellableData(Long userId, Long amount);
+    AddBuyerDataResponseDto chargeBuyerData(Long userId, Long amount);
 }

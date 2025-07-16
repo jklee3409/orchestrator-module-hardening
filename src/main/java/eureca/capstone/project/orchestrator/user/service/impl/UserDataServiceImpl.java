@@ -14,6 +14,7 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserDataServiceImpl implements UserDataService {
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
+    private final UserDataRepositoryCustom userDataRepositoryCustom;
 
     /**
      * 사용자 데이터 레코드를 생성합니다.
@@ -118,7 +120,7 @@ public class UserDataServiceImpl implements UserDataService {
      */
     @Override
     @Transactional
-    public DeductSellableDataResponseDto deductSellableData(Long userId, Integer amount) {
+    public DeductSellableDataResponseDto deductSellableData(Long userId, Long amount) {
         log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", userId);
         try {
             UserData userData = findUserById(userId);
@@ -154,7 +156,7 @@ public class UserDataServiceImpl implements UserDataService {
      */
     @Override
     @Transactional
-    public AddBuyerDataResponseDto chargeBuyerData(Long userId, Integer amount) {
+    public AddBuyerDataResponseDto chargeBuyerData(Long userId, Long amount) {
         log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", userId);
         try {
             UserData userData = findUserById(userId);
@@ -182,12 +184,12 @@ public class UserDataServiceImpl implements UserDataService {
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
     private UserData findUserById(Long userId) {
-        return userDataRepository.findByUserId(userId)
+        return userDataRepositoryCustom.findByUserIdWithLock(userId)
                 .orElseThrow(UserNotFoundException::new);
     }
 
     private UserData findUserDataByEmail(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
-        return userDataRepository.findByUserId(user.getUserId()).orElseThrow(UserNotFoundException::new);
+        return userDataRepositoryCustom.findByUserIdWithLock(user.getUserId()).orElseThrow(UserNotFoundException::new);
     }
 }
