@@ -40,7 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         // 현재 요청 매핑 정보 추출
         String requestURI = request.getRequestURI();
-        log.info("[JwtFilter] Incoming request URI: {}", requestURI);
+        if (!requestURI.equals("/healthCheck")) {
+            log.info("[JwtFilter] Incoming request URI: {}", requestURI);
+        }
         // 화이트리스트 통과 처리
         if (isPassListed(requestURI)) {
             chain.doFilter(request, response);
@@ -77,7 +79,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // roles + authorities → GrantedAuthority 리스트로 통합
             List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
             for (String role : roles) grantedAuthorities.add(new SimpleGrantedAuthority(role)); // ROLE_ 접두사 이미 포함돼 있음
-            for (String authority : authorities) grantedAuthorities.add(new SimpleGrantedAuthority(authority)); // 그대로 READ, WRITE 등
+            for (String authority : authorities)
+                grantedAuthorities.add(new SimpleGrantedAuthority(authority)); // 그대로 READ, WRITE 등
 
 
             // UserDetails 생성
