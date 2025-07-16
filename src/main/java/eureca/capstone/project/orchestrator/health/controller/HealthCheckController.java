@@ -14,8 +14,6 @@ public class HealthCheckController {
 
     @GetMapping("/healthCheck")
     public ResponseEntity<Map<String, Object>> healthCheck() {
-        log.info("[HealthCheck] /healthCheck endpoint called at {}", LocalDateTime.now());
-
         return ResponseEntity.ok(Map.of(
                 "status", "OK",
                 "timestamp", LocalDateTime.now().toString(),
