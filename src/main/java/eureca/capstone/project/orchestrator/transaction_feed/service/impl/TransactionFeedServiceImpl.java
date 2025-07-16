@@ -23,6 +23,7 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import jakarta.transaction.Transactional;
+import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,11 +50,17 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     public CreateFeedResponseDto createFeed(String email, CreateFeedRequestDto feedRequestDto) {
         log.info("[createFeed] 사용자 {} 판매글 작성 시작", email);
         try {
+            SalesType salesType = salesTypeRepository.findById(feedRequestDto.getSalesTypeId())
+                    .orElseThrow(StatusNotFoundException::new);
+
+            validateAuctionCreationTime(salesType);
+            log.info("[createFeed] 판매글 등록 시간 검증 완료.");
+
             User user = findUserByEmail(email);
             UserData userData = findAndValidateUserData(user, feedRequestDto.getSalesDataAmount());
             log.info("[createFeed] 사용자 판매 가능 데이터 검증 완료.");
 
-            TransactionFeed transactionFeed = buildNewFeed(user, userData, feedRequestDto);
+            TransactionFeed transactionFeed = buildNewFeed(user, userData, feedRequestDto, salesType);
             transactionFeedRepository.save(transactionFeed);
             log.info("[createFeed] 판매글 DB 저장 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
@@ -112,8 +119,20 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
-        return transactionFeedRepositoryCustom.findByIdWithLock(transactionFeedId) // 동시성 제어를 위해 비관적 락 사용
+        return transactionFeedRepositoryCustom.findByIdWithLock(transactionFeedId) // 낙관적 락 사용
                 .orElseThrow(TransactionFeedNotFoundException::new);
+    }
+
+    private void validateAuctionCreationTime(SalesType salesType) {
+        if ("입찰 판매".equalsIgnoreCase(salesType.getName())) {
+            LocalTime now = LocalTime.now();
+            LocalTime restrictionStartTime = LocalTime.of(23, 30);
+
+            if (!now.isBefore(restrictionStartTime)) {
+                log.info("[validateAuctionCreationTime] 입찰 판매글 등록 제한 시간입니다. 현재시간: {}", now);
+                throw new AuctionCreationNotAllowedException();
+            }
+        }
     }
 
     private UserData findAndValidateUserData(User user, long salesDataAmount) {
@@ -126,18 +145,24 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return userData;
     }
 
-    private TransactionFeed buildNewFeed(User user, UserData userData, CreateFeedRequestDto dto) {
+    private TransactionFeed buildNewFeed(User user, UserData userData, CreateFeedRequestDto dto, SalesType salesType) {
         TelecomCompany telecomCompany = telecomCompanyRepository.findById(dto.getTelecomCompanyId())
                 .orElseThrow(TelecomCompanyNotFoundException::new);
 
         if (user.getTelecomCompany() != telecomCompany) throw new InvalidTelecomCompanyException();
 
-        SalesType salesType = salesTypeRepository.findById(dto.getSalesTypeId())
-                .orElseThrow(StatusNotFoundException::new);
-
         Status status = statusManager.getStatus("FEED", "ON_SALE");
 
-        LocalDateTime expiresAt = calculateExpirationDate(userData.getResetDataAt());
+        LocalDateTime expiresAt;
+
+        if ("입찰 판매".equals(salesType.getName())) {
+            log.info("[buildNewFeed] 입찰 판매글이므로 만료일은 오늘 자정입니다.");
+            expiresAt = LocalDate.now().atTime(LocalTime.MAX);
+
+        } else {
+            log.info("[buildNewFeed] 일반 판매글이므로 만료일은 사용자 데이터 리셋일 기준입니다.");
+            expiresAt = calculateExpirationDate(userData.getResetDataAt());
+        }
 
         return TransactionFeed.builder()
                 .user(user)
