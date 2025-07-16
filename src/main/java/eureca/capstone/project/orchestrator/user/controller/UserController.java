@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.controller;
 
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
@@ -13,7 +14,10 @@ import eureca.capstone.project.orchestrator.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RequestMapping("/user")
 @RestController
 @RequiredArgsConstructor
@@ -38,28 +43,28 @@ public class UserController {
 
     @GetMapping("/profile")
     @Operation(summary = "사용자 프로필 조회", description = "로그인한 사용자의 닉네임, 이메일, 전화번호, 통신사를 반환합니다.")
-    public BaseResponseDto<GetUserProfileResponseDto> getUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        GetUserProfileResponseDto getUserProfileResponseDto = userService.getUserProfile(userDetails.getUsername());
+    public BaseResponseDto<GetUserProfileResponseDto> getUserProfile(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto) {
+        GetUserProfileResponseDto getUserProfileResponseDto = userService.getUserProfile(customUserDetailsDto.getEmail());
         return BaseResponseDto.success(getUserProfileResponseDto);
     }
 
     @PutMapping("/nickname")
     @Operation(summary = "사용자 닉네임 변경", description = "로그인한 사용자의 닉네임을 변경합니다.")
     public BaseResponseDto<UpdateNicknameResponseDto> updateUserNickname(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @Valid @RequestBody UpdateNicknameRequestDto updateUserNicknameRequestDto
     ) {
-        UpdateNicknameResponseDto updateUserNicknameResponseDto = userService.updateUserNickname(userDetails.getUsername(), updateUserNicknameRequestDto);
+        UpdateNicknameResponseDto updateUserNicknameResponseDto = userService.updateUserNickname(customUserDetailsDto.getEmail(), updateUserNicknameRequestDto);
         return BaseResponseDto.success(updateUserNicknameResponseDto);
     }
 
     @PutMapping("/password")
     @Operation(summary = "사용자 비밀번호 변경", description = "로그인한 사용자의 비밀번호를 변경합니다.")
     public BaseResponseDto<UpdatePasswordResponseDto> updateUserPassword(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @Valid @RequestBody UpdatePasswordRequestDto request
     ) {
-        UpdatePasswordResponseDto response = userService.updateUserPassword(userDetails.getUsername(), request);
+        UpdatePasswordResponseDto response = userService.updateUserPassword(customUserDetailsDto.getEmail(), request);
         return BaseResponseDto.success(response);
     }
 

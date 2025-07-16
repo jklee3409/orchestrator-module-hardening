@@ -6,6 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class UpdateUserDataRequestDto {
-    private Long userId;
     private Integer amount;
 }

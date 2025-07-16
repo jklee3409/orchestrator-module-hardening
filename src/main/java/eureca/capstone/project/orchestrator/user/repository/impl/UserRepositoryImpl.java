@@ -48,6 +48,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
 
         Long userId = result.get(0).get(user.userId);
         String password = result.get(0).get(user.password);
+        String emailFromDB = result.get(0).get(user.email);
         Set<String> roles = new HashSet<>();
         Set<String> authorities = new HashSet<>();
 
@@ -62,6 +63,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         UserInformationDto userInformationDto = UserInformationDto.builder()
                 .userId(userId)
                 .password(password)
+                .email(emailFromDB)
                 .roles(roles)
                 .authorities(authorities)
                 .build();

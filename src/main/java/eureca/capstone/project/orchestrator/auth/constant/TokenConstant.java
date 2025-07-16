@@ -1,8 +1,8 @@
 package eureca.capstone.project.orchestrator.auth.constant;
 
 public class TokenConstant {
-    // 5분 (ms)
-    public static final long accessTokenValidity = 5 * 60 * 1000L;
+    // 1시간
+    public static final long accessTokenValidity = 60 * 60 * 1000L;
     // 2주 (ms)
     public static final long refreshTokenValidity = 14 * 24 * 60 * 60 * 1000L;
     // (second)
