@@ -99,4 +99,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.USER_DATA_NOT_FOUND);
     }
+
+    @ExceptionHandler(AuctionCreationNotAllowedException.class)
+    public BaseResponseDto<ErrorResponseDto> handleAuctionCreationNotAllowedException(AuctionCreationNotAllowedException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.AUCTION_FEED_CREATE_FAIL);
+    }
 }
