@@ -3,7 +3,7 @@ package eureca.capstone.project.orchestrator.common.exception;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
-import eureca.capstone.project.orchestrator.common.exception.custom.BlockOAuthUserException;
+import eureca.capstone.project.orchestrator.common.exception.custom.BlackListUserException;
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailVerifyTokenMismatchException;
 import eureca.capstone.project.orchestrator.common.exception.custom.RefreshTokenMismatchException;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -27,9 +27,9 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.EMAIL_TOKEN_MISMATCH);
     }
 
-    @ExceptionHandler(BlockOAuthUserException.class)
-    public BaseResponseDto<ErrorResponseDto> handleBlockOAuthUserException(BlockOAuthUserException e) {
+    @ExceptionHandler(BlackListUserException.class)
+    public BaseResponseDto<ErrorResponseDto> handleBlockOAuthUserException(BlackListUserException e) {
         log.error(e.getMessage(), e);
-        return BaseResponseDto.fail(ErrorCode.BLOCK_OAUTH_USER);
+        return BaseResponseDto.fail(ErrorCode.BLACK_LIST_USER_FOUND);
     }
 }
