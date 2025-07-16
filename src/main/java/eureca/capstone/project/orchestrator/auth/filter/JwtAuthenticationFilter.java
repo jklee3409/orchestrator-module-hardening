@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        // 현재 요청 매핑 정보 추출
+        // 현재 요청 매핑 정보 추출 (healthCheck 로그 제외)
         String requestURI = request.getRequestURI();
         if (!requestURI.equals("/healthCheck")) {
             log.info("[JwtFilter] Incoming request URI: {}", requestURI);
