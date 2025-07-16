@@ -5,6 +5,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.util.HashSet;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -63,12 +65,19 @@ public class JwtUtil {
     }
 
     public Set<String> extractRoles(String token) {
-        return Set.copyOf(extractClaim(token, claims -> claims.get("roles", Set.class)));
+        return extractClaim(token, claims -> {
+            List<String> rolesList = claims.get("roles", List.class);
+            return rolesList != null ? new HashSet<>(rolesList) : new HashSet<>();
+        });
     }
 
     public Set<String> extractAuthorities(String token) {
-        return Set.copyOf(extractClaim(token, claims -> claims.get("authorities", Set.class)));
+        return extractClaim(token, claims -> {
+            List<String> authoritiesList = claims.get("authorities", List.class);
+            return authoritiesList != null ? new HashSet<>(authoritiesList) : new HashSet<>();
+        });
     }
+
 
     public Long extractUserId(String token) {
         return extractClaim(token, claims -> claims.get("userId", Long.class));
