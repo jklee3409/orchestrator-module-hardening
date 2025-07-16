@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFound
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddBuyerDataResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
@@ -105,6 +106,26 @@ public class UserDataServiceImpl implements UserDataService {
         } catch (Exception e) {
             log.error("[createSellableData] 보유 데이터에서 판매 가능한 데이터로 전환 도중 오류 발생");
             throw new InternalServerException(ErrorCode.SELLABLE_DATA_CREATE_FAIL);
+        }
+    }
+
+    @Override
+    @Transactional
+    public AddSellableDataResponseDto addSellableData(Long userId, Long amount) {
+        log.info("[addSellableData] 사용자 {} 판매 가능 데이터 증가 시작", userId);
+        try {
+            UserData userData = findUserById(userId);
+            userData.addSellableData(amount);
+            log.info("[addSellableData] 사용자 {} 판매 가능 데이터 증가 완료. 최종 판매 가능 데이터: {}", userData.getUserId(), userData.getSellableDataMb());
+
+            return AddSellableDataResponseDto.builder()
+                    .userId(userData.getUserId())
+                    .sellableDataMb(userData.getSellableDataMb())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[addSellableData] 판매 가능 데이터 증가 도중 오류 발생");
+            throw new InternalServerException(ErrorCode.SELLABLE_DATA_ADD_FAIL);
         }
     }
 
