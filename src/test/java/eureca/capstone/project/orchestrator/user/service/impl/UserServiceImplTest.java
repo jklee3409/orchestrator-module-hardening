@@ -13,7 +13,6 @@ import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepo
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user.GetUserProfileRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
@@ -191,103 +190,77 @@ class UserServiceImplTest {
     @DisplayName("사용자 프로필 조회 성공")
     void getUserProfile_Success() {
         // Given
-        GetUserProfileRequestDto requestDto = GetUserProfileRequestDto.builder()
-                .userId(1L)
-                .build();
+        String email = "test@example.com";
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
 
         // When
-        GetUserProfileResponseDto responseDto = userService.getUserProfile(requestDto);
+        GetUserProfileResponseDto responseDto = userService.getUserProfile(email);
 
         // Then
         assertNotNull(responseDto);
         assertEquals(user.getEmail(), responseDto.getEmail());
         assertEquals(user.getNickname(), responseDto.getNickname());
         assertEquals(user.getPhoneNumber(), responseDto.getPhoneNumber());
-        verify(userRepository).findById(requestDto.getUserId());
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자 프로필 조회 시 예외 발생")
     void getUserProfile_UserNotFound_ThrowsException() {
         // Given
-        GetUserProfileRequestDto requestDto = GetUserProfileRequestDto.builder()
-                .userId(1L)
-                .build();
+        String email = "test@example.com";
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(UserNotFoundException.class, () -> userService.getUserProfile(requestDto));
-        verify(userRepository).findById(requestDto.getUserId());
+        assertThrows(UserNotFoundException.class, () -> userService.getUserProfile(email));
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
     @DisplayName("사용자 닉네임 업데이트 성공")
     void updateUserNickname_Success() {
         // Given
+        String email = "test@example.com";
         UpdateNicknameRequestDto requestDto = UpdateNicknameRequestDto.builder()
-                .userId(1L)
                 .nickname("새닉네임")
                 .build();
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
 
         // When
-        UpdateNicknameResponseDto responseDto = userService.updateUserNickname(requestDto);
+        UpdateNicknameResponseDto responseDto = userService.updateUserNickname(email, requestDto);
 
         // Then
         assertNotNull(responseDto);
         assertEquals(user.getUserId(), responseDto.getUserId());
         assertEquals(requestDto.getNickname(), responseDto.getNickname());
-        verify(userRepository).findById(requestDto.getUserId());
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자 닉네임 업데이트 시 예외 발생")
     void updateUserNickname_UserNotFound_ThrowsException() {
         // Given
+        String email = "test@example.com";
         UpdateNicknameRequestDto requestDto = UpdateNicknameRequestDto.builder()
-                .userId(1L)
                 .nickname("새닉네임")
                 .build();
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(UserNotFoundException.class, () -> userService.updateUserNickname(requestDto));
-        verify(userRepository).findById(requestDto.getUserId());
+        assertThrows(UserNotFoundException.class, () -> userService.updateUserNickname(email, requestDto));
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
-    @DisplayName("사용자 비밀번호 업데이트 성공 (ID로 조회)")
-    void updateUserPassword_ByUserId_Success() {
+    @DisplayName("사용자 비밀번호 업데이트 성공")
+    void updateUserPassword_Success() {
         // Given
+        String email = "test@example.com";
         UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
-                .userId(1L)
-                .password("newPassword")
-                .build();
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
-
-        // When
-        UpdatePasswordResponseDto responseDto = userService.updateUserPassword(requestDto);
-
-        // Then
-        assertNotNull(responseDto);
-        assertEquals(user.getUserId(), responseDto.getUserId());
-        verify(userRepository).findById(requestDto.getUserId());
-        verify(passwordEncoder).encode(requestDto.getPassword());
-    }
-
-    @Test
-    @DisplayName("사용자 비밀번호 업데이트 성공 (이메일로 조회)")
-    void updateUserPassword_ByEmail_Success() {
-        // Given
-        UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
-                .email("test@example.com")
                 .password("newPassword")
                 .build();
 
@@ -295,29 +268,30 @@ class UserServiceImplTest {
         when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
 
         // When
-        UpdatePasswordResponseDto responseDto = userService.updateUserPassword(requestDto);
+        UpdatePasswordResponseDto responseDto = userService.updateUserPassword(email, requestDto);
 
         // Then
         assertNotNull(responseDto);
         assertEquals(user.getUserId(), responseDto.getUserId());
-        verify(userRepository).findByEmail(requestDto.getEmail());
+        verify(userRepository).findByEmail(email);
         verify(passwordEncoder).encode(requestDto.getPassword());
     }
+
 
     @Test
     @DisplayName("존재하지 않는 사용자 비밀번호 업데이트 시 예외 발생")
     void updateUserPassword_UserNotFound_ThrowsException() {
         // Given
+        String email = "test@example.com";
         UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
-                .userId(1L)
                 .password("newPassword")
                 .build();
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(UserNotFoundException.class, () -> userService.updateUserPassword(requestDto));
-        verify(userRepository).findById(requestDto.getUserId());
+        assertThrows(UserNotFoundException.class, () -> userService.updateUserPassword(email, requestDto));
+        verify(userRepository).findByEmail(email);
     }
 
     @Test

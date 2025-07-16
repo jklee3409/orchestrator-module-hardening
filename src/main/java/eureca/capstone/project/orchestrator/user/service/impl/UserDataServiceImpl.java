@@ -4,15 +4,16 @@ import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddBuyerDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.GetUserDataStatusResponseDto;
+import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UserDataServiceImpl implements UserDataService {
-
+    private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
 
     /**
@@ -56,15 +57,15 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자의 데이터 현황을 조회합니다.
      * 사용자 ID를 기반으로 사용자의 보유 데이터, 판매 가능 데이터, 구매 데이터 현황을 조회합니다.
      *
-     * @param getUserDataStatusRequestDto 조회할 사용자의 ID
+     * @param email 조회할 사용자의 email
      * @return 사용자의 데이터 현황
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
     @Override
-    public GetUserDataStatusResponseDto getUserDataStatus(GetUserDataStatusRequestDto getUserDataStatusRequestDto) {
-        log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", getUserDataStatusRequestDto.getUserId());
+    public GetUserDataStatusResponseDto getUserDataStatus(String email) {
+        log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", email);
 
-        UserData userData = findUserById(getUserDataStatusRequestDto.getUserId());
+        UserData userData = findUserDataByEmail(email);
 
         return GetUserDataStatusResponseDto.fromEntity(userData);
     }
@@ -80,10 +81,10 @@ public class UserDataServiceImpl implements UserDataService {
      */
     @Override
     @Transactional
-    public CreateSellableDataResponseDto createSellableData(UpdateUserDataRequestDto requestDto) {
-        log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", requestDto.getUserId());
+    public CreateSellableDataResponseDto createSellableData(String email, UpdateUserDataRequestDto requestDto) {
+        log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", email);
         try {
-            UserData userData = findUserById(requestDto.getUserId());
+            UserData userData = findUserDataByEmail(email);
 
             if (userData.getTotalDataMb() < requestDto.getAmount()) {
                 throw new InternalServerException(ErrorCode.USER_TOTAL_DATA_LACK);
@@ -183,5 +184,10 @@ public class UserDataServiceImpl implements UserDataService {
     private UserData findUserById(Long userId) {
         return userDataRepository.findByUserId(userId)
                 .orElseThrow(UserNotFoundException::new);
+    }
+
+    private UserData findUserDataByEmail(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
+        return userDataRepository.findByUserId(user.getUserId()).orElseThrow(UserNotFoundException::new);
     }
 }
