@@ -3,11 +3,9 @@ package eureca.capstone.project.orchestrator.user.service.impl;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
-import eureca.capstone.project.orchestrator.user.dto.request.user_data.AddBuyerDataRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
-import eureca.capstone.project.orchestrator.user.dto.request.user_data.DeductSellableDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.GetUserDataStatusRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.AddBuyerDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateUserDataResponseDto;
@@ -75,23 +73,23 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자의 보유 데이터를 판매 가능한 데이터로 전환합니다.
      * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 보유 데이터에서 차감하고 판매 가능한 데이터로 전환합니다.
      *
-     * @param createSellableDataRequestDto 사용자 ID와 판매 가능한 데이터로 전환할 양
+     * @param requestDto 사용자 ID와 판매 가능한 데이터로 전환할 양
      * @return 업데이트된 사용자의 총 데이터와 판매 가능한 데이터
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      * @throws InternalServerException 보유 데이터가 부족하거나 전환 중 오류 발생 시
      */
     @Override
     @Transactional
-    public CreateSellableDataResponseDto createSellableData(CreateSellableDataRequestDto createSellableDataRequestDto) {
-        log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", createSellableDataRequestDto.getUserId());
+    public CreateSellableDataResponseDto createSellableData(UpdateUserDataRequestDto requestDto) {
+        log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", requestDto.getUserId());
         try {
-            UserData userData = findUserById(createSellableDataRequestDto.getUserId());
+            UserData userData = findUserById(requestDto.getUserId());
 
-            if (userData.getTotalDataMb() < createSellableDataRequestDto.getAmount()) {
+            if (userData.getTotalDataMb() < requestDto.getAmount()) {
                 throw new InternalServerException(ErrorCode.USER_TOTAL_DATA_LACK);
             }
 
-            userData.createSellableData(createSellableDataRequestDto.getAmount());
+            userData.createSellableData(requestDto.getAmount());
             log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능한 데이터로 전환 완료. 최종 보유 데이터: {}, 최종 판매 가능한 데이터: {}",
                     userData.getUserId(), userData.getTotalDataMb(), userData.getSellableDataMb());
 
@@ -112,23 +110,23 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 판매 가능한 데이터에서 차감합니다.
      * 데이터 판매 시 사용됩니다.
      *
-     * @param deductSellableDataRequestDto 사용자 ID와 차감할 데이터 양
+     * @param requestDto 사용자 ID와 차감할 데이터 양
      * @return 업데이트된 사용자의 판매 가능한 데이터
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      * @throws InternalServerException 판매 가능한 데이터가 부족하거나 차감 중 오류 발생 시
      */
     @Override
     @Transactional
-    public DeductSellableDataResponseDto deductSellableData(DeductSellableDataRequestDto deductSellableDataRequestDto) {
-        log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", deductSellableDataRequestDto.getUserId());
+    public DeductSellableDataResponseDto deductSellableData(UpdateUserDataRequestDto requestDto) {
+        log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", requestDto.getUserId());
         try {
-            UserData userData = findUserById(deductSellableDataRequestDto.getUserId());
+            UserData userData = findUserById(requestDto.getUserId());
 
-            if (userData.getSellableDataMb() < deductSellableDataRequestDto.getAmount()) {
+            if (userData.getSellableDataMb() < requestDto.getAmount()) {
                 throw new InternalServerException(ErrorCode.USER_SELLABLE_DATA_LACK);
             }
 
-            userData.deductSellableData(deductSellableDataRequestDto.getAmount());
+            userData.deductSellableData(requestDto.getAmount());
             log.info("[deductSellableData] 사용자 {} 판매 가능 데이터 차감 완료. 최종 판매 가능 데이터: {}",
                     userData.getUserId(), userData.getSellableDataMb());
 
@@ -148,19 +146,19 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 구매 데이터에 추가합니다.
      * 데이터 충전권을 사용해서 데이터 충전 시 사용됩니다.
      *
-     * @param addBuyerDataRequestDto 사용자 ID와 충전할 데이터 양
+     * @param requestDto 사용자 ID와 충전할 데이터 양
      * @return 업데이트된 사용자의 구매 데이터
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      * @throws InternalServerException 데이터 충전 중 오류 발생 시
      */
     @Override
     @Transactional
-    public AddBuyerDataResponseDto chargeBuyerData(AddBuyerDataRequestDto addBuyerDataRequestDto) {
-        log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", addBuyerDataRequestDto.getUserId());
+    public AddBuyerDataResponseDto chargeBuyerData(UpdateUserDataRequestDto requestDto) {
+        log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", requestDto.getUserId());
         try {
-            UserData userData = findUserById(addBuyerDataRequestDto.getUserId());
+            UserData userData = findUserById(requestDto.getUserId());
 
-            userData.addBuyerData(addBuyerDataRequestDto.getAmount());
+            userData.addBuyerData(requestDto.getAmount());
             log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전 완료. 최종 구매 데이터: {}",
                     userData.getUserId(), userData.getBuyerDataMb());
 

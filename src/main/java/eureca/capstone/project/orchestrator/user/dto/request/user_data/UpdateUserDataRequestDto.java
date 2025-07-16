@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class AddBuyerDataRequestDto {
+public class UpdateUserDataRequestDto {
     private Long userId;
     private Integer amount;
 }
