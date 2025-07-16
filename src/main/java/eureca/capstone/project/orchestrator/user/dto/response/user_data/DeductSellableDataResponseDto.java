@@ -7,5 +7,5 @@ import lombok.Data;
 @Builder
 public class DeductSellableDataResponseDto {
     private Long userId;
-    private Integer sellableDataMb;
+    private Long sellableDataMb;
 }

@@ -30,7 +30,7 @@ public class UserData extends BaseEntity {
     private Long buyerDataMb; // 구매한 데이터
     private Integer resetDataAt; // 데이터 초기화 날짜
 
-    public void createSellableData(Integer amount) {
+    public void createSellableData(Long amount) {
         this.totalDataMb -= amount;
         this.sellableDataMb += amount;
     }

@@ -7,6 +7,6 @@ import lombok.Data;
 @Builder
 public class CreateSellableDataResponseDto {
     private Long userId;
-    private Integer totalDataMb; // 전환 후 총 보유 데이터
-    private Integer sellableDataMb; // 전환 후 총 판매 가능한 데이터
+    private Long totalDataMb; // 전환 후 총 보유 데이터
+    private Long sellableDataMb; // 전환 후 총 판매 가능한 데이터
 }

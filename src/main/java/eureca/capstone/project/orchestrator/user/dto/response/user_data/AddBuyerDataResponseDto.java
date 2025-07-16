@@ -7,5 +7,5 @@ import lombok.Data;
 @Builder
 public class AddBuyerDataResponseDto {
     private Long userId;
-    private Integer buyerDataMb;
+    private Long buyerDataMb;
 }
