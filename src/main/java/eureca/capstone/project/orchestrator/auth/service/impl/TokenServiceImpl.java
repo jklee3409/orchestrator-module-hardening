@@ -1,7 +1,6 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
-import eureca.capstone.project.orchestrator.auth.dto.request.LoginRequestDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
@@ -38,7 +37,7 @@ public class TokenServiceImpl implements TokenService {
 
         // JWT 토큰 발급
         String accessToken = jwtUtil.generateAccessToken(email, roles, authorities, userId);
-        String refreshToken = jwtUtil.generateAccessToken(email, roles, authorities, userId);
+        String refreshToken = jwtUtil.generateRefreshToken(email, roles, authorities, userId);
         log.info("Generated access token - accessToken: {}", accessToken);
         log.info("Generated access token - refreshToken: {}", refreshToken);
 
