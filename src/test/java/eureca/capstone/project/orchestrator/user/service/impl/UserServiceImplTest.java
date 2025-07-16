@@ -83,7 +83,6 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트에 사용할 객체 초기화
         telecomCompany = TelecomCompany.builder()
                 .telecomCompanyId(1L)
                 .name("테스트 통신사")
@@ -110,7 +109,6 @@ class UserServiceImplTest {
                 .status(status)
                 .build();
 
-        // Set createdAt field using reflection to avoid NullPointerException
         try {
             java.lang.reflect.Field createdAtField = User.class.getSuperclass().getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
@@ -141,16 +139,13 @@ class UserServiceImplTest {
         when(roleRepository.findRoleByName(anyString())).thenReturn(role);
         when(userRoleRepository.save(any(UserRole.class))).thenReturn(new UserRole());
         when(planService.getRandomPlan(any(RandomPlanRequestDto.class)))
-                .thenReturn(RandomPlanResponseDto.builder().planId(1L).monthlyDataMb(5000).build());
+                .thenReturn(RandomPlanResponseDto.builder().planId(1L).monthlyDataMb(5000L).build());
         doNothing().when(userDataService).createUserData(any());
 
-        // Mock the CreateUserResponseDto that will be returned
-        // This is needed because the actual implementation builds the DTO with the user's ID
         CreateUserResponseDto mockResponseDto = CreateUserResponseDto.builder()
                 .id(1L)
                 .build();
 
-        // Use a spy to partially mock the userService
         UserServiceImpl spyUserService = spy(userService);
         doReturn(mockResponseDto).when(spyUserService).createUser(any(CreateUserRequestDto.class));
 
@@ -161,8 +156,7 @@ class UserServiceImplTest {
         assertNotNull(responseDto);
         assertEquals(1L, responseDto.getId());
 
-        // Verify the mock interactions
-        verify(userRepository, never()).findByEmail(anyString()); // These won't be called because we're using a spy
+        verify(userRepository, never()).findByEmail(anyString());
     }
 
     @Test

@@ -10,6 +10,7 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,9 @@ class UserDataServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserDataRepositoryCustom userDataRepositoryCustom;
+
     @InjectMocks
     private UserDataServiceImpl userDataService;
 
@@ -46,9 +50,9 @@ class UserDataServiceImplTest {
                 .userDataId(1L)
                 .userId(1L)
                 .planId(1L)
-                .totalDataMb(10000)
-                .sellableDataMb(2000)
-                .buyerDataMb(1000)
+                .totalDataMb(10000L)
+                .sellableDataMb(2000L)
+                .buyerDataMb(1000L)
                 .resetDataAt(1)
                 .build();
     }
@@ -60,7 +64,7 @@ class UserDataServiceImplTest {
         CreateUserDataRequestDto requestDto = CreateUserDataRequestDto.builder()
                 .userId(1L)
                 .planId(1L)
-                .monthlyDataMb(10000)
+                .monthlyDataMb(10000L)
                 .resetDataAt(1)
                 .build();
 
@@ -84,7 +88,7 @@ class UserDataServiceImplTest {
         when(mockUser.getUserId()).thenReturn(1L);
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
-        when(userDataRepository.findByUserId(anyLong())).thenReturn(Optional.of(userData));
+        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
 
         // When
         GetUserDataStatusResponseDto responseDto = userDataService.getUserDataStatus(email);
@@ -95,7 +99,7 @@ class UserDataServiceImplTest {
         assertEquals(userData.getSellableDataMb(), responseDto.getSellableDataMb());
         assertEquals(userData.getBuyerDataMb(), responseDto.getBuyerDataMb());
         verify(userRepository).findByEmail(email);
-        verify(userDataRepository).findByUserId(1L);
+        verify(userDataRepositoryCustom).findByUserIdWithLock(1L);
     }
 
     @Test
@@ -117,7 +121,7 @@ class UserDataServiceImplTest {
         // Given
         String email = "test@example.com";
         UpdateUserDataRequestDto requestDto = UpdateUserDataRequestDto.builder()
-                .amount(1000)
+                .amount(1000L)
                 .build();
 
         // Mock User repository
@@ -125,7 +129,7 @@ class UserDataServiceImplTest {
         when(mockUser.getUserId()).thenReturn(1L);
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
-        when(userDataRepository.findByUserId(anyLong())).thenReturn(Optional.of(userData));
+        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
 
         // When
         CreateSellableDataResponseDto responseDto = userDataService.createSellableData(email, requestDto);
@@ -136,7 +140,7 @@ class UserDataServiceImplTest {
         assertEquals(userData.getTotalDataMb(), responseDto.getTotalDataMb());
         assertEquals(userData.getSellableDataMb(), responseDto.getSellableDataMb());
         verify(userRepository).findByEmail(email);
-        verify(userDataRepository).findByUserId(1L);
+        verify(userDataRepositoryCustom).findByUserIdWithLock(1L);
     }
 
     @Test
@@ -145,7 +149,7 @@ class UserDataServiceImplTest {
         // Given
         String email = "test@example.com";
         UpdateUserDataRequestDto requestDto = UpdateUserDataRequestDto.builder()
-                .amount(20000) // 보유 데이터보다 큰 값
+                .amount(20000L) // 보유 데이터보다 큰 값
                 .build();
 
         // Mock User repository
@@ -153,11 +157,11 @@ class UserDataServiceImplTest {
         when(mockUser.getUserId()).thenReturn(1L);
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
-        when(userDataRepository.findByUserId(anyLong())).thenReturn(Optional.of(userData));
+        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
 
         // When & Then
         assertThrows(InternalServerException.class, () -> userDataService.createSellableData(email, requestDto));
         verify(userRepository).findByEmail(email);
-        verify(userDataRepository).findByUserId(1L);
+        verify(userDataRepositoryCustom).findByUserIdWithLock(1L);
     }
 }
