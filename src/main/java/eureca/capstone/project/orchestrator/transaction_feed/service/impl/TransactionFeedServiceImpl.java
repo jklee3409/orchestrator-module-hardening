@@ -1,14 +1,18 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.common.dto.StatusDto;
+import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
@@ -111,6 +115,40 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
             log.info("[updateFeed] 판매글 수정 도중 오류 발생");
             throw new InternalServerException(ErrorCode.TRANSACTION_FEED_UPDATE_FAIL);
         }
+    }
+
+    @Override
+    public GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId) {
+        log.info("[getFeedDetail] 판매글 상세 조회 시작. ID: {}", transactionFeedId);
+        TransactionFeed feed = transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId)
+                .orElseThrow(TransactionFeedNotFoundException::new);
+
+        // TODO: 찜 횟수 별도 조회 필요
+        long likedCount = 20L;
+        Long currentHeightPrice = null;
+
+        if ("입찰 판매".equals(feed.getSalesType().getName())) {
+            log.info("[getFeedDetail] 입찰 판매글입니다. 현재 최고가 조회");
+            // TODO: 현재 최고가 조회 필요
+            currentHeightPrice = 10000L;
+        }
+
+        return GetFeedDetailResponseDto.builder()
+                .transactionFeedId(feed.getTransactionFeedId())
+                .title(feed.getTitle())
+                .content(feed.getContent())
+                .salesDataAmount(feed.getSalesDataAmount())
+                .salesPrice(feed.getSalesPrice())
+                .defaultImageNumber(feed.getDefaultImageNumber())
+                .createdAt(feed.getCreatedAt())
+                .nickname(feed.getUser().getNickname())
+                .likedCount(likedCount)
+                .telecomCompany(TelecomCompanyDto.fromEntity(feed.getTelecomCompany()))
+                .status(StatusDto.fromEntity(feed.getStatus()))
+                .salesType(SalesTypeDto.fromEntity(feed.getSalesType()))
+                .expiredAt(feed.getExpiresAt())
+                .currentHeightPrice(currentHeightPrice)
+                .build();
     }
 
     private User findUserByEmail(String email) {
