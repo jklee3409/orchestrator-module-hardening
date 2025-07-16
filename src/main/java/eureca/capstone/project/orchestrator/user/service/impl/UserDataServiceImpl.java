@@ -118,7 +118,7 @@ public class UserDataServiceImpl implements UserDataService {
      */
     @Override
     @Transactional
-    public DeductSellableDataResponseDto deductSellableData(Long userId, Integer amount) {
+    public DeductSellableDataResponseDto deductSellableData(Long userId, Long amount) {
         log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", userId);
         try {
             UserData userData = findUserById(userId);
@@ -154,7 +154,7 @@ public class UserDataServiceImpl implements UserDataService {
      */
     @Override
     @Transactional
-    public AddBuyerDataResponseDto chargeBuyerData(Long userId, Integer amount) {
+    public AddBuyerDataResponseDto chargeBuyerData(Long userId, Long amount) {
         log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", userId);
         try {
             UserData userData = findUserById(userId);

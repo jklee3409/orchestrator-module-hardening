@@ -25,9 +25,9 @@ public class UserData extends BaseEntity {
 
     private Long userId;
     private Long planId;
-    private Integer totalDataMb; // 총 소유 데이터
-    private Integer sellableDataMb; // 판매 가능한 데이터
-    private Integer buyerDataMb; // 구매한 데이터
+    private Long totalDataMb; // 총 소유 데이터
+    private Long sellableDataMb; // 판매 가능한 데이터
+    private Long buyerDataMb; // 구매한 데이터
     private Integer resetDataAt; // 데이터 초기화 날짜
 
     public void createSellableData(Integer amount) {
