@@ -22,7 +22,6 @@ public class TransactionFeedRepositoryImpl implements TransactionFeedRepositoryC
         TransactionFeed result = jpaQueryFactory
                 .selectFrom(transactionFeed)
                 .where(transactionFeed.transactionFeedId.eq(transactionFeedId))
-                .setLockMode(LockModeType.PESSIMISTIC_READ)
                 .fetchOne();
 
         return Optional.ofNullable(result);
