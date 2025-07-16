@@ -72,6 +72,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TelecomCompany telecomCompany = telecomCompanyRepository.findById(dto.getTelecomCompanyId())
                 .orElseThrow(TelecomCompanyNotFoundException::new);
 
+        if (user.getTelecomCompany() != telecomCompany) throw new InvalidTelecomCompanyException();
+
         SalesType salesType = salesTypeRepository.findById(dto.getSalesTypeId())
                 .orElseThrow(StatusNotFoundException::new);
 
