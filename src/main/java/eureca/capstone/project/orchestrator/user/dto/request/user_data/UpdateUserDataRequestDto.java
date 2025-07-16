@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class UpdateUserDataRequestDto {
-    private Integer amount;
+    private Long amount;
 }

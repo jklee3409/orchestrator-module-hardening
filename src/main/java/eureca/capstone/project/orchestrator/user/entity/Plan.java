@@ -25,5 +25,5 @@ public class Plan extends BaseEntity {
     private TelecomCompany telecomCompany;
 
     private String planName;
-    private Integer monthlyDataMb;
+    private Long monthlyDataMb;
 }

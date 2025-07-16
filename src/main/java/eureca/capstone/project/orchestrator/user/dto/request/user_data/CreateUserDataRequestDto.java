@@ -9,7 +9,7 @@ import lombok.Data;
 public class CreateUserDataRequestDto {
     private Long userId;
     private Long planId;
-    private Integer monthlyDataMb;
+    private Long monthlyDataMb;
     private Integer resetDataAt;
 
     public static UserData toEntity(CreateUserDataRequestDto requestDto) {
@@ -17,8 +17,8 @@ public class CreateUserDataRequestDto {
                 .userId(requestDto.getUserId())
                 .planId(requestDto.getPlanId())
                 .totalDataMb(requestDto.getMonthlyDataMb())
-                .sellableDataMb(0)
-                .buyerDataMb(0)
+                .sellableDataMb(0L)
+                .buyerDataMb(0L)
                 .resetDataAt(requestDto.getResetDataAt())
                 .build();
     }

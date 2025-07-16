@@ -7,5 +7,5 @@ import lombok.Data;
 @Builder
 public class RandomPlanResponseDto {
     private Long planId;
-    private Integer monthlyDataMb;
+    private Long monthlyDataMb;
 }

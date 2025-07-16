@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 @Builder
 public class GetUserDataStatusResponseDto {
-    private Integer totalDataMb;
-    private Integer sellableDataMb;
-    private Integer buyerDataMb;
+    private Long totalDataMb;
+    private Long sellableDataMb;
+    private Long buyerDataMb;
 
     public static GetUserDataStatusResponseDto fromEntity(UserData userData) {
         return GetUserDataStatusResponseDto.builder()
