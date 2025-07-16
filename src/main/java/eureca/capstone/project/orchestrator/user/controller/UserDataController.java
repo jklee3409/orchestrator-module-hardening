@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.controller;
 
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
@@ -33,10 +34,10 @@ public class UserDataController {
     @PutMapping("/enable-sale/change")
     @Operation(summary = "사용자 보유 데이터 -> 판매 가능 데이터로 전환", description = "로그인한 사용자의 보유 데이터를 판매 가능 데이터로 전환합니다.")
     public BaseResponseDto<CreateSellableDataResponseDto> createSellableData(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @RequestBody UpdateUserDataRequestDto requestDto
     ) {
-        CreateSellableDataResponseDto createSellableDataResponseDto = userDataService.createSellableData(userDetails.getUsername(), requestDto);
+        CreateSellableDataResponseDto createSellableDataResponseDto = userDataService.createSellableData(customUserDetailsDto.getEmail(), requestDto);
         return BaseResponseDto.success(createSellableDataResponseDto);
     }
 }

@@ -215,6 +215,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private User findUserByEmail(String email) {
+        log.info("email: {}", email);
         return userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
     }
 }

@@ -111,23 +111,23 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 판매 가능한 데이터에서 차감합니다.
      * 데이터 판매 시 사용됩니다.
      *
-     * @param requestDto 사용자 ID와 차감할 데이터 양
+     * @param amount 차감할 데이터 양
      * @return 업데이트된 사용자의 판매 가능한 데이터
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      * @throws InternalServerException 판매 가능한 데이터가 부족하거나 차감 중 오류 발생 시
      */
     @Override
     @Transactional
-    public DeductSellableDataResponseDto deductSellableData(UpdateUserDataRequestDto requestDto) {
-        log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", requestDto.getUserId());
+    public DeductSellableDataResponseDto deductSellableData(Long userId, Integer amount) {
+        log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", userId);
         try {
-            UserData userData = findUserById(requestDto.getUserId());
+            UserData userData = findUserById(userId);
 
-            if (userData.getSellableDataMb() < requestDto.getAmount()) {
+            if (userData.getSellableDataMb() < amount) {
                 throw new InternalServerException(ErrorCode.USER_SELLABLE_DATA_LACK);
             }
 
-            userData.deductSellableData(requestDto.getAmount());
+            userData.deductSellableData(amount);
             log.info("[deductSellableData] 사용자 {} 판매 가능 데이터 차감 완료. 최종 판매 가능 데이터: {}",
                     userData.getUserId(), userData.getSellableDataMb());
 
@@ -147,19 +147,19 @@ public class UserDataServiceImpl implements UserDataService {
      * 사용자 ID를 기반으로 사용자를 찾아 지정된 양의 데이터를 구매 데이터에 추가합니다.
      * 데이터 충전권을 사용해서 데이터 충전 시 사용됩니다.
      *
-     * @param requestDto 사용자 ID와 충전할 데이터 양
+     * @param amount 충전할 데이터 양
      * @return 업데이트된 사용자의 구매 데이터
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      * @throws InternalServerException 데이터 충전 중 오류 발생 시
      */
     @Override
     @Transactional
-    public AddBuyerDataResponseDto chargeBuyerData(UpdateUserDataRequestDto requestDto) {
-        log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", requestDto.getUserId());
+    public AddBuyerDataResponseDto chargeBuyerData(Long userId, Integer amount) {
+        log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", userId);
         try {
-            UserData userData = findUserById(requestDto.getUserId());
+            UserData userData = findUserById(userId);
 
-            userData.addBuyerData(requestDto.getAmount());
+            userData.addBuyerData(amount);
             log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전 완료. 최종 구매 데이터: {}",
                     userData.getUserId(), userData.getBuyerDataMb());
 
