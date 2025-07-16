@@ -6,11 +6,14 @@ import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
@@ -64,6 +67,9 @@ class TransactionFeedServiceImplTest {
 
     @Mock
     private UserDataRepositoryCustom userDataRepositoryCustom;
+
+    @Mock
+    private TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
 
     @Mock
     private StatusManager statusManager;
@@ -271,5 +277,90 @@ class TransactionFeedServiceImplTest {
         verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
         verify(telecomCompanyRepository).findById(createFeedRequestDto.getTelecomCompanyId());
         verify(salesTypeRepository, never()).findById(anyLong());
+    }
+    @Test
+    @DisplayName("피드 수정 성공")
+    void updateFeed_Success() {
+        // Given
+        String email = "test@example.com";
+        UpdateFeedRequestDto updateFeedRequestDto = UpdateFeedRequestDto.builder()
+                .transactionFeedId(1L)
+                .title("수정된 제목")
+                .content("수정된 내용")
+                .salesPrice(15000L)
+                .salesDataAmount(800L)
+                .defaultImageNumber(2L)
+                .build();
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(transactionFeedRepositoryCustom.findByIdWithLock(anyLong())).thenReturn(Optional.of(transactionFeed));
+
+        // When
+        UpdateFeedResponseDto responseDto = transactionFeedService.updateFeed(email, updateFeedRequestDto);
+
+        // Then
+        assertNotNull(responseDto);
+        assertEquals(transactionFeed.getTransactionFeedId(), responseDto.getTransactionFeedId());
+        assertEquals("수정된 제목", transactionFeed.getTitle());
+        assertEquals("수정된 내용", transactionFeed.getContent());
+        assertEquals(15000L, transactionFeed.getSalesPrice());
+        assertEquals(800L, transactionFeed.getSalesDataAmount());
+        assertEquals(2L, transactionFeed.getDefaultImageNumber());
+
+        verify(userRepository).findByEmail(email);
+        verify(transactionFeedRepositoryCustom).findByIdWithLock(updateFeedRequestDto.getTransactionFeedId());
+        verify(userDataService).addSellableData(user.getUserId(), 200L); // 1000L - 800L = 200L 환불
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 피드 수정 시 예외 발생")
+    void updateFeed_DifferentUser_ThrowsException() {
+        // Given
+        String email = "test@example.com";
+        UpdateFeedRequestDto updateFeedRequestDto = UpdateFeedRequestDto.builder()
+                .transactionFeedId(1L)
+                .title("수정된 제목")
+                .content("수정된 내용")
+                .salesPrice(15000L)
+                .salesDataAmount(800L)
+                .defaultImageNumber(2L)
+                .build();
+
+        User differentUser = User.builder()
+                .userId(2L)
+                .email("different@example.com")
+                .password("encodedPassword")
+                .nickname("다른유저")
+                .phoneNumber("01087654321")
+                .provider("local")
+                .telecomCompany(telecomCompany)
+                .status(status)
+                .build();
+
+        TransactionFeed differentUserFeed = TransactionFeed.builder()
+                .transactionFeedId(1L)
+                .user(differentUser)
+                .title("테스트 피드")
+                .content("테스트 내용")
+                .telecomCompany(telecomCompany)
+                .salesType(salesType)
+                .salesPrice(10000L)
+                .salesDataAmount(1000L)
+                .defaultImageNumber(1L)
+                .expiresAt(LocalDateTime.now().plusDays(15))
+                .status(status)
+                .isDeleted(false)
+                .build();
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(transactionFeedRepositoryCustom.findByIdWithLock(anyLong())).thenReturn(Optional.of(differentUserFeed));
+
+        // When & Then
+        assertThrows(InternalServerException.class, () -> transactionFeedService.updateFeed(email, updateFeedRequestDto));
+
+        verify(userRepository).findByEmail(email);
+        verify(transactionFeedRepositoryCustom).findByIdWithLock(updateFeedRequestDto.getTransactionFeedId());
+        verify(userDataService, never()).addSellableData(anyLong(), anyLong());
+        verify(userDataService, never()).deductSellableData(anyLong(), anyLong());
     }
 }

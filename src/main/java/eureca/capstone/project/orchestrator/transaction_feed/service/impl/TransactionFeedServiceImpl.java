@@ -64,6 +64,9 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                     .id(transactionFeed.getTransactionFeedId())
                     .build();
 
+        } catch (UserDataNotFoundException | DataOverSellableAmountException | InvalidTelecomCompanyException e) {
+            log.info("[createFeed] 판매글 작성 도중 오류 발생: {}", e.getMessage());
+            throw e; // Rethrow specific exceptions
         } catch (Exception e) {
             log.info("[createFeed] 판매글 작성 도중 오류 발생");
             throw new InternalServerException(ErrorCode.TRANSACTION_FEED_CREATE_FAIL);
@@ -162,7 +165,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     /**
-     * 판매글 수정시 판매 데이터 양 변경에 따른 사용자 데이터 가감산을 처리합니다.
+     * 판매글 수정시 판매 데이터 양 변경에 따른 사용자 데이터 증가, 감소를 처리합니다.
      *
      * @param user 사용자 엔티티
      * @param originalSaleDataMb 기존 판매 데이터 양
