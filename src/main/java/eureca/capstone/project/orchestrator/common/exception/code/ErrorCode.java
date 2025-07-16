@@ -23,6 +23,7 @@ public enum ErrorCode {
     USER_EMAIL_ALREADY_EXISTS(20001, "USER_EMAIL_ALREADY_EXISTS", "중복된 email 입니다."),
     USER_CREATE_FAIL(20002, "USER_CREATE_FAIL", "사용자 등록 중 오류가 발생했습니다."),
     INVALID_PARAMETER(20003, "INVALID_PARAMETER", "유효하지 않은 파라미터입니다."),
+    EMAIL_ALREADY_EXISTS(2004, "EMAIL_ALREADY_EXISTS", "이미 존재하는 이메일입니다."),
 
     // USER_DATA 관련 에러 코드 (20051 ~ 20100)
     USER_DATA_CREATE_FAIL(20051, "USER_DATA_CREATE_FAIL", "사용자 데이터 등록 중 오류가 발생했습니다."),
@@ -30,19 +31,30 @@ public enum ErrorCode {
     SELLABLE_DATA_CREATE_FAIL(20053, "SELLABLE_DATA_CREATE_FAIL", "보유 데이터에서 판매 가능한 데이터로 전환 중 오류가 발생했습니다"),
     USER_SELLABLE_DATA_LACK(20054, "USER_SELLABLE_DATA_LACK", "사용자 판매 가능 데이터가 부족합니다."),
     SELLABLE_DATA_DEDUCT_FAIL(20055, "SELLABLE_DATA_DEDUCT_FAIL", "판매 가능 데이터 차감 도중 오류가 발생했습니다."),
-    SELLABLE_DATA_COMPENSATE_FAIL(20056, "SELLABLE_DATA_COMPENSATE_FAIL", "판매 가능데이터 차감 보상 도중 오류가 발생했습니다"),
+    SELLABLE_DATA_ADD_FAIL(20056, "SELLABLE_DATA_COMPENSATE_FAIL", "판매 가능데이터 증가 도중 오류가 발생했습니다"),
     BUYER_DATA_CHARGE_FAIL(20057, "BUYER_DATA_CHARGE_FAIL", "구매 데이터 충전 도중 오류가 발생했습니다."),
     BUYER_DATA_COMPENSATE_FAIL(20057, "BUYER_DATA_COMPENSATE_FAIL", "구매 데이터 충전 보상 도중 오류가 발생했습니다."),
+    USER_DATA_NOT_FOUND(20058, "USER_DATA_NOT_FOUND", "사용자 데이터 정보를 찾지 못했습니다."),
 
     // PLAN 관련 에러 코드 (20101 ~ 20150)
-    RANDOM_PLAN_RETURN_FAIL(20101, "RANDOM_PLAN_RETURN_FAIL", "랜덤 요금제 조회 중 오류가 발생했습니다.");
-
+    RANDOM_PLAN_RETURN_FAIL(20101, "RANDOM_PLAN_RETURN_FAIL", "랜덤 요금제 조회 중 오류가 발생했습니다."),
+    EMPTY_PLAN(20102, "EMPTY_PLAN", "요금제가 존재하지 않습니다."),
 
     // transaction_feed 관련 에러코드 (30000 ~ 39999)
+    TRANSACTION_FEED_CREATE_FAIL(30000, "TRANSACTION_FEED_CREATE_FAIL", "판매글 작성 도중 오류가 발생했습니다."),
+    TRANSACTION_FEED_UPDATE_FAIL(30001, "TRANSACTION_FEED_UPDATE_FAIL", "판매글 수정 도중 오류가 발생했습니다."),
+    FEED_MODIFY_PERMISSION_DENIED(30002, "FEED_MODIFY_PERMISSION_DENIED", "판매글 수정 권한이 없습니다."),
+    TRANSACTION_FEED_NOT_FOUND(30003, "TRANSACTION_FEED_NOT_FOUND", "거래글을 찾지 못하였습니다."),
+
 
     // pay 관련 에러코드 (40000 ~ 49999)
 
     // alarm 관련 에러코드 (50000 ~ 59999)
+
+    // common 관련 에러코드 (60000 ~ 69999)
+    INVALID_TELECOM_COMPANY(60001, "INVALID_TELECOM_COMPANY", "통신사가 일치하지 않습니다."),
+    STATUS_NOT_FOUND(60002, "STATUS_NOT_FOUND", "상태를 찾지 못하였습니다."),
+    TELECOM_COMPANY_NOT_FOUND(60003, "TELECOM_COMPANY_NOT_FOUND", "통신사를 찾지 못하였습니다.");
 
     private final int code;
     private final String name;

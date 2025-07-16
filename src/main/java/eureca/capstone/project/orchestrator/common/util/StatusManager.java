@@ -9,10 +9,14 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
+@DependsOn("initComponent")
 public class StatusManager {
 
     private final StatusRepository statusRepository;
@@ -25,6 +29,7 @@ public class StatusManager {
                         Status::getDomain,
                         Collectors.toMap(Status::getCode, Function.identity())
                 ));
+        log.info("StatusManager 로드 완료. 전체 status: {}", statusCache.size());
     }
 
     /**

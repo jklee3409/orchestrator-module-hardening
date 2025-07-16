@@ -4,7 +4,9 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -26,5 +28,15 @@ public class TransactionFeedController {
     ) {
         CreateFeedResponseDto createFeedResponse = transactionFeedService.createFeed(customUserDetailsDto.getEmail(), createFeedRequestDto);
         return BaseResponseDto.success(createFeedResponse);
+    }
+
+    @PutMapping
+    @Operation(summary = "판매글 수정 API", description = "로그인한 사용자가 자신의 판매글을 수정합니다.")
+    public BaseResponseDto<UpdateFeedResponseDto> updateFeed(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody UpdateFeedRequestDto updateFeedRequestDto
+    ) {
+        UpdateFeedResponseDto updateFeedResponse = transactionFeedService.updateFeed(customUserDetailsDto.getEmail(), updateFeedRequestDto);
+        return BaseResponseDto.success(updateFeedResponse);
     }
 }
