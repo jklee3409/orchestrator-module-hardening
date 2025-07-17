@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Set;
 
-import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.RedisRefreshToken;
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_REFRESH_TOKEN;
+
+;
 
 @Slf4j
 @Service
@@ -43,7 +45,7 @@ public class TokenServiceImpl implements TokenService {
 
         // Refresh 토큰 Response 헤더에 할당 및 레디스에 저장 (14일 보관)
         cookieUtil.createRefreshTokenCookie(refreshToken, httpServletResponse);
-        redisService.setValue(RedisRefreshToken + userId, refreshToken, Duration.ofDays(14));
+        redisService.setValue(REDIS_REFRESH_TOKEN + userId, refreshToken, Duration.ofDays(14));
 
         // return
         return accessToken;

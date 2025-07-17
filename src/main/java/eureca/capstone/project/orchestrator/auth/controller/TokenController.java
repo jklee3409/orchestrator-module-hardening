@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
+import static eureca.capstone.project.orchestrator.common.constant.UrlConstant.PRODUCT_FRONT_URL;
+
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/orchestrator")
+@RequestMapping("/orchestrator/auth")
 public class TokenController {
     private final EmailVerificationService emailVerificationService;
 
@@ -26,6 +28,6 @@ public class TokenController {
         emailVerificationService.verifyEmailToken(token);
         BaseResponseDto<Void> success = BaseResponseDto.voidSuccess();
         log.info("success: {}", success);
-        httpServletResponse.sendRedirect("https://ureca-final.com/");
+        httpServletResponse.sendRedirect(PRODUCT_FRONT_URL);
     }
 }
