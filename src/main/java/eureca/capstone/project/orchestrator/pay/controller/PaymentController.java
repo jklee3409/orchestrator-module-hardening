@@ -3,7 +3,9 @@ package eureca.capstone.project.orchestrator.pay.controller;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.request.CouponCalculationRequestDto;
+import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
 import eureca.capstone.project.orchestrator.pay.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,16 @@ public class PaymentController {
             @RequestBody CouponCalculationRequestDto requestDto
     ) {
         CouponCalculationResponseDto responseDto = paymentService.calculateDiscount(customUserDetailsDto.getEmail(), requestDto);
+        return BaseResponseDto.success(responseDto);
+    }
+
+    @PostMapping("/prepare")
+    @Operation(summary = "결제 전 주문 정보 생성 API", description = "토스 페이먼츠에 최종 결제 요청을 위한 주문 정보를 생성합니다.")
+    public BaseResponseDto<PaymentPrepareResponseDto> preparePayment(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody PaymentPrepareRequestDto requestDto
+    ) {
+        PaymentPrepareResponseDto responseDto = paymentService.preparePayment(customUserDetailsDto.getEmail(), requestDto);
         return BaseResponseDto.success(responseDto);
     }
 }
