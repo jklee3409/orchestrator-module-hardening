@@ -108,14 +108,6 @@ class UserServiceImplTest {
                 .telecomCompany(telecomCompany)
                 .status(status)
                 .build();
-
-        try {
-            java.lang.reflect.Field createdAtField = User.class.getSuperclass().getDeclaredField("createdAt");
-            createdAtField.setAccessible(true);
-            createdAtField.set(user, LocalDateTime.now());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @Test
@@ -125,7 +117,6 @@ class UserServiceImplTest {
         CreateUserRequestDto requestDto = CreateUserRequestDto.builder()
                 .email("test@example.com")
                 .password("password")
-                .nickname("테스트유저")
                 .phoneNumber("01012345678")
                 .provider("local")
                 .telecomCompanyId(1L)
@@ -166,7 +157,6 @@ class UserServiceImplTest {
         CreateUserRequestDto requestDto = CreateUserRequestDto.builder()
                 .email("test@example.com")
                 .password("password")
-                .nickname("테스트유저")
                 .phoneNumber("01012345678")
                 .provider("local")
                 .telecomCompanyId(1L)

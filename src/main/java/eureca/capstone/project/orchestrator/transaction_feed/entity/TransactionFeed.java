@@ -61,4 +61,19 @@ public class TransactionFeed extends BaseEntity {
 
     @Column(name = "is_deleted")
     private boolean isDeleted;
+
+    @Version
+    private Long version;
+
+    public void update(String title, String content, Long salesPrice, Long salesDataAmount, Long defaultImageNumber) {
+        this.title = title;
+        this.content = content;
+        this.salesPrice = salesPrice;
+        this.salesDataAmount = salesDataAmount;
+        this.defaultImageNumber = defaultImageNumber;
+    }
+
+    public void delete() {
+        this.isDeleted = true;
+    }
 }

@@ -5,7 +5,6 @@ import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
-import eureca.capstone.project.orchestrator.common.constant.RedisConstant;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
@@ -32,7 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.RedisBlackListUser;
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_BLACK_LIST_USER;
+
 
 @Slf4j
 @RequiredArgsConstructor
@@ -83,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Set<String> authorities = jwtUtil.extractAuthorities(token);
 
             // 블랙리스트 유저 확인 및 Exception 처리
-            if (redisService.hasKey(RedisBlackListUser + userId)) {
+            if (redisService.hasKey(REDIS_BLACK_LIST_USER + userId)) {
                 log.error("[doFilterInternal 메서드] BlackListUserException 발생");
                 throw new BlackListUserException();
             }
@@ -131,7 +131,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPassListed(String uri) {
-        for (String path : FilterConstant.whiteList) {
+        for (String path : FilterConstant.WHITE_LIST) {
             if (path.endsWith("/**")) {
                 String basePath = path.replace("/**", "");
                 if (uri.startsWith(basePath)) return true;

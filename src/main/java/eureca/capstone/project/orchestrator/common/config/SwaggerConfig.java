@@ -1,4 +1,4 @@
-package eureca.capstone.project.orchestrator.auth.config;
+package eureca.capstone.project.orchestrator.common.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;

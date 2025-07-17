@@ -1,275 +1,775 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
-import eureca.capstone.project.orchestrator.common.entity.Status;
-import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
-import eureca.capstone.project.orchestrator.common.exception.custom.*;
-import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
-import eureca.capstone.project.orchestrator.common.util.StatusManager;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
-import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
-import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
-import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
-import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
-import eureca.capstone.project.orchestrator.user.dto.response.user_data.DeductSellableDataResponseDto;
-import eureca.capstone.project.orchestrator.user.entity.User;
-import eureca.capstone.project.orchestrator.user.entity.UserData;
-import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
-import eureca.capstone.project.orchestrator.user.repository.UserRepository;
-import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
-import eureca.capstone.project.orchestrator.user.service.UserDataService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.time.LocalDate;
+
+import eureca.capstone.project.orchestrator.common.entity.Status;
+
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+
+import eureca.capstone.project.orchestrator.common.exception.custom.DataOverSellableAmountException;
+
+import eureca.capstone.project.orchestrator.common.exception.custom.FeedModifyPermissionException;
+
+import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
+
+import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
+
+import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
+
+import eureca.capstone.project.orchestrator.common.util.StatusManager;
+
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
+
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
+
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
+
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
+
+import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
+
+import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
+
+import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
+
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+
+import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
+
+import eureca.capstone.project.orchestrator.user.entity.User;
+
+import eureca.capstone.project.orchestrator.user.entity.UserData;
+
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+
+import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
+
+import eureca.capstone.project.orchestrator.user.service.UserDataService;
+
+import org.junit.jupiter.api.BeforeEach;
+
+import org.junit.jupiter.api.DisplayName;
+
+import org.junit.jupiter.api.Nested;
+
+import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.InjectMocks;
+
+import org.mockito.Mock;
+
+import org.mockito.junit.jupiter.MockitoExtension;
+
+
+
+import java.lang.reflect.Field;
+
 import java.time.LocalDateTime;
+
 import java.util.Optional;
 
+
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import static org.junit.jupiter.api.Assertions.*;
+
 import static org.mockito.ArgumentMatchers.any;
+
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.mockito.Mockito.*;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
+
 class TransactionFeedServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
 
-    @Mock
-    private UserDataRepository userDataRepository;
-
-    @Mock
-    private TelecomCompanyRepository telecomCompanyRepository;
-
-    @Mock
-    private SalesTypeRepository salesTypeRepository;
-
-    @Mock
-    private TransactionFeedRepository transactionFeedRepository;
-
-    @Mock
-    private UserDataService userDataService;
-
-    @Mock
-    private UserDataRepositoryCustom userDataRepositoryCustom;
-
-    @Mock
-    private StatusManager statusManager;
 
     @InjectMocks
+
     private TransactionFeedServiceImpl transactionFeedService;
 
+
+
+    @Mock
+
+    private UserRepository userRepository;
+
+
+
+    @Mock
+
+    private UserDataRepositoryCustom userDataRepositoryCustom;
+
+
+
+    @Mock
+
+    private TelecomCompanyRepository telecomCompanyRepository;
+
+
+
+    @Mock
+
+    private SalesTypeRepository salesTypeRepository;
+
+
+
+    @Mock
+
+    private TransactionFeedRepository transactionFeedRepository;
+
+
+
+    @Mock
+
+    private TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
+
+
+
+    @Mock
+
+    private UserDataService userDataService;
+
+
+
+    @Mock
+
+    private StatusManager statusManager;
+
+
+
+    @Mock
+
+    private SalesTypeManager salesTypeManager;
+
+
+
     private User user;
+
     private UserData userData;
+
     private TelecomCompany telecomCompany;
-    private SalesType salesType;
-    private Status status;
-    private CreateFeedRequestDto createFeedRequestDto;
+
+    private SalesType normalSaleType;
+
+    private SalesType bidSaleType;
+
+    private Status onSaleStatus;
+
     private TransactionFeed transactionFeed;
-    private DeductSellableDataResponseDto deductSellableDataResponseDto;
+
+
 
     @BeforeEach
+
     void setUp() {
+
         telecomCompany = TelecomCompany.builder()
+
                 .telecomCompanyId(1L)
-                .name("테스트 통신사")
+
+                .name("테스트통신사")
+
                 .build();
 
-        status = mock(Status.class);
-        when(status.getStatusId()).thenReturn(1L);
-        when(status.getDomain()).thenReturn("FEED");
-        when(status.getCode()).thenReturn("ON_SALE");
 
-        salesType = new SalesType();
-        try {
-            java.lang.reflect.Field idField = SalesType.class.getDeclaredField("SalesTypeId");
-            idField.setAccessible(true);
-            idField.set(salesType, 1L);
-
-            java.lang.reflect.Field nameField = SalesType.class.getDeclaredField("name");
-            nameField.setAccessible(true);
-            nameField.set(salesType, "일반판매");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         user = User.builder()
+
                 .userId(1L)
+
                 .email("test@example.com")
-                .password("encodedPassword")
+
                 .nickname("테스트유저")
-                .phoneNumber("01012345678")
-                .provider("local")
+
                 .telecomCompany(telecomCompany)
-                .status(status)
+
                 .build();
+
+
 
         userData = UserData.builder()
+
                 .userDataId(1L)
+
                 .userId(user.getUserId())
+
                 .sellableDataMb(10000L)
-                .resetDataAt(15)
+
+                .resetDataAt(20)
+
                 .build();
 
-        createFeedRequestDto = CreateFeedRequestDto.builder()
-                .title("테스트 피드")
-                .content("테스트 내용")
-                .telecomCompanyId(1L)
-                .salesTypeId(1L)
-                .salesPrice(10000L)
-                .salesDataAmount(1000L)
-                .defaultImageNumber(1L)
+
+
+        normalSaleType = SalesType.builder()
+
+                .SalesTypeId(1L)
+
+                .name("일반판매")
+
                 .build();
+
+
+
+        bidSaleType = SalesType.builder()
+
+                .SalesTypeId(2L)
+
+                .name("입찰 판매")
+
+                .build();
+
+
+
+        onSaleStatus = Status.builder()
+
+                .statusId(1L)
+
+                .domain("FEED")
+
+                .code("ON_SALE")
+
+                .build();
+
+
 
         transactionFeed = TransactionFeed.builder()
+
                 .transactionFeedId(1L)
+
                 .user(user)
-                .title("테스트 피드")
-                .content("테스트 내용")
+
+                .title("기존 제목")
+
+                .content("기존 내용")
+
                 .telecomCompany(telecomCompany)
-                .salesType(salesType)
+
+                .salesType(normalSaleType)
+
                 .salesPrice(10000L)
+
                 .salesDataAmount(1000L)
+
                 .defaultImageNumber(1L)
-                .expiresAt(LocalDateTime.now().plusDays(15))
-                .status(status)
+
+                .expiresAt(LocalDateTime.now().plusDays(10))
+
+                .status(onSaleStatus)
+
                 .isDeleted(false)
+
                 .build();
 
-        try {
-            java.lang.reflect.Field createdAtField = User.class.getSuperclass().getDeclaredField("createdAt");
-            createdAtField.setAccessible(true);
-            createdAtField.set(user, LocalDateTime.now());
-        } catch (Exception e) {
-            e.printStackTrace();
+    }
+
+
+
+    @Nested
+
+    @DisplayName("판매글 생성")
+
+    class CreateFeed {
+
+
+
+        @Test
+
+        @DisplayName("일반 판매글 생성 성공")
+
+        void createFeed_Success() throws NoSuchFieldException, IllegalAccessException {
+
+            // given
+
+            CreateFeedRequestDto request = CreateFeedRequestDto.builder()
+
+                    .title("팝니다")
+
+                    .content("데이터 1GB 팝니다")
+
+                    .telecomCompanyId(1L)
+
+                    .salesTypeId(1L)
+
+                    .salesPrice(10000L)
+
+                    .salesDataAmount(1000L)
+
+                    .defaultImageNumber(1L)
+
+                    .build();
+
+
+
+            when(salesTypeRepository.findById(anyLong())).thenReturn(Optional.of(normalSaleType));
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+
+            when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
+
+            when(telecomCompanyRepository.findById(anyLong())).thenReturn(Optional.of(telecomCompany));
+
+            when(statusManager.getStatus(anyString(), anyString())).thenReturn(onSaleStatus);
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            doAnswer(invocation -> {
+
+                TransactionFeed feedToSave = invocation.getArgument(0);
+
+                Field idField = TransactionFeed.class.getDeclaredField("transactionFeedId");
+
+                idField.setAccessible(true);
+
+                idField.set(feedToSave, 1L);
+
+                return feedToSave;
+
+            }).when(transactionFeedRepository).save(any(TransactionFeed.class));
+
+
+
+
+
+            // when
+
+            CreateFeedResponseDto response = transactionFeedService.createFeed(user.getEmail(), request);
+
+
+
+            // then
+
+            assertThat(response).isNotNull();
+
+            assertThat(response.getId()).isNotNull();
+
+            assertThat(response.getId()).isEqualTo(1L);
+
+
+
+            verify(salesTypeRepository).findById(request.getSalesTypeId());
+
+            verify(userRepository).findByEmail(user.getEmail());
+
+            verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
+
+            verify(userDataService).deductSellableData(user.getUserId(), request.getSalesDataAmount());
+
+            verify(transactionFeedRepository).save(any(TransactionFeed.class));
+
         }
 
-        deductSellableDataResponseDto = DeductSellableDataResponseDto.builder()
-                .userId(user.getUserId())
-                .sellableDataMb(userData.getSellableDataMb() - createFeedRequestDto.getSalesDataAmount())
-                .build();
+
+
+        @Test
+
+        @DisplayName("판매 가능 데이터 초과시 예외 발생")
+
+        void createFeed_ThrowsDataOverSellableAmountException() {
+
+            // given
+
+            CreateFeedRequestDto request = CreateFeedRequestDto.builder()
+
+                    .salesDataAmount(20000L)
+
+                    .salesTypeId(1L)
+
+                    .build();
+
+
+
+            when(salesTypeRepository.findById(anyLong())).thenReturn(Optional.of(normalSaleType));
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+
+            when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when & then
+
+            assertThrows(DataOverSellableAmountException.class,
+
+                    () -> transactionFeedService.createFeed(user.getEmail(), request));
+
+
+
+            verify(transactionFeedRepository, never()).save(any(TransactionFeed.class));
+
+            verify(userDataService, never()).deductSellableData(anyLong(), anyLong());
+
+        }
+
     }
 
-    @Test
-    @DisplayName("피드 생성 성공")
-    void createFeed_Success() {
-        // Given
-        String email = "test@example.com";
 
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
-        when(telecomCompanyRepository.findById(anyLong())).thenReturn(Optional.of(telecomCompany));
-        when(salesTypeRepository.findById(anyLong())).thenReturn(Optional.of(salesType));
-        when(statusManager.getStatus(anyString(), anyString())).thenReturn(status);
 
-        when(transactionFeedRepository.save(any(TransactionFeed.class))).thenAnswer(new Answer<TransactionFeed>() {
-            @Override
-            public TransactionFeed answer(InvocationOnMock invocation) {
-                TransactionFeed feed = invocation.getArgument(0);
-                try {
-                    java.lang.reflect.Field idField = TransactionFeed.class.getDeclaredField("transactionFeedId");
-                    idField.setAccessible(true);
-                    idField.set(feed, 1L);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return feed;
-            }
-        });
+    @Nested
 
-        when(userDataService.deductSellableData(anyLong(), anyLong())).thenReturn(deductSellableDataResponseDto);
+    @DisplayName("판매글 수정")
 
-        // When
-        CreateFeedResponseDto responseDto = transactionFeedService.createFeed(email, createFeedRequestDto);
+    class UpdateFeed {
 
-        // Then
-        assertNotNull(responseDto);
-        assertEquals(transactionFeed.getTransactionFeedId(), responseDto.getId());
 
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository).findById(createFeedRequestDto.getTelecomCompanyId());
-        verify(salesTypeRepository).findById(createFeedRequestDto.getSalesTypeId());
-        verify(statusManager).getStatus("FEED", "ON_SALE");
-        verify(transactionFeedRepository).save(any(TransactionFeed.class));
-        verify(userDataService).deductSellableData(user.getUserId(), createFeedRequestDto.getSalesDataAmount());
+
+        @Test
+
+        @DisplayName("판매 데이터가 증가하는 경우 성공적으로 수정")
+
+        void updateFeed_Success_IncreaseData() {
+
+            // given
+
+            UpdateFeedRequestDto request = UpdateFeedRequestDto.builder()
+
+                    .transactionFeedId(1L)
+
+                    .title("수정된 제목")
+
+                    .content("수정된 내용")
+
+                    .salesPrice(12000L)
+
+                    .salesDataAmount(1500L) // 500 증가
+
+                    .defaultImageNumber(2L)
+
+                    .build();
+
+
+
+            long dataChangeAmount = request.getSalesDataAmount() - transactionFeed.getSalesDataAmount();
+
+
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+
+            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+
+            when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when
+
+            UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
+
+
+
+            // then
+
+            assertThat(response.getTransactionFeedId()).isEqualTo(transactionFeed.getTransactionFeedId());
+
+            assertThat(transactionFeed.getTitle()).isEqualTo(request.getTitle());
+
+            assertThat(transactionFeed.getSalesDataAmount()).isEqualTo(request.getSalesDataAmount());
+
+
+
+            verify(userDataService).deductSellableData(user.getUserId(), dataChangeAmount);
+
+            verify(userDataService, never()).addSellableData(anyLong(), anyLong());
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("판매 데이터가 감소하는 경우 성공적으로 수정")
+
+        void updateFeed_Success_DecreaseData() {
+
+            // given
+
+            UpdateFeedRequestDto request = UpdateFeedRequestDto.builder()
+
+                    .transactionFeedId(1L)
+
+                    .title("수정된 제목")
+
+                    .content("수정된 내용")
+
+                    .salesPrice(8000L)
+
+                    .salesDataAmount(500L) // 500 감소
+
+                    .defaultImageNumber(2L)
+
+                    .build();
+
+
+
+            long dataChangeAmount = transactionFeed.getSalesDataAmount() - request.getSalesDataAmount();
+
+
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+
+            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when
+
+            UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
+
+
+
+            // then
+
+            assertThat(response.getTransactionFeedId()).isEqualTo(transactionFeed.getTransactionFeedId());
+
+            assertThat(transactionFeed.getTitle()).isEqualTo(request.getTitle());
+
+            assertThat(transactionFeed.getSalesDataAmount()).isEqualTo(request.getSalesDataAmount());
+
+
+
+            verify(userDataService).addSellableData(user.getUserId(), dataChangeAmount);
+
+            verify(userDataService, never()).deductSellableData(anyLong(), anyLong());
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("판매 데이터 변경이 없는 경우 성공적으로 수정")
+
+        void updateFeed_Success_NoDataChange() {
+
+            // given
+
+            UpdateFeedRequestDto request = UpdateFeedRequestDto.builder()
+
+                    .transactionFeedId(1L)
+
+                    .title("제목만 수정")
+
+                    .content("내용만 수정")
+
+                    .salesPrice(10000L)
+
+                    .salesDataAmount(transactionFeed.getSalesDataAmount()) // 변경 없음
+
+                    .defaultImageNumber(1L)
+
+                    .build();
+
+
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+
+            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when
+
+            transactionFeedService.updateFeed(user.getEmail(), request);
+
+
+
+            // then
+
+            verify(userDataService, never()).addSellableData(anyLong(), anyLong());
+
+            verify(userDataService, never()).deductSellableData(anyLong(), anyLong());
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("작성자가 아닌 사용자가 수정 시도 시 예외 발생")
+
+        void updateFeed_ThrowsFeedModifyPermissionException() {
+
+            // given
+
+            UpdateFeedRequestDto request = UpdateFeedRequestDto.builder().transactionFeedId(1L).build();
+
+            User otherUser = User.builder().userId(2L).email("other@example.com").build();
+
+
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(otherUser));
+
+            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+
+
+
+            // when & then
+
+            assertThrows(FeedModifyPermissionException.class,
+
+                    () -> transactionFeedService.updateFeed(otherUser.getEmail(), request));
+
+        }
+
     }
 
-    @Test
-    @DisplayName("사용자 데이터가 없을 때 피드 생성 시 예외 발생")
-    void createFeed_UserDataNotFound_ThrowsException() {
-        // Given
-        String email = "test@example.com";
 
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThrows(UserDataNotFoundException.class, () -> transactionFeedService.createFeed(email, createFeedRequestDto));
+    @Nested
 
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository, never()).findById(anyLong());
+    @DisplayName("판매글 조회 및 삭제")
+
+    class ReadAndDeleteFeed {
+
+
+
+        @Test
+
+        @DisplayName("판매글 상세 조회 성공")
+
+        void getFeedDetail_Success() {
+
+            // given
+
+            Long feedId = 1L;
+
+            when(transactionFeedRepositoryCustom.findFeedDetailById(feedId)).thenReturn(Optional.of(transactionFeed));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when
+
+            GetFeedDetailResponseDto response = transactionFeedService.getFeedDetail(feedId);
+
+
+
+            // then
+
+            assertThat(response).isNotNull();
+
+            assertThat(response.getTransactionFeedId()).isEqualTo(transactionFeed.getTransactionFeedId());
+
+            assertThat(response.getTitle()).isEqualTo(transactionFeed.getTitle());
+
+            assertThat(response.getNickname()).isEqualTo(user.getNickname());
+
+            assertThat(response.getCurrentHeightPrice()).isNull();
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("존재하지 않는 판매글 조회 시 예외 발생")
+
+        void getFeedDetail_ThrowsTransactionFeedNotFoundException() {
+
+            // given
+
+            Long nonExistentFeedId = 999L;
+
+            when(transactionFeedRepositoryCustom.findFeedDetailById(nonExistentFeedId)).thenReturn(Optional.empty());
+
+
+
+            // when & then
+
+            assertThrows(TransactionFeedNotFoundException.class,
+
+                    () -> transactionFeedService.getFeedDetail(nonExistentFeedId));
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("판매글 삭제 성공")
+
+        void deleteFeed_Success() {
+
+            // given
+
+            String email = user.getEmail();
+
+            Long feedId = transactionFeed.getTransactionFeedId();
+
+
+
+            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+
+
+
+            // when
+
+            transactionFeedService.deleteFeed(email, feedId);
+
+
+
+            // then
+
+            assertTrue(transactionFeed.isDeleted());
+
+            verify(transactionFeedRepositoryCustom).findById(feedId);
+
+        }
+
+
+
+        @Test
+
+        @DisplayName("작성자가 아닌 사용자가 삭제 시도 시 예외 발생")
+
+        void deleteFeed_ThrowsFeedModifyPermissionException() {
+
+            // given
+
+            Long feedId = transactionFeed.getTransactionFeedId();
+
+            String otherUserEmail = "other@example.com";
+
+
+
+            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+
+
+
+            // when & then
+
+            assertThrows(FeedModifyPermissionException.class,
+
+                    () -> transactionFeedService.deleteFeed(otherUserEmail, feedId));
+
+
+
+            assertFalse(transactionFeed.isDeleted());
+
+        }
+
     }
 
-    @Test
-    @DisplayName("판매 가능한 데이터보다 많은 양을 판매하려 할 때 예외 발생")
-    void createFeed_DataOverSellableAmount_ThrowsException() {
-        // Given
-        String email = "test@example.com";
-        CreateFeedRequestDto overSellRequestDto = CreateFeedRequestDto.builder()
-                .title("테스트 피드")
-                .content("테스트 내용")
-                .telecomCompanyId(1L)
-                .salesTypeId(1L)
-                .salesPrice(10000L)
-                .salesDataAmount(20000L) // 판매 가능한 데이터(10000L)보다 많음
-                .defaultImageNumber(1L)
-                .build();
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
-
-        // When & Then
-        assertThrows(DataOverSellableAmountException.class, () -> transactionFeedService.createFeed(email, overSellRequestDto));
-
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository, never()).findById(anyLong());
-    }
-
-    @Test
-    @DisplayName("사용자의 통신사와 다른 통신사로 피드 생성 시 예외 발생")
-    void createFeed_InvalidTelecomCompany_ThrowsException() {
-        // Given
-        String email = "test@example.com";
-        TelecomCompany differentTelecomCompany = TelecomCompany.builder()
-                .telecomCompanyId(2L)
-                .name("다른 통신사")
-                .build();
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
-        when(telecomCompanyRepository.findById(anyLong())).thenReturn(Optional.of(differentTelecomCompany));
-
-        // When & Then
-        assertThrows(InvalidTelecomCompanyException.class, () -> transactionFeedService.createFeed(email, createFeedRequestDto));
-
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository).findById(createFeedRequestDto.getTelecomCompanyId());
-        verify(salesTypeRepository, never()).findById(anyLong());
-    }
 }

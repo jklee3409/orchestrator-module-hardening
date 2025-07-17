@@ -4,9 +4,7 @@ import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto
 import eureca.capstone.project.orchestrator.auth.dto.request.LoginRequestDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.LoginResponseDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
-import eureca.capstone.project.orchestrator.common.constant.RedisConstant;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
-import eureca.capstone.project.orchestrator.common.exception.custom.BlackListUserException;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,17 +12,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.RedisBlackListUser;
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_REFRESH_TOKEN;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/orchestrator/auth")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
@@ -43,7 +42,6 @@ public class AuthController {
 
         // JWT 토큰 발급 (AccessToken, RefreshToken)
         String accessToken = tokenService.generateToken(
-                loginRequestDto,
                 (CustomUserDetailsDto) authentication.getPrincipal(),
                 httpServletResponse
         );
@@ -56,6 +54,19 @@ public class AuthController {
         log.info("success: {}", success);
 
         // return
+        return success;
+    }
+
+    @PostMapping("/logout")
+    public BaseResponseDto<Void> logout(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto) {
+        // 요청 값 로그 출력
+        log.info("customUserDetailsDto: {}", customUserDetailsDto);
+        // Refresh Token 삭제
+        redisService.deleteValue(REDIS_REFRESH_TOKEN + customUserDetailsDto.getUserId());
+        // 반환값 생성 및 출력
+        BaseResponseDto<Void> success = BaseResponseDto.voidSuccess();
+        log.info("success: {}", success);
+        // 응답값 반환
         return success;
     }
 }

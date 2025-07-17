@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.user.repository.impl;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserRepositoryCustom;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,11 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .innerJoin(userRole.role, role)
                 .innerJoin(roleAuthority).on(roleAuthority.role.eq(role))
                 .innerJoin(roleAuthority.authority, authority)
-                .where(user.email.eq(email), user.status.code.eq("ACTIVE")) // email, ACTIVE 기준 필터링
+                .where(
+                        user.email.eq(email),
+                        userRole.role.name.eq("ROLE_USER"),
+                        user.status.code.eq("ACTIVE")
+                ) // ROLE_USER, email, ACTIVE 기준 필터링
                 .fetch();
 
         log.info("[findUserInformation] 쿼리 실행 결과 size: {}", result.size());
@@ -71,5 +76,14 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         log.info("[findUserInformation] DTO 생성 완료 {}", userInformationDto);
 
         return userInformationDto;
+    }
+
+    @Override
+    public Long updateStatusByEmail(String email, Status newStatus) {
+        return jpaQueryFactory
+                .update(user)
+                .set(user.status, newStatus)
+                .where(user.email.eq(email))
+                .execute();
     }
 }
