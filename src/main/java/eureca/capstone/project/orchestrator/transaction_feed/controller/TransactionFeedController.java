@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +20,14 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionFeedController {
 
     private final TransactionFeedService transactionFeedService;
+
+    @GetMapping("/{transactionFeedId}")
+    @Operation(summary = "판매글 상세 조회 API [아직 개발중]", description = "판매글의 상세 정보를 조회합니다.")
+    public BaseResponseDto<GetFeedDetailResponseDto> getFeedDetail(@PathVariable Long transactionFeedId) {
+        GetFeedDetailResponseDto getFeedDetailResponseDto = transactionFeedService.getFeedDetail(transactionFeedId);
+        return BaseResponseDto.success(getFeedDetailResponseDto);
+    }
+
 
     @PostMapping
     @Operation(summary = "판매글 등록 API", description = "로그인한 사용자가 판매자가 되어 판매글을 등록합니다.")

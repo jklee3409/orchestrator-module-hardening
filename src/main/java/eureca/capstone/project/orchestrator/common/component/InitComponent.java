@@ -8,6 +8,8 @@ import eureca.capstone.project.orchestrator.auth.repository.RoleAuthorityReposit
 import eureca.capstone.project.orchestrator.auth.repository.RoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.repository.StatusRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,7 @@ public class InitComponent {
     private final AuthorityRepository authorityRepository;
     private final RoleAuthorityRepository roleAuthorityRepository;
     private final StatusRepository statusRepository;
+    private final SalesTypeRepository salesTypeRepository;
 
     private static final List<Status> HARDCODED_STATUSES = List.of(
             Status.builder().statusId(11L).code("EMAIL_VERIFICATION_PENDING").description("이메일 인증 중").domain("USER").build(),
@@ -62,6 +65,11 @@ public class InitComponent {
             Status.builder().statusId(40L).code("RESTRICT_EXPIRATION").description("제재 만료").domain("RESTRICTION").build(),
             Status.builder().statusId(41L).code("COMPLETED").description("제재 완료").domain("REPORT").build(),
             Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build()
+    );
+
+    private static final List<SalesType> HARDCODED_SALES_TYPES = List.of(
+            SalesType.builder().SalesTypeId(1L).name("일반 판매").build(),
+            SalesType.builder().SalesTypeId(2L).name("입찰 판매").build()
     );
 
     /**
@@ -113,6 +121,27 @@ public class InitComponent {
             statusRepository.saveAll(statusesToSave);
         } else {
             log.info("모든 status 가 DB 에 존재합니다.");
+        }
+    }
+
+    @PostConstruct
+    @Transactional
+    public void initSalesTypes() {
+        Map<Long, SalesType> dbSalesTypeMap = salesTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(SalesType::getSalesTypeId, Function.identity()));
+
+        List<SalesType> salesTypesToSave = HARDCODED_SALES_TYPES.stream()
+                .filter(hardcodedSalesType -> {
+                    SalesType dbSalesType = dbSalesTypeMap.get(hardcodedSalesType.getSalesTypeId());
+                    return dbSalesType == null || !dbSalesType.equals(hardcodedSalesType);
+                })
+                .collect(Collectors.toList());
+
+        if (!salesTypesToSave.isEmpty()) {
+            log.info("{} 개의 salesType 이 DB 에 존재하지 않거나 변경되었습니다.", salesTypesToSave.size());
+            salesTypeRepository.saveAll(salesTypesToSave);
+        } else {
+            log.info("모든 salesType 이 DB 에 존재합니다.");
         }
     }
 }

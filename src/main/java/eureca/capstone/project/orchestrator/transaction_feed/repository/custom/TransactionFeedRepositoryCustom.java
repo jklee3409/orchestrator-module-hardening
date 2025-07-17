@@ -4,5 +4,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionF
 import java.util.Optional;
 
 public interface TransactionFeedRepositoryCustom {
-    Optional<TransactionFeed> findByIdWithLock(Long transactionFeedId);
+    Optional<TransactionFeed> findById(Long transactionFeedId);
+
+    Optional<TransactionFeed> findFeedDetailById(Long transactionFeedId);
 }

@@ -1,14 +1,18 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.common.dto.StatusDto;
+import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
-import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
+import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
@@ -22,13 +26,13 @@ import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
-import jakarta.transaction.Transactional;
+import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -43,67 +47,99 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
     private final UserDataService userDataService;
     private final StatusManager statusManager;
+    private final SalesTypeManager salesTypeManager;
 
     @Override
     @Transactional
     public CreateFeedResponseDto createFeed(String email, CreateFeedRequestDto feedRequestDto) {
         log.info("[createFeed] 사용자 {} 판매글 작성 시작", email);
-        try {
-            User user = findUserByEmail(email);
-            UserData userData = findAndValidateUserData(user, feedRequestDto.getSalesDataAmount());
-            log.info("[createFeed] 사용자 판매 가능 데이터 검증 완료.");
+        SalesType salesType = salesTypeRepository.findById(feedRequestDto.getSalesTypeId())
+                .orElseThrow(StatusNotFoundException::new);
 
-            TransactionFeed transactionFeed = buildNewFeed(user, userData, feedRequestDto);
-            transactionFeedRepository.save(transactionFeed);
-            log.info("[createFeed] 판매글 DB 저장 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
+        validateAuctionCreationTime(salesType);
+        log.info("[createFeed] 판매글 등록 시간 검증 완료.");
 
-            userDataService.deductSellableData(user.getUserId(), feedRequestDto.getSalesDataAmount());
-            log.info("[createFeed] 판매자 판매 가능 데이터 차감 완료.");
+        User user = findUserByEmail(email);
+        UserData userData = findAndValidateUserData(user, feedRequestDto.getSalesDataAmount());
+        log.info("[createFeed] 사용자 판매 가능 데이터 검증 완료.");
 
-            return CreateFeedResponseDto.builder()
-                    .id(transactionFeed.getTransactionFeedId())
-                    .build();
+        TransactionFeed transactionFeed = buildNewFeed(user, userData, feedRequestDto, salesType);
+        transactionFeedRepository.save(transactionFeed);
+        log.info("[createFeed] 판매글 DB 저장 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
-        } catch (UserDataNotFoundException | DataOverSellableAmountException | InvalidTelecomCompanyException e) {
-            log.info("[createFeed] 판매글 작성 도중 오류 발생: {}", e.getMessage());
-            throw e; // Rethrow specific exceptions
-        } catch (Exception e) {
-            log.info("[createFeed] 판매글 작성 도중 오류 발생");
-            throw new InternalServerException(ErrorCode.TRANSACTION_FEED_CREATE_FAIL);
-        }
+        userDataService.deductSellableData(user.getUserId(), feedRequestDto.getSalesDataAmount());
+        log.info("[createFeed] 판매자 판매 가능 데이터 차감 완료.");
+
+        return CreateFeedResponseDto.builder()
+                .id(transactionFeed.getTransactionFeedId())
+                .build();
+
     }
 
     @Override
     @Transactional
     public UpdateFeedResponseDto updateFeed(String email, UpdateFeedRequestDto updateFeedRequestDto) {
         log.info("[updateFeed] 판매글 수정 시작. 사용자: {}, 판매글 ID: {}", email, updateFeedRequestDto.getTransactionFeedId());
-        try {
-            User user = findUserByEmail(email);
-            TransactionFeed transactionFeed = findTransactionFeedById(updateFeedRequestDto.getTransactionFeedId());
-            log.info("[updateFeed] 수정하려는 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
-            if (!transactionFeed.getUser().equals(user)) throw new FeedModifyPermissionException();
+        User user = findUserByEmail(email);
+        TransactionFeed transactionFeed = findTransactionFeedById(updateFeedRequestDto.getTransactionFeedId());
+        log.info("[updateFeed] 수정하려는 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
-            handleSaleDataChange(user, transactionFeed.getSalesDataAmount(), updateFeedRequestDto.getSalesDataAmount());
-
-            transactionFeed.update(
-                    updateFeedRequestDto.getTitle(),
-                    updateFeedRequestDto.getContent(),
-                    updateFeedRequestDto.getSalesPrice(),
-                    updateFeedRequestDto.getSalesDataAmount(),
-                    updateFeedRequestDto.getDefaultImageNumber()
-            );
-
-            log.info("[updateFeed] 판매글 DB 업데이트 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
-
-            return UpdateFeedResponseDto.builder()
-                    .transactionFeedId(transactionFeed.getTransactionFeedId())
-                    .build();
-
-        } catch (Exception e) {
-            log.info("[updateFeed] 판매글 수정 도중 오류 발생");
-            throw new InternalServerException(ErrorCode.TRANSACTION_FEED_UPDATE_FAIL);
+        if (!transactionFeed.getUser().equals(user)) {
+            throw new FeedModifyPermissionException();
         }
+
+        handleSaleDataChange(user, transactionFeed.getSalesDataAmount(), updateFeedRequestDto.getSalesDataAmount());
+
+        transactionFeed.update(
+                updateFeedRequestDto.getTitle(),
+                updateFeedRequestDto.getContent(),
+                updateFeedRequestDto.getSalesPrice(),
+                updateFeedRequestDto.getSalesDataAmount(),
+                updateFeedRequestDto.getDefaultImageNumber()
+        );
+
+        log.info("[updateFeed] 판매글 DB 업데이트 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
+
+        return UpdateFeedResponseDto.builder()
+                .transactionFeedId(transactionFeed.getTransactionFeedId())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId) {
+        log.info("[getFeedDetail] 판매글 상세 조회 시작. ID: {}", transactionFeedId);
+        TransactionFeed feed = transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId)
+                .orElseThrow(TransactionFeedNotFoundException::new);
+
+        // TODO: 찜 횟수 별도 조회 필요
+        long likedCount = 20L;
+        Long currentHeightPrice = null;
+
+        String auctionType = salesTypeManager.getBidSaleType().getName();
+        if (auctionType.equals(feed.getSalesType().getName())) {
+            log.info("[getFeedDetail] 입찰 판매글입니다. 현재 최고가 조회");
+            // TODO: 현재 최고가 조회 필요
+            currentHeightPrice = 10000L;
+        }
+
+        return GetFeedDetailResponseDto.builder()
+                .transactionFeedId(feed.getTransactionFeedId())
+                .title(feed.getTitle())
+                .content(feed.getContent())
+                .salesDataAmount(feed.getSalesDataAmount())
+                .salesPrice(feed.getSalesPrice())
+                .defaultImageNumber(feed.getDefaultImageNumber())
+                .createdAt(feed.getCreatedAt())
+                .nickname(feed.getUser().getNickname())
+                .likedCount(likedCount)
+                .telecomCompany(TelecomCompanyDto.fromEntity(feed.getTelecomCompany()))
+                .status(StatusDto.fromEntity(feed.getStatus()))
+                .salesType(SalesTypeDto.fromEntity(feed.getSalesType()))
+                .expiredAt(feed.getExpiresAt())
+                .currentHeightPrice(currentHeightPrice)
+                .build();
     }
 
     private User findUserByEmail(String email) {
@@ -112,8 +148,20 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
-        return transactionFeedRepositoryCustom.findByIdWithLock(transactionFeedId) // 동시성 제어를 위해 비관적 락 사용
+        return transactionFeedRepositoryCustom.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
+    }
+
+    private void validateAuctionCreationTime(SalesType salesType) {
+        if ("입찰 판매".equalsIgnoreCase(salesType.getName())) {
+            LocalTime now = LocalTime.now();
+            LocalTime restrictionStartTime = LocalTime.of(23, 30);
+
+            if (!now.isBefore(restrictionStartTime)) {
+                log.info("[validateAuctionCreationTime] 입찰 판매글 등록 제한 시간입니다. 현재시간: {}", now);
+                throw new AuctionCreationNotAllowedException();
+            }
+        }
     }
 
     private UserData findAndValidateUserData(User user, long salesDataAmount) {
@@ -126,18 +174,26 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return userData;
     }
 
-    private TransactionFeed buildNewFeed(User user, UserData userData, CreateFeedRequestDto dto) {
+    private TransactionFeed buildNewFeed(User user, UserData userData, CreateFeedRequestDto dto, SalesType salesType) {
         TelecomCompany telecomCompany = telecomCompanyRepository.findById(dto.getTelecomCompanyId())
                 .orElseThrow(TelecomCompanyNotFoundException::new);
 
-        if (user.getTelecomCompany() != telecomCompany) throw new InvalidTelecomCompanyException();
-
-        SalesType salesType = salesTypeRepository.findById(dto.getSalesTypeId())
-                .orElseThrow(StatusNotFoundException::new);
+        if (user.getTelecomCompany() != telecomCompany) {
+            throw new InvalidTelecomCompanyException();
+        }
 
         Status status = statusManager.getStatus("FEED", "ON_SALE");
 
-        LocalDateTime expiresAt = calculateExpirationDate(userData.getResetDataAt());
+        LocalDateTime expiresAt;
+
+        if (salesTypeManager.getBidSaleType().getName().equals(salesType.getName())) {
+            log.info("[buildNewFeed] 입찰 판매글이므로 만료일은 오늘 자정입니다.");
+            expiresAt = LocalDate.now().atTime(LocalTime.MAX);
+
+        } else {
+            log.info("[buildNewFeed] 일반 판매글이므로 만료일은 사용자 데이터 리셋일 기준입니다.");
+            expiresAt = calculateExpirationDate(userData.getResetDataAt());
+        }
 
         return TransactionFeed.builder()
                 .user(user)
@@ -167,9 +223,9 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     /**
      * 판매글 수정시 판매 데이터 양 변경에 따른 사용자 데이터 증가, 감소를 처리합니다.
      *
-     * @param user 사용자 엔티티
+     * @param user               사용자 엔티티
      * @param originalSaleDataMb 기존 판매 데이터 양
-     * @param newSaleDataMb 새로운 판매 데이터 양
+     * @param newSaleDataMb      새로운 판매 데이터 양
      */
     private void handleSaleDataChange(User user, long originalSaleDataMb, long newSaleDataMb) {
         long saleDataChangeAmount = newSaleDataMb - originalSaleDataMb;

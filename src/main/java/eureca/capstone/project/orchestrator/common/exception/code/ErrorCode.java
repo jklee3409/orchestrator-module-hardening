@@ -45,7 +45,8 @@ public enum ErrorCode {
     TRANSACTION_FEED_UPDATE_FAIL(30001, "TRANSACTION_FEED_UPDATE_FAIL", "판매글 수정 도중 오류가 발생했습니다."),
     FEED_MODIFY_PERMISSION_DENIED(30002, "FEED_MODIFY_PERMISSION_DENIED", "판매글 수정 권한이 없습니다."),
     TRANSACTION_FEED_NOT_FOUND(30003, "TRANSACTION_FEED_NOT_FOUND", "거래글을 찾지 못하였습니다."),
-
+    AUCTION_FEED_CREATE_FAIL(30004, "AUCTION_FEED_CREATE_FAIL", "입찰 판매 등록 가능 시간이 아닙니다"),
+    SALES_TYPE_NOT_FOUND(30005, "SALES_TYPE_NOT_FOUND", "판매 유형을 찾지 못하였습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 

@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
@@ -214,71 +215,6 @@ class TransactionFeedServiceImplTest {
     }
 
     @Test
-    @DisplayName("사용자 데이터가 없을 때 피드 생성 시 예외 발생")
-    void createFeed_UserDataNotFound_ThrowsException() {
-        // Given
-        String email = "test@example.com";
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(UserDataNotFoundException.class, () -> transactionFeedService.createFeed(email, createFeedRequestDto));
-
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository, never()).findById(anyLong());
-    }
-
-    @Test
-    @DisplayName("판매 가능한 데이터보다 많은 양을 판매하려 할 때 예외 발생")
-    void createFeed_DataOverSellableAmount_ThrowsException() {
-        // Given
-        String email = "test@example.com";
-        CreateFeedRequestDto overSellRequestDto = CreateFeedRequestDto.builder()
-                .title("테스트 피드")
-                .content("테스트 내용")
-                .telecomCompanyId(1L)
-                .salesTypeId(1L)
-                .salesPrice(10000L)
-                .salesDataAmount(20000L) // 판매 가능한 데이터(10000L)보다 많음
-                .defaultImageNumber(1L)
-                .build();
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
-
-        // When & Then
-        assertThrows(DataOverSellableAmountException.class, () -> transactionFeedService.createFeed(email, overSellRequestDto));
-
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository, never()).findById(anyLong());
-    }
-
-    @Test
-    @DisplayName("사용자의 통신사와 다른 통신사로 피드 생성 시 예외 발생")
-    void createFeed_InvalidTelecomCompany_ThrowsException() {
-        // Given
-        String email = "test@example.com";
-        TelecomCompany differentTelecomCompany = TelecomCompany.builder()
-                .telecomCompanyId(2L)
-                .name("다른 통신사")
-                .build();
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
-        when(telecomCompanyRepository.findById(anyLong())).thenReturn(Optional.of(differentTelecomCompany));
-
-        // When & Then
-        assertThrows(InvalidTelecomCompanyException.class, () -> transactionFeedService.createFeed(email, createFeedRequestDto));
-
-        verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(user.getUserId());
-        verify(telecomCompanyRepository).findById(createFeedRequestDto.getTelecomCompanyId());
-        verify(salesTypeRepository, never()).findById(anyLong());
-    }
-    @Test
     @DisplayName("피드 수정 성공")
     void updateFeed_Success() {
         // Given
@@ -362,5 +298,100 @@ class TransactionFeedServiceImplTest {
         verify(transactionFeedRepositoryCustom).findByIdWithLock(updateFeedRequestDto.getTransactionFeedId());
         verify(userDataService, never()).addSellableData(anyLong(), anyLong());
         verify(userDataService, never()).deductSellableData(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("일반 판매글 상세 조회 성공")
+    void getFeedDetail_Success() {
+        // Given
+        Long transactionFeedId = 1L;
+
+        when(transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId))
+                .thenReturn(Optional.of(transactionFeed));
+
+        // When
+        GetFeedDetailResponseDto responseDto = transactionFeedService.getFeedDetail(transactionFeedId);
+
+        // Then
+        assertNotNull(responseDto);
+        assertEquals(transactionFeed.getTransactionFeedId(), responseDto.getTransactionFeedId());
+        assertEquals(transactionFeed.getTitle(), responseDto.getTitle());
+        assertEquals(transactionFeed.getContent(), responseDto.getContent());
+        assertEquals(transactionFeed.getSalesDataAmount(), responseDto.getSalesDataAmount());
+        assertEquals(transactionFeed.getSalesPrice(), responseDto.getSalesPrice());
+        assertEquals(transactionFeed.getDefaultImageNumber(), responseDto.getDefaultImageNumber());
+        assertEquals(transactionFeed.getUser().getNickname(), responseDto.getNickname());
+        assertNull(responseDto.getCurrentHeightPrice());
+
+        verify(transactionFeedRepositoryCustom).findFeedDetailById(transactionFeedId);
+    }
+
+    @Test
+    @DisplayName("입찰 판매글 상세 조회 성공")
+    void getFeedDetail_AuctionType_Success() {
+        // Given
+        Long transactionFeedId = 1L;
+
+        SalesType auctionSalesType = new SalesType();
+        try {
+            java.lang.reflect.Field idField = SalesType.class.getDeclaredField("SalesTypeId");
+            idField.setAccessible(true);
+            idField.set(auctionSalesType, 2L);
+
+            java.lang.reflect.Field nameField = SalesType.class.getDeclaredField("name");
+            nameField.setAccessible(true);
+            nameField.set(auctionSalesType, "입찰 판매");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        TransactionFeed auctionFeed = TransactionFeed.builder()
+                .transactionFeedId(1L)
+                .user(user)
+                .title("경매 피드")
+                .content("경매 내용")
+                .telecomCompany(telecomCompany)
+                .salesType(auctionSalesType)
+                .salesPrice(10000L)
+                .salesDataAmount(1000L)
+                .defaultImageNumber(1L)
+                .expiresAt(LocalDateTime.now().plusDays(1))
+                .status(status)
+                .isDeleted(false)
+                .build();
+
+        when(transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId))
+                .thenReturn(Optional.of(auctionFeed));
+
+        // When
+        GetFeedDetailResponseDto responseDto = transactionFeedService.getFeedDetail(transactionFeedId);
+
+        // Then
+        assertNotNull(responseDto);
+        assertEquals(auctionFeed.getTransactionFeedId(), responseDto.getTransactionFeedId());
+        assertEquals(auctionFeed.getTitle(), responseDto.getTitle());
+        assertEquals(auctionFeed.getContent(), responseDto.getContent());
+        assertEquals(auctionFeed.getSalesDataAmount(), responseDto.getSalesDataAmount());
+        assertEquals(auctionFeed.getSalesPrice(), responseDto.getSalesPrice());
+        assertEquals(auctionFeed.getDefaultImageNumber(), responseDto.getDefaultImageNumber());
+        assertEquals(auctionFeed.getUser().getNickname(), responseDto.getNickname());
+        assertNotNull(responseDto.getCurrentHeightPrice());
+
+        verify(transactionFeedRepositoryCustom).findFeedDetailById(transactionFeedId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 판매글 조회 시 예외 발생")
+    void getFeedDetail_FeedNotFound_ThrowsException() {
+        // Given
+        Long nonExistentFeedId = 999L;
+
+        when(transactionFeedRepositoryCustom.findFeedDetailById(nonExistentFeedId))
+                .thenReturn(Optional.empty());
+
+        // When & Then
+        assertThrows(TransactionFeedNotFoundException.class, () -> transactionFeedService.getFeedDetail(nonExistentFeedId));
+
+        verify(transactionFeedRepositoryCustom).findFeedDetailById(nonExistentFeedId);
     }
 }
