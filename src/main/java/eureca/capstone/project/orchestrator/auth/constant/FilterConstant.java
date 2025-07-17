@@ -6,6 +6,7 @@ public class FilterConstant {
             "/healthCheck",
             "/user/",
             "/auth/login",
+            "/auth/verify-email",
 
             "/auth/crypto-password",
             "/auth/generateToken",

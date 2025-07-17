@@ -1,5 +1,5 @@
 package eureca.capstone.project.orchestrator.common.service;
 
 public interface EmailService {
-    void sendEmail(String to, String subject, String text);
+    void sendEmail(String to, String subject, String body);
 }

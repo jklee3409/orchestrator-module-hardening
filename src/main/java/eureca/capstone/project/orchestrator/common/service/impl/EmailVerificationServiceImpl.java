@@ -1,11 +1,17 @@
 package eureca.capstone.project.orchestrator.common.service.impl;
 
+import eureca.capstone.project.orchestrator.common.exception.custom.EmailVerifyTokenMismatchException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.service.EmailService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
+import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -19,6 +25,8 @@ import static eureca.capstone.project.orchestrator.common.constant.RedisConstant
 public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final EmailService emailService;
     private final RedisService redisService;
+    private final UserRepository userRepository;
+    private final StatusManager statusManager;
 
     @Override
     public void sendVerificationEmail(String email) {
@@ -27,7 +35,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         String redisKey = RedisPendingEmail + token;
         redisService.setValue(redisKey, email, Duration.ofMinutes(30));
 
-        String verificationLink = "https://www.visiblego.com/auth/verify-email?token=" + token;
+        String verificationLink = "https://www.visiblego.com/orchestrator/verify-email?token=" + token;
         String emailBody = """
                 <!DOCTYPE html>
                 <html lang="ko">
@@ -46,19 +54,30 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
                                 이메일 인증하기
                             </a>
                         </div>
-                        <p style="font-size: 14px; color: #555;">버튼이 작동하지 않으면 아래 링크를 복사하여 브라우저에 붙여넣어주세요:</p>
-                        <p style="font-size: 14px; color: #555;"><a href="%s">%s</a></p>
-                        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-                        <p style="font-size: 12px; color: #888;">이 메일은 발신 전용입니다. 문의사항은 datcha-support@yourdomain.com 으로 보내주세요.</p>
+                        <p style="font-size: 12px; color: #888;">이 메일은 발신 전용입니다.</p>
                     </div>
                 </body>
                 </html>
-                """.formatted(verificationLink, verificationLink, verificationLink);
+                """.formatted(verificationLink);
+
         emailService.sendEmail(email, "Datcha 회원가입 인증 메일 입니다.", emailBody);
     }
 
+    @Transactional
     @Override
-    public void verify(String token) {
+    public void verifyEmailToken(String token) {
+        // 키값을 통해 레디스에 인증 대기중인 토큰 값이 존재하는지 확인
+        String redisKey = RedisPendingEmail + token;
+        String email = (String) redisService.getValue(redisKey);
 
+        // 만약 해당 키값을 통한 email 이 존재하지 않는다면, Exception 처리
+        if (email == null) throw new EmailVerifyTokenMismatchException();
+
+        // 상태값 변경
+        User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
+        user.setStatus(statusManager.getStatus("USER", "ACTIVE"));
+
+        // 인증 완료 후 토큰 삭제
+        redisService.deleteValue(redisKey);
     }
 }

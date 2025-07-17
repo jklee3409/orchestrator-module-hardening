@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/orchestrator")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;

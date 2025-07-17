@@ -13,6 +13,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFound
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.service.AIService;
 import eureca.capstone.project.orchestrator.common.service.EmailService;
+import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
@@ -51,6 +52,7 @@ public class UserServiceImpl implements UserService {
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final AIService aiService;
+    private final EmailVerificationService emailVerificationService;
 
     /**
      * 새로운 사용자를 생성합니다.
@@ -117,9 +119,8 @@ public class UserServiceImpl implements UserService {
 
             userDataService.createUserData(userDataReq);
 
-            // TODO 인증 이메일 발송
-
-            // TODO 레디스에 인증 코드 저장
+            // 인증 이메일 발송
+            emailVerificationService.sendVerificationEmail(createUserRequestDto.getEmail());
 
             return CreateUserResponseDto.builder()
                     .id(user.getUserId())
