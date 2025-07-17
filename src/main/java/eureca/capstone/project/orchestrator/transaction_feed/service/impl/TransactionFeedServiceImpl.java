@@ -117,7 +117,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         long likedCount = 20L;
         Long currentHeightPrice = null;
 
-        String auctionType = salesTypeManager.getSalesType("입찰 판매").getName();
+        String auctionType = salesTypeManager.getBidSaleType().getName();
         if (auctionType.equals(feed.getSalesType().getName())) {
             log.info("[getFeedDetail] 입찰 판매글입니다. 현재 최고가 조회");
             // TODO: 현재 최고가 조회 필요

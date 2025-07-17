@@ -1,41 +1,41 @@
 package eureca.capstone.project.orchestrator.common.util;
 
-import eureca.capstone.project.orchestrator.common.exception.custom.SalesTypeNotFoundException;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import jakarta.annotation.PostConstruct;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
+import java.util.List;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@DependsOn("initComponent")
+@Getter
 public class SalesTypeManager {
+    private static final String NORMAL_SALE_NAME = "일반 판매";
+    private static final String BID_SALE_NAME = "입찰 판매";
 
     private final SalesTypeRepository salesTypeRepository;
-    private Map<String, SalesType> salesTypeCache;
+
+    private SalesType normalSaleType;
+    private SalesType bidSaleType;
 
     @PostConstruct
     public void init() {
-        salesTypeCache = salesTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(SalesType::getName, Function.identity()));
-        log.info("SalesTypeManager 로드 완료. 전체 salesType: {}", salesTypeCache.size());
-    }
+        List<SalesType> salesTypes = salesTypeRepository.findAll();
 
-    /**
-     * 판매 유형 이름을 통해 SalesType 객체를 반환하는 메서드
-     * @param name 판매 유형 이름 (예: "NORMAL_SALE")
-     * @return SalesType 객체
-     */
-    public SalesType getSalesType(String name) {
-        return Optional.ofNullable(salesTypeCache.get(name))
-                .orElseThrow(SalesTypeNotFoundException::new);
+        this.normalSaleType = salesTypes.stream()
+                .filter(st -> NORMAL_SALE_NAME.equals(st.getName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(NORMAL_SALE_NAME + " SalesType을 데이터베이스에서 찾을 수 없습니다."));
+
+        this.bidSaleType = salesTypes.stream()
+                .filter(st -> BID_SALE_NAME.equals(st.getName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(BID_SALE_NAME + " SalesType을 데이터베이스에서 찾을 수 없습니다."));
+
+        log.info("SalesTypeManager 로드 및 초기화 완료.");
     }
 }
