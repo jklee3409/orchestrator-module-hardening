@@ -14,8 +14,16 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "charge_history")
 public class ChargeHistory extends BaseEntity {
 
@@ -36,8 +44,8 @@ public class ChargeHistory extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     private UserEventCoupon userEventCoupon;
 
-    @Column(name = "order_id")
-    private Long orderId;
+    @Column(name = "order_id", unique = true)
+    private String  orderId;
 
     @Column(name = "payment_key")
     private String paymentKey;
