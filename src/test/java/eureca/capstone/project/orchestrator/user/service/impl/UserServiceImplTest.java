@@ -108,14 +108,6 @@ class UserServiceImplTest {
                 .telecomCompany(telecomCompany)
                 .status(status)
                 .build();
-
-        try {
-            java.lang.reflect.Field createdAtField = User.class.getSuperclass().getDeclaredField("createdAt");
-            createdAtField.setAccessible(true);
-            createdAtField.set(user, LocalDateTime.now());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @Test
