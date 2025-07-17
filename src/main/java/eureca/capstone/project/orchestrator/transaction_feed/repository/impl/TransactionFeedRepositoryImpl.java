@@ -22,7 +22,7 @@ public class TransactionFeedRepositoryImpl implements TransactionFeedRepositoryC
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Optional<TransactionFeed> findByIdWithLock(Long transactionFeedId) {
+    public Optional<TransactionFeed> findById(Long transactionFeedId) {
         TransactionFeed result = jpaQueryFactory
                 .selectFrom(transactionFeed)
                 .where(transactionFeed.transactionFeedId.eq(transactionFeedId))
