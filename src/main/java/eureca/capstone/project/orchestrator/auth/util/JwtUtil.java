@@ -5,19 +5,19 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import java.util.HashSet;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.accessTokenValidity;
-import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.refreshTokenValidity;
+import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.ACCESS_TOKEN_VALIDITY;
+import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.REFRESH_TOKEN_VALIDITY;
 
 
 @Component
@@ -29,11 +29,11 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(String email, Set<String> roles, Set<String> authorities, Long userId) {
-        return generateToken(email, roles, authorities, userId, accessTokenValidity);
+        return generateToken(email, roles, authorities, userId, ACCESS_TOKEN_VALIDITY);
     }
 
     public String generateRefreshToken(String email, Set<String> roles, Set<String> authorities, Long userId) {
-        return generateToken(email, roles, authorities, userId, refreshTokenValidity);
+        return generateToken(email, roles, authorities, userId, REFRESH_TOKEN_VALIDITY);
     }
 
     private String generateToken(String email, Set<String> roles, Set<String> authorities, Long userId, long validity) {

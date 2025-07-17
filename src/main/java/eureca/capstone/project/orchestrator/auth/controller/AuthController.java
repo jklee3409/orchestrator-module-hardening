@@ -4,7 +4,6 @@ import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto
 import eureca.capstone.project.orchestrator.auth.dto.request.LoginRequestDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.LoginResponseDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
-import eureca.capstone.project.orchestrator.common.constant.RedisConstant;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,10 +18,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_REFRESH_TOKEN;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/orchestrator/auth")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
@@ -61,7 +62,7 @@ public class AuthController {
         // 요청 값 로그 출력
         log.info("customUserDetailsDto: {}", customUserDetailsDto);
         // Refresh Token 삭제
-        redisService.deleteValue(RedisConstant.RedisRefreshToken + customUserDetailsDto.getUserId());
+        redisService.deleteValue(REDIS_REFRESH_TOKEN + customUserDetailsDto.getUserId());
         // 반환값 생성 및 출력
         BaseResponseDto<Void> success = BaseResponseDto.voidSuccess();
         log.info("success: {}", success);

@@ -11,6 +11,10 @@ import eureca.capstone.project.orchestrator.common.exception.custom.InternalServ
 import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
+import eureca.capstone.project.orchestrator.common.service.AIService;
+import eureca.capstone.project.orchestrator.common.service.EmailService;
+import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
+import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
@@ -18,25 +22,21 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNickname
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user.*;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Optional;
 
 @Slf4j
@@ -51,6 +51,8 @@ public class UserServiceImpl implements UserService {
     private final TelecomCompanyRepository telecomCompanyRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
+    private final AIService aiService;
+    private final EmailVerificationService emailVerificationService;
 
     /**
      * 새로운 사용자를 생성합니다.
@@ -59,9 +61,9 @@ public class UserServiceImpl implements UserService {
      *
      * @param createUserRequestDto 사용자 생성에 필요한 정보(이메일, 비밀번호, 닉네임, 전화번호, 통신사 ID 등)
      * @return 생성된 사용자의 ID
-     * @throws EmailAlreadyExistsException 이미 존재하는 이메일인 경우
+     * @throws EmailAlreadyExistsException     이미 존재하는 이메일인 경우
      * @throws TelecomCompanyNotFoundException 존재하지 않는 통신사 ID인 경우
-     * @throws InternalServerException 사용자 생성 중 오류 발생 시
+     * @throws InternalServerException         사용자 생성 중 오류 발생 시
      */
     @Override
     @Transactional
@@ -83,7 +85,7 @@ public class UserServiceImpl implements UserService {
             User user = User.builder()
                     .email(createUserRequestDto.getEmail())
                     .password(passwordEncoder.encode(createUserRequestDto.getPassword()))
-                    .nickname(createUserRequestDto.getNickname())
+                    .nickname(aiService.generateNickname())
                     .phoneNumber(createUserRequestDto.getPhoneNumber())
                     .provider(createUserRequestDto.getProvider())
                     .telecomCompany(telecomCompany)
@@ -116,6 +118,9 @@ public class UserServiceImpl implements UserService {
                     .build();
 
             userDataService.createUserData(userDataReq);
+
+            // 인증 이메일 발송
+            emailVerificationService.sendVerificationEmail(createUserRequestDto.getEmail());
 
             return CreateUserResponseDto.builder()
                     .id(user.getUserId())

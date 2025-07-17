@@ -1,6 +1,5 @@
 package eureca.capstone.project.orchestrator.auth.config;
 
-import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
@@ -20,6 +19,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.BLACK_LIST;
+import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.WHITE_LIST;
 
 @Slf4j
 @Configuration
@@ -49,8 +51,8 @@ public class SecurityConfig {
 
                 // 요청별 인증/인가 정책 정의
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(FilterConstant.whiteList).permitAll()               // 화이트리스트 경로는 모두 허용
-                        .requestMatchers(FilterConstant.blackList).authenticated()           // 블랙리스트 경로는 인증 필요
+                        .requestMatchers(WHITE_LIST).permitAll()               // 화이트리스트 경로는 모두 허용
+                        .requestMatchers(BLACK_LIST).authenticated()           // 블랙리스트 경로는 인증 필요
                         .anyRequest().permitAll()                                            // 나머지는 모두 허용 (필요 시 변경)
                 )
 
