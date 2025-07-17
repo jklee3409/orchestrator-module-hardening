@@ -4,7 +4,10 @@ import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import java.util.List;
+import java.util.Optional;
 
 public interface UserEventCouponRepositoryCustom {
     List<UserEventCoupon> findAvailableCouponsByUserAndStatus(User user, Status status);
+
+    Optional<UserEventCoupon> findCouponDetailsById(Long userEventCouponId);
 }

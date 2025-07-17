@@ -11,6 +11,7 @@ import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
 import eureca.capstone.project.orchestrator.pay.repository.custom.UserEventCouponRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -31,5 +32,19 @@ public class UserEventCouponRepositoryImpl implements UserEventCouponRepositoryC
                         userEventCoupon.status.eq(issuedStatus)
                 )
                 .fetch();
+    }
+
+    @Override
+    public Optional<UserEventCoupon> findCouponDetailsById(Long userEventCouponId) {
+        UserEventCoupon result = queryFactory
+                .selectFrom(userEventCoupon)
+                .join(userEventCoupon.user).fetchJoin()
+                .join(userEventCoupon.status, status).fetchJoin()
+                .join(userEventCoupon.eventCoupon, eventCoupon).fetchJoin()
+                .leftJoin(eventCoupon.payType, payType).fetchJoin()
+                .where(userEventCoupon.userEventCouponId.eq(userEventCouponId))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
