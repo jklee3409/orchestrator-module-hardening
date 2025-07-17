@@ -23,6 +23,7 @@ repositories {
     mavenCentral()
 }
 
+
 dependencies {
     // Lombok (컴파일 시 전용)
     compileOnly 'org.projectlombok:lombok'
@@ -58,10 +59,23 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+    // Spring AI
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+ext {
+    springAiVersion = "1.0.0"
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+    }
 }
 
 // clean 시 Q 클래스 디렉토리 삭제
