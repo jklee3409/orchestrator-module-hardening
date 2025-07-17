@@ -1,6 +1,8 @@
 package eureca.capstone.project.orchestrator.auth.config;
 
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
+import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2SuccessServiceImpl;
+import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2UserServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
@@ -17,7 +19,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.BLACK_LIST;
@@ -53,13 +59,21 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST).permitAll()               // 화이트리스트 경로는 모두 허용
                         .requestMatchers(BLACK_LIST).authenticated()           // 블랙리스트 경로는 인증 필요
-                        .anyRequest().permitAll()                                            // 나머지는 모두 허용 (필요 시 변경)
+                        .anyRequest().permitAll()                              // 나머지는 모두 허용 (필요 시 변경)
                 )
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 등록
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService),
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                // OAuth 2.0 로그인 설정
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(user -> user
+                                .userService(oAuth2UserService()) // 사용자 정보 후처리 커스텀 서비스
+                        )
+                        .successHandler(customOAuth2SuccessHandler()) // 여기서 프론트에 리다이렉션 처리
                 )
 
                 .exceptionHandling(exception -> exception
@@ -102,6 +116,16 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService() {
+        return new CustomOAuth2UserServiceImpl();
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler customOAuth2SuccessHandler() {
+        return new CustomOAuth2SuccessServiceImpl();
     }
 }
 
