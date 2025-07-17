@@ -10,4 +10,5 @@ public interface TransactionFeedService {
     CreateFeedResponseDto createFeed(String email, CreateFeedRequestDto feedRequestDto);
     UpdateFeedResponseDto updateFeed(String email, UpdateFeedRequestDto updateFeedRequestDto);
     GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId);
+    void deleteFeed(String email, Long transactionFeedId);
 }

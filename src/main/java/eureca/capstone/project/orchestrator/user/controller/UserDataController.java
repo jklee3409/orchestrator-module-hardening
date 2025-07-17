@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/user-data")
+@RequestMapping("/orchestrator/user-data")
 @RequiredArgsConstructor
 public class UserDataController {
     private final UserDataService userDataService;

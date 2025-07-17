@@ -2,6 +2,6 @@ package eureca.capstone.project.orchestrator.common.exception.custom;
 
 public class FeedModifyPermissionException extends RuntimeException {
     public FeedModifyPermissionException() {
-        super("게시글을 수정할 수 있는 권한이 없습니다.");
+        super("게시글을 수정하거나 삭제할 수 없습니다. 판매자가 아닙니다.");
     }
 }

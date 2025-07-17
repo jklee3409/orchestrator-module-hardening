@@ -85,9 +85,11 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = findTransactionFeedById(updateFeedRequestDto.getTransactionFeedId());
         log.info("[updateFeed] 수정하려는 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
-        if (!transactionFeed.getUser().equals(user)) {
-            throw new FeedModifyPermissionException();
-        }
+        if (!transactionFeed.getUser().equals(user)) throw new FeedModifyPermissionException();
+        log.info("[updateFeed] 사용자와 판매자가 일치합니다.");
+
+        if (transactionFeed.getSalesType().getName().equals(salesTypeManager.getBidSaleType().getName())) throw new AuctionTypeModifyNotAllowedException();
+        log.info("[updateFeed] 입찰 판매가 아닙니다.");
 
         handleSaleDataChange(user, transactionFeed.getSalesDataAmount(), updateFeedRequestDto.getSalesDataAmount());
 
@@ -142,6 +144,29 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public void deleteFeed(String email, Long transactionFeedId) {
+        log.info("[deleteFeed] 사용자 {}, 판매글 {} 삭제 시작", email, transactionFeedId);
+
+        TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
+        log.info("[deleteFeed] 삭제하려는 판매글 조회 완료.");
+
+        if (!transactionFeed.getUser().getEmail().equals(email)) throw new FeedModifyPermissionException();
+        log.info("[deleteFeed] 사용자와 판매자가 일치합니다.");
+
+        if (transactionFeed.getSalesType().getName().equals(salesTypeManager.getBidSaleType().getName())) throw new AuctionTypeModifyNotAllowedException();
+        log.info("[deleteFeed] 입찰 판매가 아닙니다.");
+
+        if (transactionFeed.isDeleted()) {
+            log.warn("[deleteFeed] 이미 삭제된 판매글(ID: {})에 대한 요청입니다.", transactionFeedId);
+            return;
+        }
+
+        transactionFeed.delete();
+        log.info("[deleteFeed] 판매글 삭제 완료");
+    }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
@@ -153,7 +178,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     private void validateAuctionCreationTime(SalesType salesType) {
-        if ("입찰 판매".equalsIgnoreCase(salesType.getName())) {
+        if (salesTypeManager.getBidSaleType().getName().equals(salesType.getName())) {
             LocalTime now = LocalTime.now();
             LocalTime restrictionStartTime = LocalTime.of(23, 30);
 
