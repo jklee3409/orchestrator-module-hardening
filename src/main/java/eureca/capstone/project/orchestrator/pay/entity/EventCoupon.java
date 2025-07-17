@@ -10,8 +10,12 @@ public class EventCoupon extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "event_coupon_id")
     private Long eventCouponId;
+
     @Column(name = "coupon_number")
     private String couponNumber;
+
+    @Column(name = "coupon_name")
+    private String couponName;
 
     @JoinColumn(name = "pay_type_id")
     @OneToOne(fetch = FetchType.LAZY)
