@@ -48,4 +48,14 @@ public class TransactionFeedController {
         UpdateFeedResponseDto updateFeedResponse = transactionFeedService.updateFeed(customUserDetailsDto.getEmail(), updateFeedRequestDto);
         return BaseResponseDto.success(updateFeedResponse);
     }
+
+    @DeleteMapping("/{transactionFeedId}")
+    @Operation(summary = "판매글 삭제 API", description = "로그인한 사용자가 자신의 판매글을 삭제합니다.")
+    public BaseResponseDto<Void> deleteFeed(
+            @PathVariable Long transactionFeedId,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
+    ) {
+        transactionFeedService.deleteFeed(customUserDetailsDto.getEmail(), transactionFeedId);
+        return BaseResponseDto.voidSuccess();
+    }
 }
