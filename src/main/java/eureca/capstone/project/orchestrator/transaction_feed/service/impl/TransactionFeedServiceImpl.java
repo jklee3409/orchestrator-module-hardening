@@ -186,7 +186,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         LocalDateTime expiresAt;
 
-        if ("입찰 판매".equals(salesType.getName())) {
+        if (salesTypeManager.getBidSaleType().getName().equals(salesType.getName())) {
             log.info("[buildNewFeed] 입찰 판매글이므로 만료일은 오늘 자정입니다.");
             expiresAt = LocalDate.now().atTime(LocalTime.MAX);
 
