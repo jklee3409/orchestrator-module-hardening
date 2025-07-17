@@ -15,4 +15,5 @@ public interface UserService {
     UpdateNicknameResponseDto updateUserNickname(String email, UpdateNicknameRequestDto updateUserNicknameRequestDto);
     UpdatePasswordResponseDto updateUserPassword(String email, UpdatePasswordRequestDto updatePasswordRequestDto);
     GetUserCountResponseDto getUserCount();
+    Long OAuthUserRegisterIfNotExists(String email, String provider);
 }

@@ -17,13 +17,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.BLACK_LIST;
@@ -36,6 +30,8 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final RedisService redisService;
+    private final CustomOAuth2UserServiceImpl customOAuth2UserService;
+    private final CustomOAuth2SuccessServiceImpl customOAuth2SuccessService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -71,9 +67,9 @@ public class SecurityConfig {
                 // OAuth 2.0 로그인 설정
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(user -> user
-                                .userService(oAuth2UserService()) // 사용자 정보 후처리 커스텀 서비스
+                                .userService(customOAuth2UserService)
                         )
-                        .successHandler(customOAuth2SuccessHandler()) // 여기서 프론트에 리다이렉션 처리
+                        .successHandler(customOAuth2SuccessService)
                 )
 
                 .exceptionHandling(exception -> exception
@@ -109,23 +105,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @Bean
-    public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService() {
-        return new CustomOAuth2UserServiceImpl();
-    }
-
-    @Bean
-    public AuthenticationSuccessHandler customOAuth2SuccessHandler() {
-        return new CustomOAuth2SuccessServiceImpl();
-    }
 }
 

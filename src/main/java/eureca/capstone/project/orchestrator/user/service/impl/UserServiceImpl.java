@@ -12,9 +12,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompa
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.service.AIService;
-import eureca.capstone.project.orchestrator.common.service.EmailService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
-import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
@@ -38,6 +36,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -217,6 +216,55 @@ public class UserServiceImpl implements UserService {
                 .totalUserCount(totalUserCount)
                 .todayUserCount(todayUserCount)
                 .build();
+    }
+
+    @Transactional
+    @Override
+    public Long OAuthUserRegisterIfNotExists(String email, String provider) {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        // 이미 존재하는 경우 → 아무 작업 없이 기존 유저 ID 반환
+        if (optionalUser.isPresent()) {
+            return optionalUser.get().getUserId();
+        }
+
+        // 시스템에 존재하지 않은 경우, 회원 가입 처리 및 권한 부여
+        TelecomCompany randomTelecomCompany = telecomCompanyRepository.findRandomTelecomCompany();
+        User savedUser = userRepository.save(
+                User.builder()
+                        .email(email)
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .nickname(aiService.generateNickname())
+                        .provider(provider)
+                        .telecomCompany(randomTelecomCompany)
+                        .status(statusManager.getStatus("USER", "ACTIVE"))
+                        .build()
+        );
+
+        // 역할과 권한 부여
+        UserRole userRole = UserRole.builder()
+                .user(savedUser)
+                .role(roleRepository.findRoleByName("ROLE_USER"))
+                .build();
+
+        userRoleRepository.save(userRole);
+
+        // 랜덤 요금제 조회
+        RandomPlanRequestDto planReq = RandomPlanRequestDto.builder()
+                .telecomCompany(randomTelecomCompany)
+                .build();
+        RandomPlanResponseDto randomPlan = planService.getRandomPlan(planReq);
+
+        // 사용자 데이터 레코드 생성
+        CreateUserDataRequestDto createUserDataRequestDto = CreateUserDataRequestDto.builder()
+                .userId(savedUser.getUserId())
+                .planId(randomPlan.getPlanId())
+                .monthlyDataMb(randomPlan.getMonthlyDataMb())
+                .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
+                .build();
+
+        userDataService.createUserData(createUserDataRequestDto);
+
+        return savedUser.getUserId();
     }
 
     private User findUserByEmail(String email) {
