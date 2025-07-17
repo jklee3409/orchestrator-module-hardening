@@ -117,4 +117,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.AUCTION_FEED_MODIFY_NOT_ALLOWED);
     }
+
+    @ExceptionHandler(PayTypeNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handlePayTypeNotFoundException(PayTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.PAY_TYPE_NOT_FOUND);
+    }
 }
