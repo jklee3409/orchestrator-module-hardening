@@ -89,7 +89,7 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("[preparePayment] 쿠폰 사용을 위한 결제 수단: {}", requiredPayType.getName());
         }
 
-        Long expectedFinalAmount = requestDto.getFinalAmount() - discountAmount;
+        Long expectedFinalAmount = requestDto.getOriginalAmount() - discountAmount;
         if (!expectedFinalAmount.equals(requestDto.getFinalAmount())) throw new InternalServerException(ErrorCode.FINAL_AMOUNT_NOT_MATCHED);
         log.info("[preparePayment] 요청 결제 금액과 일치");
 
