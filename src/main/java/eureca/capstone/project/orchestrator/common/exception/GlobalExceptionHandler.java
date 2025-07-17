@@ -111,4 +111,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.SALES_TYPE_NOT_FOUND);
     }
+
+    @ExceptionHandler(AuctionTypeModifyNotAllowedException.class)
+    public BaseResponseDto<ErrorResponseDto> handleAuctionTypeModifyNotAllowedException(AuctionTypeModifyNotAllowedException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.AUCTION_FEED_MODIFY_NOT_ALLOWED);
+    }
 }
