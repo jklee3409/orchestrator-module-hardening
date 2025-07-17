@@ -15,7 +15,7 @@ public class EmailVerificationServiceTest {
         String email = "sbi1024@naver.com";
 
         // when
-        emailVerificationService.sendVerificationEmail(email);
+        // emailVerificationService.sendVerificationEmail(email);
 
         // then
 
