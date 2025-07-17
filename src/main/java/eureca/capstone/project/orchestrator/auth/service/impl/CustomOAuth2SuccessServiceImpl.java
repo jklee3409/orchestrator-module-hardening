@@ -63,7 +63,7 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
                         .build()
         );
 
-        // 객체 json 으로 변환후 반환
+        // 객체 json 으로 변환 후 반환
         writeJsonResponse(httpServletResponse, success);
     }
 

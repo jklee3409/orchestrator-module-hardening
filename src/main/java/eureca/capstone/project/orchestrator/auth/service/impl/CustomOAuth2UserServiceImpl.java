@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -48,7 +51,8 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
             }
         }
 
-        // TODO 차단된 사용자인지 검증 필요
+        // 활성화된 사용자인지 확인
+
 
         // 시스템에 등록되지 않은 OAuth 사용자 확인 및 등록 + 핸들러에서 사용할 userId, email 담기
         Long userId = userService.OAuthUserRegisterIfNotExists(email, provider);
