@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.user.repository.impl;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserRepositoryCustom;
 import lombok.RequiredArgsConstructor;
@@ -75,5 +76,14 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         log.info("[findUserInformation] DTO 생성 완료 {}", userInformationDto);
 
         return userInformationDto;
+    }
+
+    @Override
+    public Long updateStatusByEmail(String email, Status newStatus) {
+        return jpaQueryFactory
+                .update(user)
+                .set(user.status, newStatus)
+                .where(user.email.eq(email))
+                .execute();
     }
 }

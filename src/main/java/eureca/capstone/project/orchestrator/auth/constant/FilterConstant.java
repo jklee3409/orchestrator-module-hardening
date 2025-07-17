@@ -4,12 +4,11 @@ public class FilterConstant {
     // 화이트리스트 (인증 없이 접근 허용할 경로)
     public static final String[] WHITE_LIST = {
             "/healthCheck",
-            "/user/",
-            "/auth/login",
-            "/auth/verify-email",
 
-            "/auth/crypto-password",
-            "/auth/generateToken",
+            "/orchestrator/user/",
+
+            "/orchestrator/auth/login",
+            "/orchestrator/auth/verify-email",
 
             "/error",
             "/favicon.ico",

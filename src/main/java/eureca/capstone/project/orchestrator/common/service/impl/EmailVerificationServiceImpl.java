@@ -1,17 +1,14 @@
 package eureca.capstone.project.orchestrator.common.service.impl;
 
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailVerifyTokenMismatchException;
-import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.service.EmailService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
-import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -44,7 +41,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         emailService.sendEmail(email, EMAIL_SUBJECT, emailBody);
     }
 
-    @Transactional
     @Override
     public void verifyEmailToken(String token) {
         // 키값을 통해 레디스에 인증 대기중인 토큰 값이 존재하는지 확인
@@ -55,8 +51,11 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         if (email == null) throw new EmailVerifyTokenMismatchException();
 
         // 상태값 변경
-        User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
-        user.setStatus(statusManager.getStatus("USER", "ACTIVE"));
+        Long updateCount = userRepository.updateStatusByEmail(
+                email,
+                statusManager.getStatus("USER", "ACTIVE")
+        );
+        log.info("updateCount : {}", updateCount);
 
         // 인증 완료 후 토큰 삭제
         redisService.deleteValue(redisKey);
