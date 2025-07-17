@@ -72,4 +72,8 @@ public class TransactionFeed extends BaseEntity {
         this.salesDataAmount = salesDataAmount;
         this.defaultImageNumber = defaultImageNumber;
     }
+
+    public void delete() {
+        this.isDeleted = true;
+    }
 }

@@ -142,6 +142,26 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public void deleteFeed(String email, Long transactionFeedId) {
+        log.info("[deleteFeed] 사용자 {}, 판매글 {} 삭제 시작", email, transactionFeedId);
+
+        TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
+        log.info("[deleteFeed] 삭제하려는 판매글 조회 완료.");
+
+        if (!transactionFeed.getUser().getEmail().equals(email)) throw new FeedModifyPermissionException();
+        log.info("[deleteFeed] 사용자와 판매자가 일치합니다.");
+
+        if (transactionFeed.isDeleted()) {
+            log.warn("[deleteFeed] 이미 삭제된 판매글(ID: {})에 대한 요청입니다.", transactionFeedId);
+            return;
+        }
+
+        transactionFeed.delete();
+        log.info("[deleteFeed] 판매글 삭제 완료");
+    }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
