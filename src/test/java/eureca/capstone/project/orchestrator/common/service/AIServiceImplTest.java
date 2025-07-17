@@ -17,7 +17,7 @@ public class AIServiceImplTest {
         // 별도의 사전 조건은 없음 (AIService 주입 상태)
 
         // when
-        String nickname = aiService.generateNicknameBy();
+        String nickname = aiService.generateNickname();
 
         // then
         assertThat(nickname)
