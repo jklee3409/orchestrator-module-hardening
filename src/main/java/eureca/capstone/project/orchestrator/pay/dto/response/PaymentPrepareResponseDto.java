@@ -23,7 +23,7 @@ public class PaymentPrepareResponseDto {
         this.orderId = chargeHistory.getOrderId();
         this.originalAmount = chargeHistory.getAmount();
         this.discountAmount = chargeHistory.getDiscountAmount();
-        this.finalAmount = chargeHistory.getChargePay();
+        this.finalAmount = chargeHistory.getFinalAmount();
         this.requiredPayType = (payType != null) ? PayTypeDto.fromEntity(payType) : null;
     }
 }

@@ -58,6 +58,9 @@ public class ChargeHistory extends BaseEntity {
     @Column(name = "discount_amount")
     private Long discountAmount;
 
+    @Column(name = "final_amount")
+    private Long finalAmount;
+
     @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;

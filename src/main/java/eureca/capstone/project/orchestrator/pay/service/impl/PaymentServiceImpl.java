@@ -171,9 +171,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .user(user)
                 .userEventCoupon(coupon)
                 .orderId(orderId)
-                .amount(originalAmount)
-                .chargePay(finalAmount)
-                .discountAmount(discountAmount)
+                .amount(originalAmount) // 원래 금액
+                .chargePay(originalAmount) // 충전 페이
+                .discountAmount(discountAmount) // 할인 금액
+                .finalAmount(finalAmount) // 최종 결제 금액
                 .status(requestedStatus)
                 .requestedAt(LocalDateTime.now())
                 .build();
