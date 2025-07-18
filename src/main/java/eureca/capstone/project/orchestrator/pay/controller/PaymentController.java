@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.pay.controller;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.request.CouponCalculationRequestDto;
+import eureca.capstone.project.orchestrator.pay.dto.request.PaymentApprovalRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
@@ -32,12 +33,22 @@ public class PaymentController {
     }
 
     @PostMapping("/prepare")
-    @Operation(summary = "결제 전 주문 정보 생성 API", description = "토스 페이먼츠에 최종 결제 요청을 위한 주문 정보를 생성합니다.")
+    @Operation(summary = "결제 전 주문 정보 생성 API", description = "토스 페이먼츠에 최종 결제 요청을 위한 주문 정보를 생성합니다. 최종 결제 버튼 클릭 시점에 호출합니다.")
     public BaseResponseDto<PaymentPrepareResponseDto> preparePayment(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @RequestBody PaymentPrepareRequestDto requestDto
     ) {
         PaymentPrepareResponseDto responseDto = paymentService.preparePayment(customUserDetailsDto.getEmail(), requestDto);
         return BaseResponseDto.success(responseDto);
+    }
+
+    @PostMapping("/confirm")
+    @Operation(summary = "최종 결제 승인 요청 API", description = "토스 페이먼츠에 최종 결제 승인 요청을 보냅니다. successUrl 로 리다이렉트 시 호출합니다.")
+    public BaseResponseDto<Void> confirmPayment(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody PaymentApprovalRequestDto requestDto
+    ) {
+        paymentService.confirmPayment(requestDto);
+        return BaseResponseDto.voidSuccess();
     }
 }
