@@ -12,6 +12,9 @@ public class FilterConstant {
 
             "/login/oauth2/code/kakao",
             "/oauth2/authorization/kakao",
+            "/orchestrator/login/oauth2/code/kakao",
+            "/orchestrator/oauth2/authorization/kakao",
+
             "/error",
             "/favicon.ico",
             "/v3/api-docs/**",
