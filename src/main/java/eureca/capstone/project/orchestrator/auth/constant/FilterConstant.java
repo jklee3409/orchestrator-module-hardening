@@ -10,6 +10,8 @@ public class FilterConstant {
             "/orchestrator/auth/login",
             "/orchestrator/auth/verify-email",
 
+            "/login/oauth2/code/kakao",
+            "/oauth2/authorization/kakao",
             "/error",
             "/favicon.ico",
             "/v3/api-docs/**",

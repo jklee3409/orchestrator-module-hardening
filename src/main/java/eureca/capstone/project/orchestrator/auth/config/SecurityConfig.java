@@ -1,6 +1,8 @@
 package eureca.capstone.project.orchestrator.auth.config;
 
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
+import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2SuccessServiceImpl;
+import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2UserServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
@@ -15,8 +17,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -30,6 +30,8 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final RedisService redisService;
+    private final CustomOAuth2UserServiceImpl customOAuth2UserService;
+    private final CustomOAuth2SuccessServiceImpl customOAuth2SuccessService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -53,13 +55,21 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST).permitAll()               // 화이트리스트 경로는 모두 허용
                         .requestMatchers(BLACK_LIST).authenticated()           // 블랙리스트 경로는 인증 필요
-                        .anyRequest().permitAll()                                            // 나머지는 모두 허용 (필요 시 변경)
+                        .anyRequest().permitAll()                              // 나머지는 모두 허용 (필요 시 변경)
                 )
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 등록
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService),
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                // OAuth 2.0 로그인 설정
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(user -> user
+                                .userService(customOAuth2UserService)
+                        )
+                        .successHandler(customOAuth2SuccessService)
                 )
 
                 .exceptionHandling(exception -> exception
@@ -95,13 +105,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
+
 }
 
