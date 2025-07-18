@@ -5,7 +5,9 @@ import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
+import eureca.capstone.project.orchestrator.pay.entity.UserPay;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryRepository;
+import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
 import eureca.capstone.project.orchestrator.pay.service.PaymentTransactionService;
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
@@ -22,6 +24,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
     private final ChargeHistoryRepository chargeHistoryRepository;
     private final UserEventCouponService userEventCouponService;
     private final UserPayService userPayService;
+    private final PayHistoryService payHistoryService;
     private final UserService userService;
     private final StatusManager statusManager;
 
@@ -39,7 +42,14 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
             log.info("[processPaymentSuccess] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", history.getUserEventCoupon().getUserEventCouponId());
         }
 
-        userPayService.charge(history.getUser(), history.getChargePay());
+        UserPay updatedUserPay = userPayService.charge(history.getUser(), history.getChargePay());
+        payHistoryService.createChargePayHistory(
+                history.getUser(),
+                history.getChargePay(),
+                updatedUserPay.getPay(),
+                history
+        );
+        log.info("[processPaymentSuccess] 페이 변동 내역 기록 완료. 충전 내역 ID: {}", chargeHistoryId);
     }
 
     @Transactional

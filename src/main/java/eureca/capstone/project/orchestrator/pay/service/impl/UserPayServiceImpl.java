@@ -17,7 +17,7 @@ public class UserPayServiceImpl implements UserPayService {
 
     @Override
     @Transactional
-    public void charge(User user, Long amount) {
+    public UserPay charge(User user, Long amount) {
         log.info("[charge] 사용자 ID: 페이 충전 시작. 충전 금액: {}", user.getUserId());
 
         UserPay userPay = userPayRepository.findById(user.getUserId())
@@ -26,5 +26,7 @@ public class UserPayServiceImpl implements UserPayService {
         userPay.charge(amount);
         userPayRepository.save(userPay);
         log.info("[charge] 사용자 ID: {} 페이 충전 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
+
+        return userPay;
     }
 }
