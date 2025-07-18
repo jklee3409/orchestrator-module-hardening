@@ -7,4 +7,5 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 public interface UserEventCouponService {
     GetUserEventCouponListResponseDto getAvailableCoupons(String email);
     UserEventCoupon validateAndGetCoupon(Long userEventCouponId, User user);
+    void useCoupon(UserEventCoupon userEventCoupon);
 }

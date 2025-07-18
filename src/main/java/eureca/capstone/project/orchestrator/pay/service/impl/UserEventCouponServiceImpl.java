@@ -17,6 +17,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -63,6 +64,16 @@ public class UserEventCouponServiceImpl implements UserEventCouponService {
         log.info("[validateAndGetCoupon] 이벤트 쿠폰 검증 완료");
 
         return coupon;
+    }
+
+    @Override
+    @Transactional
+    public void useCoupon(UserEventCoupon coupon) {
+        log.info("[useCoupon] 사용자 이벤트 쿠폰 사용 처리 시작. 쿠폰 ID: {}", coupon.getUserEventCouponId());
+
+        Status usedStatus = statusManager.getStatus("COUPON", "USED");
+        coupon.changeStatus(usedStatus);
+        log.info("[useCoupon] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", coupon.getUserEventCouponId());
     }
 
     private User findUserByEmail(String email) {
