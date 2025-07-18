@@ -26,7 +26,7 @@ public class PayHistory extends BaseEntity {
     private User user;
 
     @JoinColumn(name = "change_type_id")
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     private ChangeType changeType;
 
     @Column(name = "changed_pay")
