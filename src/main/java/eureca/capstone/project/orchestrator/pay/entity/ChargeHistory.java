@@ -67,4 +67,14 @@ public class ChargeHistory extends BaseEntity {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    public void processSuccess(String paymentKey, Status completedStatus) {
+        this.paymentKey = paymentKey;
+        this.status = completedStatus;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public void processFailure(Status failedStatus) {
+        this.status = failedStatus;
+    }
 }
