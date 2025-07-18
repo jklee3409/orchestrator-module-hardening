@@ -67,7 +67,8 @@ public class InitComponent {
             Status.builder().statusId(39L).code("FEED_EXPIRATION").description("게시글 만료 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(40L).code("RESTRICT_EXPIRATION").description("제재 만료").domain("RESTRICTION").build(),
             Status.builder().statusId(41L).code("COMPLETED").description("제재 완료").domain("REPORT").build(),
-            Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build()
+            Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build(),
+            Status.builder().statusId(43L).code("DONE").description("결제 승인 완료").domain("TOSS").build()
     );
 
     private static final List<SalesType> HARDCODED_SALES_TYPES = List.of(
