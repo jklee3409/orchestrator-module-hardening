@@ -53,7 +53,7 @@ public enum ErrorCode {
 
     // USER_EVENT_COUPON 관련 에러 코드 (40000 ~ 40050)
     USER_EVENT_COUPON_NOT_MATCHED(40000, "USER_EVENT_COUPON_NOT_MATCHED", "이벤트 쿠폰 소유자와 사용자가 다릅니다."),
-    USER_EVENT_COUPON_EXPIRED(40001, "USER_EVENT_COUPON_EXPIRED", "사용되었거나 만료된 이벤트입니다."),
+    USER_EVENT_COUPON_EXPIRED(40001, "USER_EVENT_COUPON_EXPIRED", "사용되었거나 만료된 이벤트 쿠폰입니다."),
     USER_EVENT_COUPON_NOT_FOUND(40002, "USER_EVENT_NOT_FOUND", "사용자 이벤트 쿠폰을 찾을 수 없습니다."),
 
     // PAY 관련 에러 코드 (40051 ~ 40100)
@@ -62,6 +62,8 @@ public enum ErrorCode {
     ORDER_NOT_FOUND(40053, "ORDER_NOT_FOUND", "주문 정보를 찾지 못했습니다."),
     ORDER_ALREADY_PROCESSED(40054, "ORDER_ALREADY_PROCESSED", "이미 처리된 주문입니다."),
     CHANGE_TYPE_NOT_FOUND(40055, "CHANGE_TYPE_NOT_FOUND", "페이 변동 유형을 찾지 못했습니다."),
+    PAYMENT_CANCELLED_BY_PAY_METHOD(40056, "PAYMENT_CANCELLED_BY_PAY_METHOD", "결제 수단 불일치로 결제가 취소되었습니다."),
+    PAYMENT_CANCELLED_FAIL(40056, "PAYMENT_CANCELLED_FAIL", "결제 승인 취소에 실패하였습니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 

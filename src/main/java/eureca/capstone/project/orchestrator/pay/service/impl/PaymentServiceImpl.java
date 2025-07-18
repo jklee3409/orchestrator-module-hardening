@@ -139,10 +139,16 @@ public class PaymentServiceImpl implements PaymentService {
                 log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
 
                 if (!requiredPayType.equals(actualPaymentMethod)) {
-                    log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
-                    callTossCancelApi(requestDto.getPaymentKey(), "쿠폰 조건 불일치: 결제 수단 상이");
-                    paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
-                    return;
+                    try {
+                        log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
+                        callTossCancelApi(requestDto.getPaymentKey(), "쿠폰 조건 불일치: 결제 수단 상이");
+                        paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
+                        throw new InternalServerException(ErrorCode.PAYMENT_CANCELLED_BY_PAY_METHOD);
+
+                    } catch (Exception e) {
+                        log.error(e.getMessage());
+                        throw new InternalServerException(ErrorCode.PAYMENT_CANCELLED_FAIL);
+                    }
                 }
             }
             paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey());
@@ -174,23 +180,18 @@ public class PaymentServiceImpl implements PaymentService {
         String idempotencyKey = UUID.randomUUID().toString();
         log.info("[callTossCancelApi] 토스 결제 취소 요청. PaymentKey: {}, IdempotencyKey: {}", paymentKey, idempotencyKey);
 
-        try {
-            webClientBuilder.build().post()
-                    .uri("https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel")
-                    .header("Authorization", "Basic " + encodedSecretKey)
-                    .header("Idempotency-Key", idempotencyKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(Collections.singletonMap("cancelReason", cancelReason))
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+        webClientBuilder.build().post()
+                .uri("https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel")
+                .header("Authorization", "Basic " + encodedSecretKey)
+                .header("Idempotency-Key", idempotencyKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Collections.singletonMap("cancelReason", cancelReason))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
 
-            Status cancelledStatus = statusManager.getStatus("PAYMENT", "CANCELED");
-            log.info("[callTossCancelApi] 토스 결제 취소 요청 성공. PaymentKey: {}", paymentKey);
-
-        } catch (Exception e) {
-            log.error("[callTossCancelApi] 토스 결제 취소 요청 중 에러 발생. PaymentKey: {}. Error: {}", paymentKey, e.getMessage());
-        }
+        Status cancelledStatus = statusManager.getStatus("PAYMENT", "CANCELED");
+        log.info("[callTossCancelApi] 토스 결제 취소 요청 성공. PaymentKey: {}", paymentKey);
     }
 
     private User findUserByEmail(String email) {
