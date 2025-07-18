@@ -61,6 +61,7 @@ public enum ErrorCode {
     FINAL_AMOUNT_NOT_MATCHED(40052, "FINAL_AMOUNT_NOT_MATCHED", "최종 결제 금액이 일치하지 않습니다."),
     ORDER_NOT_FOUND(40053, "ORDER_NOT_FOUND", "주문 정보를 찾지 못했습니다."),
     ORDER_ALREADY_PROCESSED(40054, "ORDER_ALREADY_PROCESSED", "이미 처리된 주문입니다."),
+    CHANGE_TYPE_NOT_FOUND(40055, "CHANGE_TYPE_NOT_FOUND", "페이 변동 유형을 찾지 못했습니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 

@@ -123,4 +123,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.PAY_TYPE_NOT_FOUND);
     }
+
+    @ExceptionHandler(ChangeTypeNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleChangeTypeNotFoundException(ChangeTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.CHANGE_TYPE_NOT_FOUND);
+    }
 }
