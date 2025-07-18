@@ -3,11 +3,19 @@ package eureca.capstone.project.orchestrator.pay.entity;
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
+@Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Table(name = "pay_history")
 public class PayHistory extends BaseEntity {
-    // TODO 변동 시간을 BaseEntity로 대체하는것은 어떠한가
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pay_history_id")
@@ -26,8 +34,4 @@ public class PayHistory extends BaseEntity {
 
     @Column(name = "final_pay")
     private Long finalPay;
-
-
-
-
 }
