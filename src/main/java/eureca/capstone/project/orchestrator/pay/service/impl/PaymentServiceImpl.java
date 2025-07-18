@@ -136,7 +136,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (chargeHistory.getUserEventCoupon() != null) {
                 PayType requiredPayType = chargeHistory.getUserEventCoupon().getEventCoupon().getPayType();
                 PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
-                log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod);
+                log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
 
                 if (!requiredPayType.equals(actualPaymentMethod)) {
                     log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
@@ -231,7 +231,7 @@ public class PaymentServiceImpl implements PaymentService {
     private PayType getActualPaymentMethod(Map<String, Object> responseMap) {
         log.info("[getActualPaymentMethod] 최종 토스 결제 응답의 실제 결제 수단 확인");
         String method = (String) responseMap.get("method");
-        PayType payType = payTypeManager.getPayType(method);
+        log.info("[getActualPaymentMethod] 추출 method: {}", method);
 
         if ("간편결제".equals(method)) {
             log.info("[getActualPaymentMethod] 간편결제 사용");
@@ -241,6 +241,7 @@ public class PaymentServiceImpl implements PaymentService {
             return payTypeManager.getPayType(method);
         }
 
+        PayType payType = payTypeManager.getPayType(method);
         log.info("[getActualPaymentMethod] 결제 수단: {}", method);
         return payType;
     }
