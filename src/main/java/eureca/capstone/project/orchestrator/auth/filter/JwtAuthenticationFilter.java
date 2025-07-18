@@ -131,12 +131,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPassListed(String uri) {
+        // 쿼리 스트링 제거
+        String cleanUri = uri.split("\\?")[0];
         for (String path : FilterConstant.WHITE_LIST) {
             if (path.endsWith("/**")) {
                 String basePath = path.replace("/**", "");
-                if (uri.startsWith(basePath)) return true;
+                if (cleanUri.startsWith(basePath)) return true;
             } else {
-                if (uri.equals(path)) return true;
+                if (cleanUri.equals(path)) return true;
             }
         }
         return false;
