@@ -25,6 +25,7 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -120,7 +121,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void confirmPayment(PaymentApprovalRequestDto requestDto) {
-        log.info("[confirmPayment] 최종 결제 요청 및 승인 시작");
+        log.info("[confirmPayment] 최종 결제 요청 및 승인 시작. 주문 ID: {}", requestDto.getOrderId());
         ChargeHistory chargeHistory = chargeHistoryRepository.findByOrderIdWithDetails(requestDto.getOrderId())
                 .orElseThrow(() -> new InternalServerException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -132,6 +133,18 @@ public class PaymentServiceImpl implements PaymentService {
 
         String doneStatus = statusManager.getStatus("TOSS", "DONE").getCode();
         if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
+            if (chargeHistory.getUserEventCoupon() != null) {
+                PayType requiredPayType = chargeHistory.getUserEventCoupon().getEventCoupon().getPayType();
+                PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
+                log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod);
+
+                if (!requiredPayType.equals(actualPaymentMethod)) {
+                    log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
+                    callTossCancelApi(requestDto.getPaymentKey(), "쿠폰 조건 불일치: 결제 수단 상이");
+                    paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
+                    return;
+                }
+            }
             paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey());
             log.info("[confirmPayment] 토스 결제 승인 요청 응답 정상 확인. 최종 결제 성공 처리. paymentKey: {}", requestDto.getPaymentKey());
 
@@ -154,6 +167,30 @@ public class PaymentServiceImpl implements PaymentService {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
+    }
+
+    private void callTossCancelApi(String paymentKey, String cancelReason) {
+        String encodedSecretKey = Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
+        String idempotencyKey = UUID.randomUUID().toString();
+        log.info("[callTossCancelApi] 토스 결제 취소 요청. PaymentKey: {}, IdempotencyKey: {}", paymentKey, idempotencyKey);
+
+        try {
+            webClientBuilder.build().post()
+                    .uri("https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel")
+                    .header("Authorization", "Basic " + encodedSecretKey)
+                    .header("Idempotency-Key", idempotencyKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Collections.singletonMap("cancelReason", cancelReason))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            Status cancelledStatus = statusManager.getStatus("PAYMENT", "CANCELED");
+            log.info("[callTossCancelApi] 토스 결제 취소 요청 성공. PaymentKey: {}", paymentKey);
+
+        } catch (Exception e) {
+            log.error("[callTossCancelApi] 토스 결제 취소 요청 중 에러 발생. PaymentKey: {}. Error: {}", paymentKey, e.getMessage());
+        }
     }
 
     private User findUserByEmail(String email) {
@@ -182,12 +219,29 @@ public class PaymentServiceImpl implements PaymentService {
 
     private void validatePayment(ChargeHistory history, Long amountFromToss) {
         log.info("[validatePayment] 주문 정보와 토스 결제 금액 검증 시작");
-        Status requestdStatus = statusManager.getStatus("PAYMENT", "REQUESTED");
+        Status requestedStatus = statusManager.getStatus("PAYMENT", "REQUESTED");
 
-        if (!requestdStatus.equals(history.getStatus())) throw new InternalServerException(ErrorCode.ORDER_ALREADY_PROCESSED);
+        if (!requestedStatus.equals(history.getStatus())) throw new InternalServerException(ErrorCode.ORDER_ALREADY_PROCESSED);
         log.info("[validatePayment] 주문 상태 검증 완료");
 
-        if (!history.getChargePay().equals(amountFromToss)) throw new InternalServerException(ErrorCode.FINAL_AMOUNT_NOT_MATCHED);
+        if (!history.getFinalAmount().equals(amountFromToss)) throw new InternalServerException(ErrorCode.FINAL_AMOUNT_NOT_MATCHED);
         log.info("[validatePayment] 주문 금액과 최종 토스 결제 요청 금액 검증 완료");
+    }
+
+    private PayType getActualPaymentMethod(Map<String, Object> responseMap) {
+        log.info("[getActualPaymentMethod] 최종 토스 결제 응답의 실제 결제 수단 확인");
+        String method = (String) responseMap.get("method");
+        PayType payType = payTypeManager.getPayType(method);
+
+        if ("간편결제".equals(method)) {
+            log.info("[getActualPaymentMethod] 간편결제 사용");
+            Map<String, Object> easyPay = (Map<String, Object>) responseMap.get("easyPay");
+            method = (String) easyPay.get("provider");
+            log.info("[getActualPaymentMethod] 결제 수단: {}", method);
+            return payTypeManager.getPayType(method);
+        }
+
+        log.info("[getActualPaymentMethod] 결제 수단: {}", method);
+        return payType;
     }
 }

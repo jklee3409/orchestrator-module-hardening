@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.pay.repository.impl;
 
+import static eureca.capstone.project.orchestrator.common.entity.QStatus.status;
 import static eureca.capstone.project.orchestrator.pay.entity.QChargeHistory.chargeHistory;
 import static eureca.capstone.project.orchestrator.pay.entity.QUserEventCoupon.userEventCoupon;
 import static eureca.capstone.project.orchestrator.user.entity.QUser.user;
@@ -20,6 +21,7 @@ public class ChargeHistoryRepositoryImpl implements ChargeHistoryRepositoryCusto
     public Optional<ChargeHistory> findByOrderIdWithDetails(String orderId) {
         ChargeHistory result = queryFactory
                 .selectFrom(chargeHistory)
+                .join(chargeHistory.status, status).fetchJoin()
                 .leftJoin(chargeHistory.user, user).fetchJoin()
                 .leftJoin(chargeHistory.userEventCoupon, userEventCoupon).fetchJoin()
                 .where(chargeHistory.orderId.eq(orderId))
