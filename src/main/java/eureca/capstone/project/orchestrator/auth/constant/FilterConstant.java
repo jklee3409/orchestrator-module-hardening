@@ -12,6 +12,9 @@ public class FilterConstant {
 
             "/login/oauth2/code/kakao",
             "/oauth2/authorization/kakao",
+            "/login/oauth2/code/google",
+            "/oauth2/authorization/google",
+
             "/login/oauth2/code/**",
             "/oauth2/authorization/**",
 
