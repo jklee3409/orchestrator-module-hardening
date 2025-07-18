@@ -18,6 +18,7 @@ import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryRepository;
 import eureca.capstone.project.orchestrator.pay.repository.custom.UserEventCouponRepositoryCustom;
 import eureca.capstone.project.orchestrator.pay.service.PaymentService;
+import eureca.capstone.project.orchestrator.pay.service.PaymentTransactionService;
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
@@ -39,6 +40,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
+    private final PaymentTransactionService paymentTransactionService;
     private final UserEventCouponRepositoryCustom userEventCouponRepositoryCustom;
     private final UserEventCouponService userEventCouponService;
     private final ChargeHistoryRepository chargeHistoryRepository;
@@ -91,6 +93,10 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("[preparePayment] 이벤트 쿠폰 적용 요청");
             coupon = userEventCouponService.validateAndGetCoupon(requestDto.getUserEventCouponId(), user);
 
+            Status pendingStatus = statusManager.getStatus("COUPON", "PENDING");
+            coupon.changeStatus(pendingStatus);
+            log.info("[preparePayment] 쿠폰 상태를 PENDING 으로 변경하여 선점 처리");
+
             double discountRate = coupon.getEventCoupon().getDiscountRate() / 100.0;
             double calculateDiscount = requestDto.getOriginalAmount() * discountRate;
 
@@ -113,7 +119,6 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional
     public void confirmPayment(PaymentApprovalRequestDto requestDto) {
         log.info("[confirmPayment] 최종 결제 요청 및 승인 시작");
         ChargeHistory chargeHistory = chargeHistoryRepository.findByOrderIdWithDetails(requestDto.getOrderId())
@@ -122,10 +127,25 @@ public class PaymentServiceImpl implements PaymentService {
         validatePayment(chargeHistory, requestDto.getAmount());
         log.info("[confirmPayment] 토스 결제 요청 금액과 주문 금액 일치 확인");
 
-        String encodedSecretKey = Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
-        log.info("[confirmPayment] 토스 시크릿 키 인코딩 완료");
+        Map<String, Object> tossResponse = callTossConfirmApi(requestDto);
+        log.info("[confirmPayment] 토스에 최종 결제 승인 요청 전송 완료");
 
-        Map<String, Object> tossResponse = webClientBuilder.build().post()
+        String doneStatus = statusManager.getStatus("TOSS", "DONE").getCode();
+        if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
+            paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey());
+            log.info("[confirmPayment] 토스 결제 승인 요청 응답 정상 확인. 최종 결제 성공 처리. paymentKey: {}", requestDto.getPaymentKey());
+
+        } else {
+            paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
+            log.info("[confirmPayment] 토스 결제 승인 요청 응답 실패 확인. 최종 결제 실패 처리. paymentKey: {}", requestDto.getPaymentKey());
+        }
+    }
+
+    private Map<String, Object> callTossConfirmApi(PaymentApprovalRequestDto requestDto) {
+        String encodedSecretKey = Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
+        log.info("[callTossConfirmApi] 토스 시크릿 키 인코딩 완료");
+
+        return webClientBuilder.build().post()
                 .uri("https://api.tosspayments.com/v1/payments/confirm")
                 .header("Authorization", "Basic " + encodedSecretKey)
                 .header("Idempotency-Key", requestDto.getOrderId())
@@ -134,17 +154,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
-        log.info("[confirmPayment] 토스에 최종 결제 승인 요청 전송 완료");
-
-        String doneStatus = statusManager.getStatus("TOSS", "DONE").getCode();
-        if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
-            processPaymentSuccess(chargeHistory, requestDto.getPaymentKey());
-            log.info("[confirmPayment] 토스 결제 승인 요청 응답 정상 확인. 최종 결제 성공 처리. paymentKey: {}", requestDto.getPaymentKey());
-
-        } else {
-            processPaymentFailed(chargeHistory);
-            log.info("[confirmPayment] 토스 결제 승인 요청 응답 실패 확인. 최종 결제 실패 처리. paymentKey: {}", requestDto.getPaymentKey());
-        }
     }
 
     private User findUserByEmail(String email) {
@@ -173,32 +182,11 @@ public class PaymentServiceImpl implements PaymentService {
     private void validatePayment(ChargeHistory history, Long amountFromToss) {
         log.info("[validatePayment] 주문 정보와 토스 결제 금액 검증 시작");
         Status requestdStatus = statusManager.getStatus("PAYMENT", "REQUESTED");
+
         if (!requestdStatus.equals(history.getStatus())) throw new InternalServerException(ErrorCode.ORDER_ALREADY_PROCESSED);
         log.info("[validatePayment] 주문 상태 검증 완료");
+
         if (!history.getChargePay().equals(amountFromToss)) throw new InternalServerException(ErrorCode.FINAL_AMOUNT_NOT_MATCHED);
         log.info("[validatePayment] 주문 금액과 최종 토스 결제 요청 금액 검증 완료");
-    }
-
-    private void processPaymentSuccess(ChargeHistory history, String paymentKey) {
-        log.info("[processPaymentSuccess] 충전 내역 결제 요청 성공으로 처리 시작. paymentKey: {}", paymentKey);
-
-        Status completedStatus = statusManager.getStatus("PAYMENT", "COMPLETED");
-        history.processSuccess(paymentKey, completedStatus);
-        log.info("[processPaymentSuccess] 충전 내역 결제 상태 완료로 처리. 충전 내역 ID: {}", history.getChargeHistoryId());
-
-        if (history.getUserEventCoupon() != null){
-            userEventCouponService.useCoupon(history.getUserEventCoupon());
-            log.info("[processPaymentSuccess] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", history.getUserEventCoupon().getUserEventCouponId());
-        }
-
-        // TODO: 사용자 페이 충전 메서드 구현
-    }
-
-    private void processPaymentFailed(ChargeHistory history) {
-        log.info("[processPaymentFailed] 충전 내역 결제 요청 실패 처리 시작. 충전 내역 ID: {}", history.getChargeHistoryId());
-
-        Status failedStatus = statusManager.getStatus("PAYMENT", "FAILED");
-        history.processFailure(failedStatus);
-        log.info("[processPaymentFailed] 충전 내역 결제 요청 실패 처리 완료. 충전 내역 ID: {}", history.getChargeHistoryId());
     }
 }

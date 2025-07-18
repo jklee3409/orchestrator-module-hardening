@@ -8,4 +8,5 @@ public interface UserEventCouponService {
     GetUserEventCouponListResponseDto getAvailableCoupons(String email);
     UserEventCoupon validateAndGetCoupon(Long userEventCouponId, User user);
     void useCoupon(UserEventCoupon userEventCoupon);
+    void revertCoupon(UserEventCoupon userEventCoupon);
 }

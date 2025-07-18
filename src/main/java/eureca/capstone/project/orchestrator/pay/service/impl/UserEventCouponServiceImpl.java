@@ -76,6 +76,15 @@ public class UserEventCouponServiceImpl implements UserEventCouponService {
         log.info("[useCoupon] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", coupon.getUserEventCouponId());
     }
 
+    @Override
+    public void revertCoupon(UserEventCoupon coupon) {
+        log.info("[revertCoupon] 사용자 이벤트 쿠폰 상태 되돌리기 시작. 쿠폰 ID: {}", coupon.getUserEventCouponId());
+
+        Status issuedStatus = statusManager.getStatus("COUPON", "ISSUED");
+        coupon.changeStatus(issuedStatus);
+        log.info("[revertCoupon] 사용자 이벤트 쿠폰 상태 ISSUED로 변경 완료. 쿠폰 ID: {}", coupon.getUserEventCouponId());
+    }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
