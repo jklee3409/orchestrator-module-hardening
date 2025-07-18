@@ -65,6 +65,9 @@ dependencies {
     // Mail 관련 의존성
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+    // OAuth 2.0 관련 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

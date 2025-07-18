@@ -4,6 +4,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
+import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static eureca.capstone.project.orchestrator.auth.entity.QAuthority.authority;
@@ -85,5 +87,18 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .set(user.status, newStatus)
                 .where(user.email.eq(email))
                 .execute();
+    }
+
+    @Override
+    public Optional<User> findActiveUserByEmail(String email) {
+        return Optional.ofNullable(
+                jpaQueryFactory
+                        .selectFrom(user)
+                        .where(
+                                user.email.eq(email),
+                                user.status.code.eq("ACTIVE")
+                        )
+                        .fetchOne()
+        );
     }
 }

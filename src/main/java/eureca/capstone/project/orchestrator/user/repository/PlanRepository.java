@@ -2,10 +2,11 @@ package eureca.capstone.project.orchestrator.user.repository;
 
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.user.entity.Plan;
-import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 
 public interface PlanRepository extends JpaRepository<Plan, Long> {
 
