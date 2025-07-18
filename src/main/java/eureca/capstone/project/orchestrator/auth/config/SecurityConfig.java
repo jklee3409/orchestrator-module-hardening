@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
 
                 // 세션을 생성하지 않고, 완전한 무상태(stateless) 방식 사용
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // 요청별 인증/인가 정책 정의
                 .authorizeHttpRequests(auth -> auth
