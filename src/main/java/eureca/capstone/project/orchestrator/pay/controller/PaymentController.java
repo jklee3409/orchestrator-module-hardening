@@ -6,11 +6,16 @@ import eureca.capstone.project.orchestrator.pay.dto.request.CouponCalculationReq
 import eureca.capstone.project.orchestrator.pay.dto.request.PaymentApprovalRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.GetTossClientKeyResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
 import eureca.capstone.project.orchestrator.pay.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +26,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
+
+    @Value("${payment.toss.client_key}")
+    private String tossClientKey;
+
+    @GetMapping
+    public BaseResponseDto<GetTossClientKeyResponseDto> getPaymentConfig() {
+        GetTossClientKeyResponseDto responseDto = GetTossClientKeyResponseDto.builder()
+                .clientKey(tossClientKey)
+                .build();
+        return BaseResponseDto.success(responseDto);
+    }
 
     @PostMapping("/event-coupon/calculate")
     @Operation(summary = "이벤트 쿠폰 적용시 할인 금액 조회 API", description = "userEventCouponId 에 해당하는 이벤트 쿠폰 사용 시 할인 금액과 결제 금액을 반환합니다.")
