@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryRepository;
 import eureca.capstone.project.orchestrator.pay.service.PaymentTransactionService;
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
+import eureca.capstone.project.orchestrator.pay.service.UserPayService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentTransactionServiceImpl implements PaymentTransactionService {
     private final ChargeHistoryRepository chargeHistoryRepository;
     private final UserEventCouponService userEventCouponService;
+    private final UserPayService userPayService;
     private final UserService userService;
     private final StatusManager statusManager;
 
@@ -37,7 +39,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
             log.info("[processPaymentSuccess] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", history.getUserEventCoupon().getUserEventCouponId());
         }
 
-        // TODO: 사용자 페이 충전 로직 호출
+        userPayService.charge(history.getUser(), history.getChargePay());
     }
 
     @Transactional

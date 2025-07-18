@@ -10,9 +10,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Table(name = "user_pay")
 @Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserPay extends BaseEntity {
 
     @Id
@@ -24,4 +29,13 @@ public class UserPay extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
     private Long pay;
+
+    public UserPay(User user) {
+        this.user = user;
+        this.pay = 0L;
+    }
+
+    public void charge(Long amount) {
+        this.pay += amount;
+    }
 }
