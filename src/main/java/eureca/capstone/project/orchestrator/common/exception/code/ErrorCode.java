@@ -59,6 +59,8 @@ public enum ErrorCode {
     // PAY 관련 에러 코드 (40051 ~ 40100)
     PAY_TYPE_NOT_FOUND(40051, "PAY_TYPE_NOT_FOUND", "결제 수단을 찾지 못했습니다."),
     FINAL_AMOUNT_NOT_MATCHED(40052, "FINAL_AMOUNT_NOT_MATCHED", "최종 결제 금액이 일치하지 않습니다."),
+    ORDER_NOT_FOUND(40053, "ORDER_NOT_FOUND", "주문 정보를 찾지 못했습니다."),
+    ORDER_ALREADY_PROCESSED(40054, "ORDER_ALREADY_PROCESSED", "이미 처리된 주문입니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 
