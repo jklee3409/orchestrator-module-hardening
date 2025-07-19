@@ -27,7 +27,7 @@ public class TransactionFeedController {
 
     // TODO: 찜 여부 조회 필요
     @GetMapping("/search")
-    @Operation(summary = "판매글 목록 조회 및 검색 API", description = "다양한 필터와 정렬 조건으로 판매글을 조회/검색합니다.<br>"
+    @Operation(summary = "판매글 목록 조회 및 검색 API [아직 개발중]", description = "다양한 필터와 정렬 조건으로 판매글을 조회/검색합니다. 찜 여부는 아직 개발되지 않았습니다.<br>"
             + "status: [ON_SALE], [EXPIRED], [COMPLETED]<br>"
             + "sortBy: [LATEST], [PRICE_HIGH], [PRICE_LOW] -> pageable 의 sorting 은 무시하시면 됩니다.")
     public BaseResponseDto<Page<GetFeedSummaryResponseDto>> searchFeeds(
