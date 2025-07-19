@@ -13,8 +13,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 @Entity
+@Getter
 @Table(name = "user_event_coupon")
 public class UserEventCoupon extends BaseEntity {
 
@@ -36,4 +38,8 @@ public class UserEventCoupon extends BaseEntity {
     @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
+
+    public void changeStatus(Status newStatus) {
+        this.status = newStatus;
+    }
 }

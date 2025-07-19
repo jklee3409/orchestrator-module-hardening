@@ -8,6 +8,10 @@ import eureca.capstone.project.orchestrator.auth.repository.RoleAuthorityReposit
 import eureca.capstone.project.orchestrator.auth.repository.RoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.repository.StatusRepository;
+import eureca.capstone.project.orchestrator.pay.entity.ChangeType;
+import eureca.capstone.project.orchestrator.pay.entity.PayType;
+import eureca.capstone.project.orchestrator.pay.repository.ChangeTypeRepository;
+import eureca.capstone.project.orchestrator.pay.repository.PayTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import jakarta.annotation.PostConstruct;
@@ -31,6 +35,8 @@ public class InitComponent {
     private final RoleAuthorityRepository roleAuthorityRepository;
     private final StatusRepository statusRepository;
     private final SalesTypeRepository salesTypeRepository;
+    private final PayTypeRepository payTypeRepository;
+    private final ChangeTypeRepository changeTypeRepository;
 
     private static final List<Status> HARDCODED_STATUSES = List.of(
             Status.builder().statusId(11L).code("EMAIL_VERIFICATION_PENDING").description("이메일 인증 중").domain("USER").build(),
@@ -64,12 +70,31 @@ public class InitComponent {
             Status.builder().statusId(39L).code("FEED_EXPIRATION").description("게시글 만료 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(40L).code("RESTRICT_EXPIRATION").description("제재 만료").domain("RESTRICTION").build(),
             Status.builder().statusId(41L).code("COMPLETED").description("제재 완료").domain("REPORT").build(),
-            Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build()
+            Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build(),
+            Status.builder().statusId(43L).code("DONE").description("결제 승인 완료").domain("TOSS").build(),
+            Status.builder().statusId(44L).code("PENDING").description("쿠폰 사용 대기 중").domain("COUPON").build()
     );
 
     private static final List<SalesType> HARDCODED_SALES_TYPES = List.of(
             SalesType.builder().SalesTypeId(1L).name("일반 판매").build(),
             SalesType.builder().SalesTypeId(2L).name("입찰 판매").build()
+    );
+
+    private static final List<PayType> HARDCODED_PAY_TYPES = List.of(
+            PayType.builder().payTypeId(1L).name("카드").build(),
+            PayType.builder().payTypeId(2L).name("계좌이체").build(),
+            PayType.builder().payTypeId(3L).name("토스페이").build(),
+            PayType.builder().payTypeId(4L).name("페이코").build(),
+            PayType.builder().payTypeId(5L).name("카카오페이").build(),
+            PayType.builder().payTypeId(6L).name("네이버페이").build(),
+            PayType.builder().payTypeId(7L).name("휴대폰").build()
+    );
+
+    private static final List<ChangeType> HARDCODED_CHANGE_TYPES = List.of(
+        ChangeType.builder().changeTypeId(1L).type("충전").content("충전으로 인해 페이 증가").build(),
+        ChangeType.builder().changeTypeId(2L).type("환전").content("환전으로 인해 페이 감소").build(),
+        ChangeType.builder().changeTypeId(3L).type("구매").content("구매로 인해 페이 감소").build(),
+        ChangeType.builder().changeTypeId(4L).type("판매").content("판매로 인해 페이 증가").build()
     );
 
     /**
@@ -142,6 +167,48 @@ public class InitComponent {
             salesTypeRepository.saveAll(salesTypesToSave);
         } else {
             log.info("모든 salesType 이 DB 에 존재합니다.");
+        }
+    }
+
+    @PostConstruct
+    @Transactional
+    public void initPayTypes() {
+        Map<Long, PayType> dbPayTypeMap = payTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(PayType::getPayTypeId, Function.identity()));
+
+        List<PayType> payTypesToSave = HARDCODED_PAY_TYPES.stream()
+                .filter(hardcodedPayType -> {
+                    PayType dbPayType = dbPayTypeMap.get(hardcodedPayType.getPayTypeId());
+                    return dbPayType == null || !dbPayType.equals(hardcodedPayType);
+                })
+                .collect(Collectors.toList());
+
+        if (!payTypesToSave.isEmpty()) {
+            log.info("{} 개의 payType 이 DB 에 존재하지 않거나 변경되었습니다.", payTypesToSave.size());
+            payTypeRepository.saveAll(payTypesToSave);
+        } else {
+            log.info("모든 payType 이 DB 에 존재합니다.");
+        }
+    }
+
+    @PostConstruct
+    @Transactional
+    public void initChangeTypes() {
+        Map<Long, ChangeType> dbChangeTypeMap = changeTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(ChangeType::getChangeTypeId, Function.identity()));
+
+        List<ChangeType> changeTypesToSave = HARDCODED_CHANGE_TYPES.stream()
+                .filter(hardcodedChangeType -> {
+                    ChangeType dbChangeType = dbChangeTypeMap.get(hardcodedChangeType.getChangeTypeId());
+                    return dbChangeType == null || !dbChangeType.equals(hardcodedChangeType);
+                })
+                .collect(Collectors.toList());
+
+        if (!changeTypesToSave.isEmpty()) {
+            log.info("{} 개의 changeType 이 DB 에 존재하지 않거나 변경되었습니다.", changeTypesToSave.size());
+            changeTypeRepository.saveAll(changeTypesToSave);
+        } else {
+            log.info("모든 changeType 이 DB 에 존재합니다.");
         }
     }
 }
