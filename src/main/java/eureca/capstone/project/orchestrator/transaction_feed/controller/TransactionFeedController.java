@@ -25,12 +25,6 @@ public class TransactionFeedController {
 
     private final TransactionFeedService transactionFeedService;
 
-    @PostMapping("/reindex-for-debug")
-    public BaseResponseDto<Void> reindexFeeds() {
-        transactionFeedService.reindexAllFeeds();
-        return BaseResponseDto.voidSuccess();
-    }
-
     // TODO: 찜 여부 조회 필요
     @GetMapping("/search")
     @Operation(summary = "판매글 목록 조회 및 검색 API", description = "다양한 필터와 정렬 조건으로 판매글을 조회/검색합니다.<br>"

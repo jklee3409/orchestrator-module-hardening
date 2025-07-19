@@ -283,29 +283,6 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return responseDtoPage;
     }
 
-    @Override
-    @Transactional
-    public void reindexAllFeeds() {
-        var indexOps = elasticsearchOperations.indexOps(TransactionFeedDocument.class);
-
-        if (indexOps.exists()) {
-            indexOps.delete();
-        }
-
-        indexOps.create();
-        indexOps.putMapping();
-
-        List<TransactionFeed> allFeeds = transactionFeedRepository.findAll();
-
-        List<TransactionFeedDocument> documents = allFeeds.stream()
-                .map(TransactionFeedDocument::fromEntity)
-                .toList();
-
-        if (!documents.isEmpty()) {
-            transactionFeedSearchRepository.saveAll(documents);
-        }
-    }
-
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
