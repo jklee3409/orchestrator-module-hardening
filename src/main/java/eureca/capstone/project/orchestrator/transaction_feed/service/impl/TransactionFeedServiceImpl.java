@@ -1,5 +1,9 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
 import eureca.capstone.project.orchestrator.common.dto.StatusDto;
 import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
@@ -8,16 +12,20 @@ import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import eureca.capstone.project.orchestrator.user.entity.User;
@@ -27,12 +35,28 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
@@ -48,6 +72,18 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final UserDataService userDataService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
+    private final ElasticsearchOperations elasticsearchOperations;
+
+    private static final Map<String, Long> TELECOM_SYNONYM_MAP = new java.util.HashMap<>();
+    static {
+        List.of("skt", "sk", "에스케이티", "스크", "슼", "스크트", "에스케이")
+                .forEach(key -> TELECOM_SYNONYM_MAP.put(key, 1L));
+        List.of("kt", "케이티", "킅", "케티", "크트")
+                .forEach(key -> TELECOM_SYNONYM_MAP.put(key, 2L));
+        List.of("lgu+", "lgu", "u+", "lg", "유플러스", "엘지유플러스", "엘지", "엘쥐", "유플")
+                .forEach(key -> TELECOM_SYNONYM_MAP.put(key, 3L));
+    }
 
     @Override
     @Transactional
@@ -66,6 +102,9 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = buildNewFeed(user, userData, feedRequestDto, salesType);
         transactionFeedRepository.save(transactionFeed);
         log.info("[createFeed] 판매글 DB 저장 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
+
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
+        log.info("[createFeed] ES Document 저장 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
 
         userDataService.deductSellableData(user.getUserId(), feedRequestDto.getSalesDataAmount());
         log.info("[createFeed] 판매자 판매 가능 데이터 차감 완료.");
@@ -100,8 +139,10 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 updateFeedRequestDto.getSalesDataAmount(),
                 updateFeedRequestDto.getDefaultImageNumber()
         );
-
         log.info("[updateFeed] 판매글 DB 업데이트 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
+
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
+        log.info("[updateFeed] ES Document 업데이트 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
 
         return UpdateFeedResponseDto.builder()
                 .transactionFeedId(transactionFeed.getTransactionFeedId())
@@ -164,7 +205,105 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         }
 
         transactionFeed.delete();
-        log.info("[deleteFeed] 판매글 삭제 완료");
+        log.info("[deleteFeed] 판매글 논리적 삭제 완료");
+
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
+        log.info("[deleteFeed] ES Document 삭제 상태 업데이트 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto requestDto, Pageable pageable) {
+        log.info("[searchFeeds] 판매글 검색 요청. Keyword: '{}', Filters: {}, Pageable: {}",
+                requestDto.getKeyword(), requestDto, pageable);
+
+        BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("isDeleted").value(false)));
+
+        String keyword = requestDto.getKeyword();
+
+        if (keyword != null && !keyword.isBlank()) {
+            log.info("[searchFeeds] 키워드 '{}' 분석을 시작합니다.", keyword);
+            List<String> textKeywords = new ArrayList<>();
+
+            // 키워드를 공백 기준으로 단어별로 분리
+            String[] words = keyword.trim().split("\\s+");
+
+            for (String word : words) {
+                String lowerWord = word.toLowerCase();
+
+                // 1. 통신사 동의어인지 확인
+                if (TELECOM_SYNONYM_MAP.containsKey(lowerWord)) {
+                    Long telecomId = TELECOM_SYNONYM_MAP.get(lowerWord);
+                    log.info("[searchFeeds] >> 단어 '{}'에서 통신사 ID {}를 감지. 필터에 추가합니다.", word, telecomId);
+                    boolQueryBuilder.filter(f -> f.term(t -> t.field("telecomCompanyId").value(telecomId)));
+                    continue;
+                }
+
+                // 2. 데이터 크기인지 확인
+                Long parsedAmount = parseDataAmount(word);
+                if (parsedAmount != null) {
+                    log.info("[searchFeeds] >> 단어 '{}'에서 데이터 크기 {}MB를 감지. 필터에 추가합니다.", word, parsedAmount);
+                    boolQueryBuilder.filter(f -> f.term(t -> t.field("salesDataAmount").value(parsedAmount)));
+                    continue;
+                }
+
+                textKeywords.add(word);
+            }
+
+            // 3. 남은 텍스트 키워드가 있으면 multi-match 검색 실행
+            if (!textKeywords.isEmpty()) {
+                String searchText = String.join(" ", textKeywords);
+                log.info("[searchFeeds] >> 나머지 단어 '{}'에 대해 텍스트 검색을 수행합니다.", searchText);
+                boolQueryBuilder.filter(f -> f.multiMatch(mm -> mm
+                        .query(searchText)
+                        .fields("title", "content", "nickname", "telecomCompanyName")
+                ));
+            }
+        }
+
+        applyDynamicFilters(boolQueryBuilder, requestDto);
+        log.info("[searchFeeds] 동적 필터 적용 완료.");
+
+        Sort customSort = Sort.by(requestDto.getSortBy().getDirection(), requestDto.getSortBy().getProperty());
+        Pageable cleanPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), customSort);
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(q -> q.bool(boolQueryBuilder.build()))
+                .withPageable(cleanPageable)
+                .build();
+
+        log.info("[searchFeeds] Elasticsearch 쿼리 실행 시작.");
+        SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
+        log.info("[searchFeeds] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
+
+        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable);
+        log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
+
+        return responseDtoPage;
+    }
+
+    @Override
+    @Transactional
+    public void reindexAllFeeds() {
+        var indexOps = elasticsearchOperations.indexOps(TransactionFeedDocument.class);
+
+        if (indexOps.exists()) {
+            indexOps.delete();
+        }
+
+        indexOps.create();
+        indexOps.putMapping();
+
+        List<TransactionFeed> allFeeds = transactionFeedRepository.findAll();
+
+        List<TransactionFeedDocument> documents = allFeeds.stream()
+                .map(TransactionFeedDocument::fromEntity)
+                .toList();
+
+        if (!documents.isEmpty()) {
+            transactionFeedSearchRepository.saveAll(documents);
+        }
     }
 
     private User findUserByEmail(String email) {
@@ -270,5 +409,96 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         } else {
             log.info("[handleSaleDataChange] 판매 데이터 양 변경 없음.");
         }
+    }
+
+    private Long parseDataAmount(String word) {
+        if (word == null) {
+            return null;
+        }
+        String lowerWord = word.toLowerCase();
+
+        try {
+            String numberPart = lowerWord.replaceAll("[^0-9.]", "");
+            if (numberPart.isEmpty()) {
+                return null;
+            }
+            double numericValue = Double.parseDouble(numberPart);
+
+            if (lowerWord.contains("tb") || lowerWord.contains("테라")) {
+                return (long) (numericValue * 1000 * 1000);
+            }
+            if (lowerWord.contains("gb") || lowerWord.contains("기가")) {
+                return (long) (numericValue * 1000);
+            }
+            if (lowerWord.contains("mb") || lowerWord.contains("메가")) {
+                return (long) numericValue;
+            }
+
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private void applyDynamicFilters(BoolQuery.Builder boolBuilder, FeedSearchRequestDto request) {
+        addTermsFilter(boolBuilder, "telecomCompanyId", request.getTelecomCompanyIds());
+        addTermsFilter(boolBuilder, "salesTypeId", request.getSalesTypeIds());
+        addTermsFilter(boolBuilder, "status", request.getStatuses());
+
+        addRangeFilter(boolBuilder, "salesPrice", request.getMinPrice(), request.getMaxPrice());
+        addRangeFilter(boolBuilder, "salesDataAmount", request.getMinDataAmount(), request.getMaxDataAmount());
+    }
+
+    private <T> void addTermsFilter(BoolQuery.Builder boolBuilder, String field, List<T> values) {
+        if (!CollectionUtils.isEmpty(values)) {
+            List<FieldValue> fieldValues = values.stream()
+                    .map(FieldValue::of)
+                    .toList();
+
+            boolBuilder.filter(f -> f.terms(t -> t
+                    .field(field)
+                    .terms(new TermsQueryField.Builder().value(fieldValues).build())
+            ));
+        }
+    }
+
+    private void addRangeFilter(BoolQuery.Builder boolBuilder, String field, Number min, Number max) {
+        if (min == null && max == null) {
+            return;
+        }
+
+        boolBuilder.filter(f -> f.range(rangeQuery -> rangeQuery
+                .number(numRangeQuery -> {
+                    numRangeQuery.field(field);
+
+                    if (min != null) numRangeQuery.gte(min.doubleValue());
+                    if (max != null) numRangeQuery.lte(max.doubleValue());
+
+                    return numRangeQuery;
+                })
+        ));
+    }
+
+    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable) {
+        log.info("[toDtoPage] searchHits -> dto 변환 시작.");
+
+        // TODO: 찜 여부 반환해야 함.
+        List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .map(doc -> GetFeedSummaryResponseDto.builder()
+                        .transactionFeedId(doc.getId())
+                        .title(doc.getTitle())
+                        .salesPrice(doc.getSalesPrice())
+                        .salesDataAmount(doc.getSalesDataAmount())
+                        .telecomCompany(doc.getTelecomCompanyName())
+                        .createdAt(doc.getCreatedAt())
+                        .status(doc.getStatus())
+                        .defaultImageNumber(doc.getDefaultImageNumber())
+                        .build())
+                .collect(Collectors.toList());
+
+        log.info("[toDtoPage] searchHits -> dto 변환 완료.");
+        return new PageImpl<>(dtoList, pageable, searchHits.getTotalHits());
     }
 }
