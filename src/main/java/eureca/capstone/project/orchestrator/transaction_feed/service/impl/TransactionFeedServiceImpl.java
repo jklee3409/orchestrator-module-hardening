@@ -318,6 +318,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = findTransactionFeedById(requestDto.getTransactionFeedId());
         log.info("[addWishFeed] 사용자 및 판매글 조회 완료.");
 
+        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
         if (likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.ALREADY_EXISTS_LIKED_LIST);
         log.info("[addWishFeed] 찜 목록에 존재 X.");
 
@@ -336,6 +337,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
         log.info("[removeWishFeed] 사용자 및 판매글 조회 완료.");
 
+        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
         if (!likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.WISH_FEED_NOT_FOUND);
         log.info("[removeWishFeed] 찜 목록에 존재");
 
