@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.LikedRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -35,5 +36,17 @@ public class LikedRepositoryImpl implements LikedRepositoryCustom {
                         liked.transactionFeed.eq(transactionFeed)
                 )
                 .execute();
+    }
+
+    @Override
+    public List<Long> findLikedFeedIdsByUserAndFeedIds(User user, List<Long> transactionFeedIds) {
+        return jpaQueryFactory
+                .select(liked.transactionFeed.transactionFeedId)
+                .from(liked)
+                .where(
+                        liked.user.eq(user),
+                        liked.transactionFeed.transactionFeedId.in(transactionFeedIds)
+                )
+                .fetch();
     }
 }

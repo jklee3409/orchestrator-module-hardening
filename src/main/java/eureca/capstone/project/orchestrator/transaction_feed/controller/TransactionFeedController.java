@@ -26,24 +26,28 @@ public class TransactionFeedController {
 
     private final TransactionFeedService transactionFeedService;
 
-    // TODO: 찜 여부 조회 필요
+    // TODO: 입찰 판매 최고가
     @GetMapping("/search")
-    @Operation(summary = "판매글 목록 조회 및 검색 API [아직 개발중]", description = "다양한 필터와 정렬 조건으로 판매글을 조회/검색합니다. 찜 여부는 아직 개발되지 않았습니다.<br>"
+    @Operation(summary = "판매글 목록 조회 및 검색 API [아직 개발중]", description = "다양한 필터와 정렬 조건으로 판매글을 조회/검색합니다. 입찰 판매글 최고가 조회가 개발되지 않았습니다.<br>"
             + "status: [ON_SALE], [EXPIRED], [COMPLETED]<br>"
-            + "sortBy: [LATEST], [PRICE_HIGH], [PRICE_LOW] -> pageable 의 sorting 은 무시하시면 됩니다.")
+            + "sortBy: [LATEST], [PRICE_HIGH], [PRICE_LOW] -> pageable 의 sort 는 무시하시면 됩니다.")
     public BaseResponseDto<Page<GetFeedSummaryResponseDto>> searchFeeds(
             @ModelAttribute FeedSearchRequestDto requestDto,
-            @PageableDefault(size = 10) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
     ) {
-        Page<GetFeedSummaryResponseDto> response = transactionFeedService.searchFeeds(requestDto, pageable);
+        Page<GetFeedSummaryResponseDto> response = transactionFeedService.searchFeeds(requestDto, pageable, customUserDetailsDto);
         return BaseResponseDto.success(response);
     }
 
-    // TODO: 찜 여부, 찜 횟수, 입찰 판매라면 현재 최고가 조회 필요
+    // TODO: 찜 여부, 찜 횟수, 입찰 판매 최고가
     @GetMapping("/{transactionFeedId}")
     @Operation(summary = "판매글 상세 조회 API [아직 개발중]", description = "판매글의 상세 정보를 조회합니다. 찜 여부, 찜 횟수, 입찰 판매 시 현재 최고가 조회 기능은 아직 연동되지 않았습니다.")
-    public BaseResponseDto<GetFeedDetailResponseDto> getFeedDetail(@PathVariable Long transactionFeedId) {
-        GetFeedDetailResponseDto getFeedDetailResponseDto = transactionFeedService.getFeedDetail(transactionFeedId);
+    public BaseResponseDto<GetFeedDetailResponseDto> getFeedDetail(
+            @PathVariable Long transactionFeedId,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
+    ) {
+        GetFeedDetailResponseDto getFeedDetailResponseDto = transactionFeedService.getFeedDetail(transactionFeedId, customUserDetailsDto);
         return BaseResponseDto.success(getFeedDetailResponseDto);
     }
 
