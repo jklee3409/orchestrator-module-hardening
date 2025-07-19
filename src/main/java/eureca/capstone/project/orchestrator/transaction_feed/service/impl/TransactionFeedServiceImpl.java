@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.StatusDto;
 import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
@@ -39,8 +40,10 @@ import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepos
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -153,13 +156,21 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
     @Override
     @Transactional(readOnly = true)
-    public GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId) {
+    public GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId, CustomUserDetailsDto userDetailsDto) {
         log.info("[getFeedDetail] 판매글 상세 조회 시작. ID: {}", transactionFeedId);
         TransactionFeed feed = transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
 
-        // TODO: 찜 횟수 별도 조회 필요
-        long likedCount = 20L;
+        boolean isLiked = false;
+        if (userDetailsDto != null) {
+            User user = findUserByEmail(userDetailsDto.getEmail());
+            isLiked = likedRepository.existsByFeedAndUser(feed, user);
+        }
+        log.info("[getFeedDetail] 찜 여부 조회 완료: {}", isLiked);
+
+        long likedCount = likedRepository.countByTransactionFeed(feed);
+        log.info("[getFeedDetail] 찜 횟수 조회 완료: {}", likedCount);
+
         Long currentHeightPrice = null;
 
         String auctionType = salesTypeManager.getBidSaleType().getName();
@@ -178,6 +189,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .defaultImageNumber(feed.getDefaultImageNumber())
                 .createdAt(feed.getCreatedAt())
                 .nickname(feed.getUser().getNickname())
+                .liked(isLiked)
                 .likedCount(likedCount)
                 .telecomCompany(TelecomCompanyDto.fromEntity(feed.getTelecomCompany()))
                 .status(StatusDto.fromEntity(feed.getStatus()))
@@ -215,7 +227,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto requestDto, Pageable pageable) {
+    public Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto requestDto, Pageable pageable, CustomUserDetailsDto userDetailsDto) {
         log.info("[searchFeeds] 판매글 검색 요청. Keyword: '{}', Filters: {}, Pageable: {}",
                 requestDto.getKeyword(), requestDto, pageable);
 
@@ -279,7 +291,21 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
         log.info("[searchFeeds] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
 
-        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable);
+        Set<Long> likedFeedIds = new HashSet<>();
+        if (userDetailsDto != null) {
+            List<Long> feedIds = searchHits.getSearchHits().stream()
+                    .map(hit -> hit.getContent().getId())
+                    .toList();
+            log.info("[searchFeeds] searchHit 에서 판매글 Id 추출");
+
+            if (!feedIds.isEmpty()) {
+                User user = findUserByEmail(userDetailsDto.getEmail());
+                likedFeedIds.addAll(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
+                log.info("[searchFeeds] 사용자({})의 찜 목록 {}개 확인", userDetailsDto.getUserId(), likedFeedIds.size());
+            }
+        }
+
+        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable, likedFeedIds);
         log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
 
         return responseDtoPage;
@@ -292,6 +318,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = findTransactionFeedById(requestDto.getTransactionFeedId());
         log.info("[addWishFeed] 사용자 및 판매글 조회 완료.");
 
+        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
         if (likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.ALREADY_EXISTS_LIKED_LIST);
         log.info("[addWishFeed] 찜 목록에 존재 X.");
 
@@ -310,6 +337,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
         log.info("[removeWishFeed] 사용자 및 판매글 조회 완료.");
 
+        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
         if (!likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.WISH_FEED_NOT_FOUND);
         log.info("[removeWishFeed] 찜 목록에 존재");
 
@@ -491,19 +519,20 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         ));
     }
 
-    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable) {
+    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {
         log.info("[toDtoPage] searchHits -> dto 변환 시작.");
 
-        // TODO: 찜 여부 반환해야 함.
         List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .map(doc -> GetFeedSummaryResponseDto.builder()
                         .transactionFeedId(doc.getId())
                         .title(doc.getTitle())
+                        .nickname(doc.getNickname())
                         .salesPrice(doc.getSalesPrice())
                         .salesDataAmount(doc.getSalesDataAmount())
                         .telecomCompany(doc.getTelecomCompanyName())
                         .createdAt(doc.getCreatedAt())
+                        .liked(likedFeedIds.contains(doc.getId()))
                         .status(doc.getStatus())
                         .defaultImageNumber(doc.getDefaultImageNumber())
                         .build())

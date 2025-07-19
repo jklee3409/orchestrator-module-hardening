@@ -1,6 +1,7 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
 
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
@@ -147,10 +148,10 @@ class TransactionFeedServiceImplTest {
 
     private TransactionFeed transactionFeed;
 
+    private CustomUserDetailsDto userDetailsDto;
 
     @BeforeEach
     void setUp() {
-
         telecomCompany = TelecomCompany.builder()
                 .telecomCompanyId(1L)
                 .name("테스트통신사")
@@ -200,6 +201,12 @@ class TransactionFeedServiceImplTest {
                 .status(onSaleStatus)
                 .isDeleted(false)
                 .build();
+
+        userDetailsDto = CustomUserDetailsDto.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .build();
+
     }
 
 
@@ -413,9 +420,13 @@ class TransactionFeedServiceImplTest {
             Long feedId = 1L;
             when(transactionFeedRepositoryCustom.findFeedDetailById(feedId)).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(userRepository.findByEmail(userDetailsDto.getEmail())).thenReturn(Optional.of(user));
+            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
+            when(likedRepository.countByTransactionFeed(transactionFeed)).thenReturn(0L);
+
 
             // when
-            GetFeedDetailResponseDto response = transactionFeedService.getFeedDetail(feedId);
+            GetFeedDetailResponseDto response = transactionFeedService.getFeedDetail(feedId, userDetailsDto);
 
             // then
             assertThat(response).isNotNull();
@@ -435,7 +446,7 @@ class TransactionFeedServiceImplTest {
 
             // when & then
             assertThrows(TransactionFeedNotFoundException.class,
-                    () -> transactionFeedService.getFeedDetail(nonExistentFeedId));
+                    () -> transactionFeedService.getFeedDetail(nonExistentFeedId, userDetailsDto));
         }
 
         @Test
