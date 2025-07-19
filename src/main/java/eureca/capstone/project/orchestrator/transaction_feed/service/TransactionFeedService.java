@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service;
 
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
@@ -16,4 +17,6 @@ public interface TransactionFeedService {
     GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId);
     void deleteFeed(String email, Long transactionFeedId);
     Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto feedSearchRequestDto, Pageable pageable);
+    void addWishFeed(String email, AddWishFeedRequestDto addWishFeedRequestDto);
+    void removeWishFeed(String email, Long transactionFeedId);
 }
