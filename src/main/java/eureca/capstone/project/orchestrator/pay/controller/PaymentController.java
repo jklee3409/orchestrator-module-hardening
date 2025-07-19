@@ -30,7 +30,8 @@ public class PaymentController {
     @Value("${payment.toss.client_key}")
     private String tossClientKey;
 
-    @GetMapping
+    @GetMapping("/client-key")
+    @Operation(summary = "토스 클라이언트 키 조회", description = "토스 페이먼츠 결제창 호출을 위한 클라이언트 키를 반환합니다.")
     public BaseResponseDto<GetTossClientKeyResponseDto> getPaymentConfig() {
         GetTossClientKeyResponseDto responseDto = GetTossClientKeyResponseDto.builder()
                 .clientKey(tossClientKey)
