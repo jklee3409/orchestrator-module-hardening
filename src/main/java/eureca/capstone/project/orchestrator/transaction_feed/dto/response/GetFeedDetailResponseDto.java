@@ -18,6 +18,7 @@ public class GetFeedDetailResponseDto {
     private final Long defaultImageNumber;
     private final LocalDateTime createdAt;
     private final String nickname;
+    private final boolean liked;
     private final Long likedCount;
     private final TelecomCompanyDto telecomCompany;
     private final StatusDto status;
