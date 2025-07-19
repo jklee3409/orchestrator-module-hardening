@@ -1,0 +1,27 @@
+{
+  "analysis": {
+    "analyzer": {
+      "nori": {
+        "type": "custom",
+        "tokenizer": "nori_tokenizer",
+        "filter": [
+          "lowercase",
+          "nori_readingform",
+          "synonym_graph_filter"
+        ]
+      }
+    },
+    "filter": {
+      "synonym_graph_filter": {
+        "type": "synonym_graph",
+        "synonyms": [
+          "SKT, skt, sk, 에스케이티, 스크, 슼, 스크트, 에스케이",
+          "KT, kt, 케이티, 킅",
+          "LGU+, lgu, u+, lg, 유플러스, 엘지유플러스, 엘지, 엘쥐, 유플",
+          "GB, gb, 기가, 기가바이트",
+          "MB, mb, 메가, 메가바이트"
+        ]
+      }
+    }
+  }
+}
