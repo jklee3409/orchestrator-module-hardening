@@ -2,18 +2,19 @@ package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
 import eureca.capstone.project.orchestrator.common.dto.StatusDto;
 import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
@@ -21,8 +22,10 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.Create
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.Liked;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.LikedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
@@ -38,7 +41,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +49,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -69,6 +70,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final SalesTypeRepository salesTypeRepository;
     private final TransactionFeedRepository transactionFeedRepository;
     private final TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
+    private final LikedRepository likedRepository;
     private final UserDataService userDataService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
@@ -281,6 +283,38 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
 
         return responseDtoPage;
+    }
+
+    @Override
+    @Transactional
+    public void addWishFeed(String email, AddWishFeedRequestDto requestDto) {
+        User user = findUserByEmail(email);
+        TransactionFeed transactionFeed = findTransactionFeedById(requestDto.getTransactionFeedId());
+        log.info("[addWishFeed] 사용자 및 판매글 조회 완료.");
+
+        if (likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.ALREADY_EXISTS_LIKED_LIST);
+        log.info("[addWishFeed] 찜 목록에 존재 X.");
+
+        Liked liked = Liked.builder()
+                .user(user)
+                .transactionFeed(transactionFeed)
+                .build();
+        likedRepository.save(liked);
+        log.info("[addWishFeed] 찜 목록에 추가 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeed.getTransactionFeedId());
+    }
+
+    @Override
+    @Transactional
+    public void removeWishFeed(String email, Long transactionFeedId) {
+        User user = findUserByEmail(email);
+        TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
+        log.info("[removeWishFeed] 사용자 및 판매글 조회 완료.");
+
+        if (!likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.WISH_FEED_NOT_FOUND);
+        log.info("[removeWishFeed] 찜 목록에 존재");
+
+        likedRepository.removeByFeedAndUser(transactionFeed, user);
+        log.info("[removeWishFeed] 찜 목록에서 삭제 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeedId);
     }
 
     private User findUserByEmail(String email) {

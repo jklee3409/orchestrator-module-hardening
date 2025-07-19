@@ -48,6 +48,8 @@ public enum ErrorCode {
     AUCTION_FEED_CREATE_FAIL(30004, "AUCTION_FEED_CREATE_FAIL", "입찰 판매 등록 가능 시간이 아닙니다"),
     SALES_TYPE_NOT_FOUND(30005, "SALES_TYPE_NOT_FOUND", "판매 유형을 찾지 못하였습니다."),
     AUCTION_FEED_MODIFY_NOT_ALLOWED(30006, "AUCTION_FEED_MODIFY_NOT_ALLOWED", "입찰 판매글은 수정 또는 삭제가 불가합니다."),
+    ALREADY_EXISTS_LIKED_LIST(30007, "ALREADY_EXISTS_LIKED_LIST", "이미 찜한 판매글입니다."),
+    WISH_FEED_NOT_FOUND(30008, "WISH_FEED_NOT_FOUND", "찜 목록에 해당 판매글이 없습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 

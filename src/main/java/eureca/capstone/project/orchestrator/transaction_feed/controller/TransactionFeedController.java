@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
@@ -56,6 +57,16 @@ public class TransactionFeedController {
         return BaseResponseDto.success(createFeedResponse);
     }
 
+    @PostMapping("/wish")
+    @Operation(summary = "판매글 찜 등록 API", description = "로그인한 사용자가 자신의 찜 목록에 판매글을 추가합니다.")
+    public BaseResponseDto<Void> addWishFeed(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody AddWishFeedRequestDto addWishFeedRequestDto
+    ) {
+        transactionFeedService.addWishFeed(customUserDetailsDto.getEmail(), addWishFeedRequestDto);
+        return BaseResponseDto.voidSuccess();
+    }
+
     @PutMapping
     @Operation(summary = "판매글 수정 API", description = "로그인한 사용자가 자신의 판매글을 수정합니다.")
     public BaseResponseDto<UpdateFeedResponseDto> updateFeed(
@@ -73,6 +84,16 @@ public class TransactionFeedController {
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
     ) {
         transactionFeedService.deleteFeed(customUserDetailsDto.getEmail(), transactionFeedId);
+        return BaseResponseDto.voidSuccess();
+    }
+
+    @DeleteMapping("/wish/{transactionFeedId}")
+    @Operation(summary = "판매글 찜 삭제 API", description = "로그인한 사용자가 자신의 찜 목록에서 판매글을 삭제합니다.")
+    public BaseResponseDto<Void> removeWishFeed(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @PathVariable Long transactionFeedId
+    ) {
+        transactionFeedService.removeWishFeed(customUserDetailsDto.getEmail(), transactionFeedId);
         return BaseResponseDto.voidSuccess();
     }
 }
