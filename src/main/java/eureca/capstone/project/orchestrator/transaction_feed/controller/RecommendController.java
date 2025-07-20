@@ -1,0 +1,29 @@
+package eureca.capstone.project.orchestrator.transaction_feed.controller;
+
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
+import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.service.RecommendService;
+import io.swagger.v3.oas.annotations.Operation;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/orchestrator/recommend")
+@RequiredArgsConstructor
+public class RecommendController {
+    private final RecommendService recommendService;
+
+    @GetMapping
+    @Operation(summary = "추천 상품 조회 API", description = "메인 페이지의 추천 상품을 조회합니다. 추천 알고리즘에 따라 상품이 추천됩니다.")
+    public BaseResponseDto<List<GetFeedSummaryResponseDto>> getRecommendedFeeds(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
+    ) {
+        List<GetFeedSummaryResponseDto> response = recommendService.recommendFeed(customUserDetailsDto);
+        return BaseResponseDto.success(response);
+    }
+}
