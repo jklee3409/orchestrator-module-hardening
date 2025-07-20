@@ -234,6 +234,10 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
         boolQueryBuilder.filter(f -> f.term(t -> t.field("isDeleted").value(false)));
 
+        Status blurredStatus = statusManager.getStatus("FEED", "BLURRED");
+        boolQueryBuilder.mustNot(mn -> mn.term(t -> t.field("status").value(blurredStatus.getCode())));
+        log.info("[searchFeeds] 'BLURRED' 상태 코드 '{}'를 검색에서 제외", blurredStatus.getCode());
+
         String keyword = requestDto.getKeyword();
 
         if (keyword != null && !keyword.isBlank()) {
@@ -487,6 +491,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         addRangeFilter(boolBuilder, "salesPrice", request.getMinPrice(), request.getMaxPrice());
         addRangeFilter(boolBuilder, "salesDataAmount", request.getMinDataAmount(), request.getMaxDataAmount());
+
+        addExclusionFilter(boolBuilder, request.getExcludeFeedIds());
     }
 
     private <T> void addTermsFilter(BoolQuery.Builder boolBuilder, String field, List<T> values) {
@@ -517,6 +523,20 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                     return numRangeQuery;
                 })
         ));
+    }
+
+    private void addExclusionFilter(BoolQuery.Builder boolBuilder, List<Long> excludeIds) {
+        if (!CollectionUtils.isEmpty(excludeIds)) {
+            log.info("[searchFeeds] {}개의 판매글 ID를 결과에서 제외.", excludeIds.size());
+            List<FieldValue> fieldValues = excludeIds.stream()
+                    .map(FieldValue::of)
+                    .toList();
+
+            boolBuilder.mustNot(mn -> mn.terms(t -> t
+                    .field("id")
+                    .terms(new TermsQueryField.Builder().value(fieldValues).build())
+            ));
+        }
     }
 
     private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {

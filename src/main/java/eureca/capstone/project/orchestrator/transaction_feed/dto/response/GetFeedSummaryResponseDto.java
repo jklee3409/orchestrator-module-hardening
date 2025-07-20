@@ -1,7 +1,5 @@
 package eureca.capstone.project.orchestrator.transaction_feed.dto.response;
 
-import eureca.capstone.project.orchestrator.common.dto.StatusDto;
-import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Data;
