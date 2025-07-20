@@ -1,11 +1,13 @@
 package eureca.capstone.project.orchestrator.transaction_feed.dto.request;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
-import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
+import lombok.Builder;
 import lombok.Data;
+import lombok.Singular;
 
 @Data
+@Builder
 public class FeedSearchRequestDto {
     private String keyword;
 
@@ -21,5 +23,9 @@ public class FeedSearchRequestDto {
     private Long maxDataAmount;
 
     // 정렬
+    @Builder.Default
     private FeedSort sortBy = FeedSort.LATEST; // 기본값: 최신순
+
+    @Singular("excludeFeedId")
+    private List<Long> excludeFeedIds;
 }
