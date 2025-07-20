@@ -190,25 +190,4 @@ class RecommendServiceImplTest {
                 request.getExcludeFeedIds().contains(feedId)), 
                 any(Pageable.class), isNull());
     }
-    
-    @Test
-    @DisplayName("후보 피드가 없을 때 빈 목록 반환")
-    void recommendRelateFeeds_EmptyCandidates() {
-        // Given
-        Long feedId = transactionFeed.getTransactionFeedId();
-        when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
-        when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
-        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
-                .thenReturn(new PageImpl<>(new ArrayList<>()));
-
-        // When
-        List<GetFeedSummaryResponseDto> result = recommendService.recommendRelateFeeds(feedId);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-        verify(transactionFeedRepository).findById(feedId);
-        verify(statusManager).getStatus("FEED", "ON_SALE");
-        verify(transactionFeedService).searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull());
-    }
 }

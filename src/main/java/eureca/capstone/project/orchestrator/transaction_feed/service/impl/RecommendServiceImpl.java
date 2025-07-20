@@ -76,7 +76,7 @@ public class RecommendServiceImpl implements RecommendService {
         // 추천 개수가 10개 미만일 경우, 전체 피드에서 가격순으로 채우기
         if (finalRecommendations.size() < RECOMMENDATION_LIMIT) {
             log.info("[recommendFeed] 추천 개수 부족. 전체 판매글에서 가격순으로 추가 추천");
-            finalRecommendations = fillRemainingWithGlobalCheapest(finalRecommendations);
+            finalRecommendations = fillRemaining(finalRecommendations, RECOMMENDATION_LIMIT, null);
         }
 
         log.info("[recommendFeed] 사용자 ID: {}에 대한 최종 추천 개수: {}", user.getUserId(), finalRecommendations.size());
@@ -105,8 +105,8 @@ public class RecommendServiceImpl implements RecommendService {
         log.info("[recommendRelateFeeds] 판매글 ID: {}에 대한 후보군 피드 {}개 조회 완료", transactionFeedId, candidateFeeds.size());
 
         if (candidateFeeds.isEmpty()) {
-            log.warn("[recommendRelatedFeeds] 관련 상품 추천을 위한 후보군이 없습니다.");
-            return new ArrayList<>();
+            log.warn("[recommendRelatedFeeds] 관련 상품 추천을 위한 후보군 없음. 가격순으로 채우기");
+            return fillRemaining(new ArrayList<>(), RELATED_RECOMMENDATION_LIMIT, transactionFeedId);
         }
 
         UserTransactionAverageDto targetMetrics = new UserTransactionAverageDto(
@@ -115,7 +115,13 @@ public class RecommendServiceImpl implements RecommendService {
         );
         log.info("[recommendRelatedFeeds] 기준 상품 정보 - 가격: {}, 데이터: {}", targetMetrics.getAveragePrice(), targetMetrics.getAverageDataAmount());
 
-        return recommendBySimilarity(candidateFeeds, targetMetrics, RELATED_RECOMMENDATION_LIMIT);
+        List<GetFeedSummaryResponseDto> recommendations = recommendBySimilarity(candidateFeeds, targetMetrics, RELATED_RECOMMENDATION_LIMIT);
+        if (recommendations.size() < RELATED_RECOMMENDATION_LIMIT) {
+            log.info("[recommendRelatedFeeds] 관련 추천 개수 부족. 전체 판매글에서 가격순으로 추가 추천");
+            recommendations = fillRemaining(recommendations, RELATED_RECOMMENDATION_LIMIT, transactionFeedId);
+        }
+
+        return recommendations;
     }
 
     private List<GetFeedSummaryResponseDto> recommendForGuest() {
@@ -173,33 +179,41 @@ public class RecommendServiceImpl implements RecommendService {
                 .collect(Collectors.toList());
     }
 
-    private List<GetFeedSummaryResponseDto> fillRemainingWithGlobalCheapest(List<GetFeedSummaryResponseDto> currentRecommendations) {
-        log.info("[fillRemainingWithGlobalCheapest] 현재 추천 개수: {}. 추가 추천 필요 여부 확인", currentRecommendations.size());
-        int needed = RECOMMENDATION_LIMIT - currentRecommendations.size();
+    private List<GetFeedSummaryResponseDto> fillRemaining(List<GetFeedSummaryResponseDto> currentRecommendations, int targetSize, Long initialTargetId) {
+        int needed = targetSize - currentRecommendations.size();
         if (needed <= 0) {
             return currentRecommendations;
         }
+        log.info("[fillRemaining] 추가 추천 필요 현재 추천 개수: {}, 필요 개수: {}", currentRecommendations.size(), needed);
 
         List<Long> excludeIds = currentRecommendations.stream()
                 .map(GetFeedSummaryResponseDto::getTransactionFeedId)
                 .collect(Collectors.toList());
-        log.info("[fillRemainingWithGlobalCheapest] 추가 추천을 위한 제외 ID 목록 생성: {}개", excludeIds.size());
+        log.info("[fillRemaining] 제외할 ID 목록 생성 완료: {}개", excludeIds.size());
 
+        if (initialTargetId != null) {
+            excludeIds.add(initialTargetId);
+        }
+
+        Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
+        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
         FeedSearchRequestDto requestDto = FeedSearchRequestDto.builder()
+                .salesTypeIds(List.of(normalSalesType.getSalesTypeId()))
+                .statuses(List.of(salesStatus.getCode()))
                 .sortBy(FeedSort.PRICE_LOW)
                 .excludeFeedIds(excludeIds)
                 .build();
-        log.info("[fillRemainingWithGlobalCheapest] 가격 오름차순으로 추가 추천 요청. 필요 개수: {}", needed);
+        log.info("[fillRemaining] 추가 추천 요청 생성 완료. 현재 추천 개수: {}, 필요 개수: {}", currentRecommendations.size(), needed);
 
         Pageable pageable = PageRequest.of(0, needed);
         List<GetFeedSummaryResponseDto> additionalFeeds = transactionFeedService.searchFeeds(requestDto, pageable, null).getContent();
-        log.info("[fillRemainingWithGlobalCheapest] 추가 추천 판매글 {}개 조회 완료", additionalFeeds.size());
+        log.info("[fillRemaining] 추가 추천 피드 {}개 조회 완료", additionalFeeds.size());
 
         List<GetFeedSummaryResponseDto> finalRecommendations = new ArrayList<>(currentRecommendations);
         finalRecommendations.addAll(additionalFeeds);
-
         return finalRecommendations;
     }
+
 
     private List<GetFeedSummaryResponseDto> getTargetTransactionFeeds(User user) {
         log.info("[getTargetTransactionFeeds] 사용자 ID: {}의 추천 타겟 판매글 조회를 시작", user.getUserId());
