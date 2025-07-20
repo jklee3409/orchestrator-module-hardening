@@ -10,7 +10,9 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.DataTransactionHistoryRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
@@ -47,6 +49,9 @@ class RecommendServiceImplTest {
     private DataTransactionHistoryRepository dataTransactionHistoryRepository;
 
     @Mock
+    private TransactionFeedRepository transactionFeedRepository;
+
+    @Mock
     private TransactionFeedService transactionFeedService;
 
     @Mock
@@ -62,6 +67,7 @@ class RecommendServiceImplTest {
     private List<GetFeedSummaryResponseDto> mockFeeds;
     private CustomUserDetailsDto userDetailsDto;
     private UserTransactionAverageDto userTransactionAverageDto;
+    private TransactionFeed transactionFeed;
 
     @BeforeEach
     void setUp() {
@@ -94,6 +100,18 @@ class RecommendServiceImplTest {
                 .build();
 
         userTransactionAverageDto = new UserTransactionAverageDto(5000.0, 500.0);
+
+        transactionFeed = TransactionFeed.builder()
+                .transactionFeedId(1L)
+                .user(user)
+                .title("테스트 판매글")
+                .content("테스트 내용입니다")
+                .telecomCompany(telecomCompany)
+                .salesType(normalSalesType)
+                .salesPrice(5000L)
+                .salesDataAmount(500L)
+                .status(onSaleStatus)
+                .build();
 
         mockFeeds = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
@@ -146,5 +164,51 @@ class RecommendServiceImplTest {
         verify(dataTransactionHistoryRepository).findAverageByUser(user);
         verify(transactionFeedService).searchFeeds(argThat(request -> 
                 request.getSortBy() == FeedSort.LATEST), any(Pageable.class), isNull());
+    }
+    
+    @Test
+    @DisplayName("판매글 ID로 관련 피드 추천 성공")
+    void recommendRelateFeeds_Success() {
+        // Given
+        Long feedId = transactionFeed.getTransactionFeedId();
+        when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+        when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
+        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
+                .thenReturn(new PageImpl<>(mockFeeds));
+
+        // When
+        List<GetFeedSummaryResponseDto> result = recommendService.recommendRelateFeeds(feedId);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.size()).isEqualTo(4); // RELATED_RECOMMENDATION_LIMIT is 4
+        verify(transactionFeedRepository).findById(feedId);
+        verify(statusManager).getStatus("FEED", "ON_SALE");
+        verify(transactionFeedService).searchFeeds(argThat(request -> 
+                request.getTelecomCompanyIds().contains(telecomCompany.getTelecomCompanyId()) &&
+                request.getSalesTypeIds().contains(normalSalesType.getSalesTypeId()) &&
+                request.getExcludeFeedIds().contains(feedId)), 
+                any(Pageable.class), isNull());
+    }
+    
+    @Test
+    @DisplayName("후보 피드가 없을 때 빈 목록 반환")
+    void recommendRelateFeeds_EmptyCandidates() {
+        // Given
+        Long feedId = transactionFeed.getTransactionFeedId();
+        when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+        when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
+        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
+                .thenReturn(new PageImpl<>(new ArrayList<>()));
+
+        // When
+        List<GetFeedSummaryResponseDto> result = recommendService.recommendRelateFeeds(feedId);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).isEmpty();
+        verify(transactionFeedRepository).findById(feedId);
+        verify(statusManager).getStatus("FEED", "ON_SALE");
+        verify(transactionFeedService).searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull());
     }
 }
