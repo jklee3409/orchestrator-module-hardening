@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
@@ -11,7 +12,9 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.DataTransactionHistoryRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.RecommendService;
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import eureca.capstone.project.orchestrator.user.entity.User;
@@ -36,11 +39,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecommendServiceImpl implements RecommendService {
     private final UserRepository userRepository;
     private final DataTransactionHistoryRepository dataTransactionHistoryRepository;
+    private final TransactionFeedRepository transactionFeedRepository;
     private final TransactionFeedService transactionFeedService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
 
     private static final int RECOMMENDATION_LIMIT = 10;
+    private static final int RELATED_RECOMMENDATION_LIMIT = 4;
     private static final int SIMILARITY_CANDIDATE_LIMIT = 1000;
 
     @Override
@@ -60,7 +65,7 @@ public class RecommendServiceImpl implements RecommendService {
             // 거래 내역 있는 사용자: 유사도 기반 추천
             log.info("[recommendFeed] 사용자 ID: {}의 거래 내역 확인. 유사도 기반 추천을 시작.", user.getUserId());
             List<GetFeedSummaryResponseDto> targetFeeds = getTargetTransactionFeeds(user);
-            finalRecommendations = recommendBySimilarity(targetFeeds, averages.get());
+            finalRecommendations = recommendBySimilarity(targetFeeds, averages.get(), RECOMMENDATION_LIMIT);
 
         } else {
             // 거래 내역 없는 사용자: 가격 기반 추천
@@ -76,6 +81,41 @@ public class RecommendServiceImpl implements RecommendService {
 
         log.info("[recommendFeed] 사용자 ID: {}에 대한 최종 추천 개수: {}", user.getUserId(), finalRecommendations.size());
         return finalRecommendations;
+    }
+
+    @Override
+    public List<GetFeedSummaryResponseDto> recommendRelateFeeds(Long transactionFeedId) {
+        log.info("[recommendRelateFeeds] 판매글 ID: {}에 대한 관련 추천 시작", transactionFeedId);
+
+        TransactionFeed targetFeed = transactionFeedRepository.findById(transactionFeedId)
+                .orElseThrow(TransactionFeedNotFoundException::new);
+        log.info("[recommendRelateFeeds] 판매글 ID: {} 조회 완료", transactionFeedId);
+
+        Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
+        FeedSearchRequestDto requestDto = FeedSearchRequestDto.builder()
+                .telecomCompanyIds(List.of(targetFeed.getTelecomCompany().getTelecomCompanyId()))
+                .salesTypeIds(List.of(targetFeed.getSalesType().getSalesTypeId()))
+                .statuses(List.of(salesStatus.getCode()))
+                .excludeFeedIds(List.of(transactionFeedId))
+                .sortBy(FeedSort.LATEST)
+                .build();
+
+        Pageable pageable = PageRequest.of(0, SIMILARITY_CANDIDATE_LIMIT);
+        List<GetFeedSummaryResponseDto> candidateFeeds = transactionFeedService.searchFeeds(requestDto, pageable, null).getContent();
+        log.info("[recommendRelateFeeds] 판매글 ID: {}에 대한 후보군 피드 {}개 조회 완료", transactionFeedId, candidateFeeds.size());
+
+        if (candidateFeeds.isEmpty()) {
+            log.warn("[recommendRelatedFeeds] 관련 상품 추천을 위한 후보군이 없습니다.");
+            return new ArrayList<>();
+        }
+
+        UserTransactionAverageDto targetMetrics = new UserTransactionAverageDto(
+                (double) targetFeed.getSalesPrice(),
+                (double) targetFeed.getSalesDataAmount()
+        );
+        log.info("[recommendRelatedFeeds] 기준 상품 정보 - 가격: {}, 데이터: {}", targetMetrics.getAveragePrice(), targetMetrics.getAverageDataAmount());
+
+        return recommendBySimilarity(candidateFeeds, targetMetrics, RELATED_RECOMMENDATION_LIMIT);
     }
 
     private List<GetFeedSummaryResponseDto> recommendForGuest() {
@@ -94,7 +134,7 @@ public class RecommendServiceImpl implements RecommendService {
         return transactionFeedService.searchFeeds(request, pageable, null).getContent();
     }
 
-    private List<GetFeedSummaryResponseDto> recommendBySimilarity(List<GetFeedSummaryResponseDto> feeds, UserTransactionAverageDto averages) {
+    private List<GetFeedSummaryResponseDto> recommendBySimilarity(List<GetFeedSummaryResponseDto> feeds, UserTransactionAverageDto averages, int limit) {
         log.info("[recommendBySimilarity] 유사도 계산 시작. 대상 피드: {}개", feeds.size());
         if (feeds.isEmpty()) {
             return new ArrayList<>();
@@ -129,11 +169,12 @@ public class RecommendServiceImpl implements RecommendService {
                 })
                 .sorted()
                 .map(FeedWithSimilarity::feed)
-                .limit(RECOMMENDATION_LIMIT)
+                .limit(limit)
                 .collect(Collectors.toList());
     }
 
     private List<GetFeedSummaryResponseDto> fillRemainingWithGlobalCheapest(List<GetFeedSummaryResponseDto> currentRecommendations) {
+        log.info("[fillRemainingWithGlobalCheapest] 현재 추천 개수: {}. 추가 추천 필요 여부 확인", currentRecommendations.size());
         int needed = RECOMMENDATION_LIMIT - currentRecommendations.size();
         if (needed <= 0) {
             return currentRecommendations;
@@ -142,30 +183,22 @@ public class RecommendServiceImpl implements RecommendService {
         List<Long> excludeIds = currentRecommendations.stream()
                 .map(GetFeedSummaryResponseDto::getTransactionFeedId)
                 .collect(Collectors.toList());
+        log.info("[fillRemainingWithGlobalCheapest] 추가 추천을 위한 제외 ID 목록 생성: {}개", excludeIds.size());
 
         FeedSearchRequestDto requestDto = FeedSearchRequestDto.builder()
                 .sortBy(FeedSort.PRICE_LOW)
                 .excludeFeedIds(excludeIds)
                 .build();
+        log.info("[fillRemainingWithGlobalCheapest] 가격 오름차순으로 추가 추천 요청. 필요 개수: {}", needed);
 
         Pageable pageable = PageRequest.of(0, needed);
         List<GetFeedSummaryResponseDto> additionalFeeds = transactionFeedService.searchFeeds(requestDto, pageable, null).getContent();
+        log.info("[fillRemainingWithGlobalCheapest] 추가 추천 판매글 {}개 조회 완료", additionalFeeds.size());
 
         List<GetFeedSummaryResponseDto> finalRecommendations = new ArrayList<>(currentRecommendations);
         finalRecommendations.addAll(additionalFeeds);
 
         return finalRecommendations;
-    }
-
-    private FeedSearchRequestDto.FeedSearchRequestDtoBuilder createBaseBuilderForUser(User user) {
-        TelecomCompany telecomCompany = user.getTelecomCompany();
-        Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
-        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
-
-        return FeedSearchRequestDto.builder()
-                .telecomCompanyIds(List.of(telecomCompany.getTelecomCompanyId()))
-                .salesTypeIds(List.of(normalSalesType.getSalesTypeId()))
-                .statuses(List.of(salesStatus.getCode()));
     }
 
     private List<GetFeedSummaryResponseDto> getTargetTransactionFeeds(User user) {
@@ -179,6 +212,18 @@ public class RecommendServiceImpl implements RecommendService {
         Page<GetFeedSummaryResponseDto> targetFeeds = transactionFeedService.searchFeeds(requestDto, pageable, null);
         log.info("[getTargetTransactionFeeds] 사용자 ID: {}의 추천 타겟 판매글 {}개 조회", user.getUserId(), targetFeeds.getNumberOfElements());
         return targetFeeds.getContent();
+    }
+
+    private FeedSearchRequestDto.FeedSearchRequestDtoBuilder createBaseBuilderForUser(User user) {
+        TelecomCompany telecomCompany = user.getTelecomCompany();
+        Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
+        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
+        log.info("[createBaseBuilderForUser] 사용자 ID: {}에 대한 기본 검색 요청 빌더 생성", user.getUserId());
+
+        return FeedSearchRequestDto.builder()
+                .telecomCompanyIds(List.of(telecomCompany.getTelecomCompanyId()))
+                .salesTypeIds(List.of(normalSalesType.getSalesTypeId()))
+                .statuses(List.of(salesStatus.getCode()));
     }
 
     private User findUserByEmail(String email) {

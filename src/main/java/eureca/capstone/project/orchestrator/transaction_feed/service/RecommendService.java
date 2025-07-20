@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface RecommendService {
     List<GetFeedSummaryResponseDto> recommendFeed(CustomUserDetailsDto customUserDetailsDto);
+    List<GetFeedSummaryResponseDto> recommendRelateFeeds(Long transactionFeedId);
 }
