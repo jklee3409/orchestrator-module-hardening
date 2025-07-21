@@ -5,4 +5,6 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 
 public interface UserPayService {
     UserPay charge(User user, Long amount);
+    void usePay(User user, Long amount);
+    void refundPay(User user, Long amount);
 }

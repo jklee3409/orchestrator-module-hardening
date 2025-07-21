@@ -74,6 +74,7 @@ public enum ErrorCode {
     CHANGE_TYPE_NOT_FOUND(40055, "CHANGE_TYPE_NOT_FOUND", "페이 변동 유형을 찾지 못했습니다."),
     PAYMENT_CANCELLED_BY_PAY_METHOD(40056, "PAYMENT_CANCELLED_BY_PAY_METHOD", "결제 수단 불일치로 결제가 취소되었습니다."),
     PAYMENT_CANCELLED_FAIL(40056, "PAYMENT_CANCELLED_FAIL", "결제 승인 취소에 실패하였습니다."),
+    USER_PAY_LACK(40057, "USER_PAY_LACK", "사용자 페이가 부족합니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 

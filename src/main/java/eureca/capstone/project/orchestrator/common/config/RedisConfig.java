@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -46,10 +47,10 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisScript<String> bidScript() {
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+    public RedisScript<List> bidScript() {
+        DefaultRedisScript<List> redisScript = new DefaultRedisScript<>();
         redisScript.setLocation(new ClassPathResource("scripts/bid.lua"));
-        redisScript.setResultType(String.class);
+        redisScript.setResultType(List.class);
         return redisScript;
     }
 }

@@ -19,14 +19,33 @@ public class UserPayServiceImpl implements UserPayService {
     @Transactional
     public UserPay charge(User user, Long amount) {
         log.info("[charge] 사용자 ID: 페이 충전 시작. 충전 금액: {}", user.getUserId());
-
-        UserPay userPay = userPayRepository.findById(user.getUserId())
-                .orElseGet(() -> new UserPay(user));
-
+        UserPay userPay = findOrNewUserPay(user);
         userPay.charge(amount);
         userPayRepository.save(userPay);
         log.info("[charge] 사용자 ID: {} 페이 충전 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
-
         return userPay;
+    }
+
+    @Override
+    @Transactional
+    public void usePay(User user, Long amount) {
+        log.info("[usePay] 사용자 ID: {} 페이 사용 시작. 사용 금액: {}", user.getUserId(), amount);
+        UserPay userPay = findOrNewUserPay(user);
+        userPay.use(amount);
+        userPayRepository.save(userPay);
+    }
+
+    @Override
+    @Transactional
+    public void refundPay(User user, Long amount) {
+        log.info("[refundPay] 사용자 ID: {} 페이 환불 시작. 환불 금액: {}", user.getUserId(), amount);
+        charge(user, amount);
+        UserPay userPay = findOrNewUserPay(user);
+        log.info("[refundPay] 사용자 ID: {} 페이 환불 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
+    }
+
+    private UserPay findOrNewUserPay(User user) {
+        return userPayRepository.findById(user.getUserId())
+                .orElseGet(() -> new UserPay(user));
     }
 }
