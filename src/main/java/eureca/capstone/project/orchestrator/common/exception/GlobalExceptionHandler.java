@@ -141,4 +141,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(e.getErrorCode());
     }
+
+    @ExceptionHandler(PayLackException.class)
+    public BaseResponseDto<ErrorResponseDto> handlePayLackException(PayLackException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.USER_PAY_LACK);
+    }
 }
