@@ -16,4 +16,11 @@ public class TelecomCompanyDto {
                 .name(telecomCompany.getName())
                 .build();
     }
+
+    public static TelecomCompany toEntity(TelecomCompanyDto telecomCompanyDto) {
+        return TelecomCompany.builder()
+                .telecomCompanyId(telecomCompanyDto.getTelecomCompanyId())
+                .name(telecomCompanyDto.getName())
+                .build();
+    }
 }

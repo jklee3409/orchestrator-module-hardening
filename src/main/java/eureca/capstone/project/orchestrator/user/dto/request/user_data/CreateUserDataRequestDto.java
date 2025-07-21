@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.dto.request.user_data;
 
+import eureca.capstone.project.orchestrator.user.dto.PlanDto;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import lombok.Builder;
 import lombok.Data;
@@ -8,14 +9,14 @@ import lombok.Data;
 @Builder
 public class CreateUserDataRequestDto {
     private Long userId;
-    private Long planId;
+    private PlanDto plan;
     private Long monthlyDataMb;
     private Integer resetDataAt;
 
     public static UserData toEntity(CreateUserDataRequestDto requestDto) {
         return UserData.builder()
                 .userId(requestDto.getUserId())
-                .planId(requestDto.getPlanId())
+                .plan(PlanDto.toEntity(requestDto.getPlan()))
                 .totalDataMb(requestDto.getMonthlyDataMb())
                 .sellableDataMb(0L)
                 .buyerDataMb(0L)

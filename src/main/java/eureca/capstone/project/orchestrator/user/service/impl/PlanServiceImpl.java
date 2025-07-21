@@ -8,6 +8,8 @@ import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -30,9 +32,13 @@ public class PlanServiceImpl implements PlanService {
     public RandomPlanResponseDto getRandomPlan(RandomPlanRequestDto randomPlanRequestDto) {
         log.info("[getRandomPlan] 랜덤 요금제 요청");
 
-        Plan randomPlan = planRepository.findRandomPlanByTelecomCompany(
-                randomPlanRequestDto.getTelecomCompany()
-        ).orElseThrow(EmptyPlanException::new);
+        Page<Plan> planPage = planRepository.findRandomPlanByTelecomCompany(
+                randomPlanRequestDto.getTelecomCompany(),
+                PageRequest.of(0, 1)
+        );
+
+        Plan randomPlan = planPage.get().findFirst()
+                .orElseThrow(EmptyPlanException::new);
 
         log.info("[getRandomPlan] 랜덤 요금제 선택: planId={}, monthlyDataMb={}", randomPlan.getPlanId(), randomPlan.getMonthlyDataMb());
 
