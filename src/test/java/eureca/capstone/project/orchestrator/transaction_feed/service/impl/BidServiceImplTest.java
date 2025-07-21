@@ -12,6 +12,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
@@ -48,7 +49,7 @@ class BidServiceImplTest {
     private UserRepository userRepository;
 
     @Mock
-    private TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
+    private TransactionFeedRepository transactionFeedRepository;
 
     @Mock
     private BidsRepository bidsRepository;
@@ -142,7 +143,7 @@ class BidServiceImplTest {
             request.setBidAmount(bidAmount);
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(bidder));
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(feed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(feed));
             when(statusManager.getStatus("FEED", "ON_SALE")).thenReturn(onSaleStatus);
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
 
@@ -171,7 +172,7 @@ class BidServiceImplTest {
             request.setBidAmount(1000L); // 판매가(5000L)보다 낮은 금액
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(bidder));
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(feed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(feed));
             when(statusManager.getStatus("FEED", "ON_SALE")).thenReturn(onSaleStatus);
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
 
@@ -187,7 +188,7 @@ class BidServiceImplTest {
         @DisplayName("입찰 내역 조회 성공 시 입찰 내역 목록이 반환되어야 한다")
         void getBidHistory_Success() {
             // given
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(feed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(feed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
             
             List<Bids> bidsList = List.of(
@@ -205,7 +206,7 @@ class BidServiceImplTest {
             var result = bidService.getBidHistory(feedId);
 
             // then
-            verify(transactionFeedRepositoryCustom).findById(feedId);
+            verify(transactionFeedRepository).findById(feedId);
             verify(salesTypeManager).getBidSaleType();
             verify(bidsRepository).findBidsWithUserByTransactionFeed(feed);
             org.assertj.core.api.Assertions.assertThat(result.getBids()).hasSize(1);
@@ -237,7 +238,7 @@ class BidServiceImplTest {
                     .isDeleted(false)
                     .build();
             
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(directFeed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(directFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
 
             // when & then

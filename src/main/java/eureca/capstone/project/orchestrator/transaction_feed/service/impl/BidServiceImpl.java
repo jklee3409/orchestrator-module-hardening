@@ -16,6 +16,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.transaction_feed.service.BidService;
 import eureca.capstone.project.orchestrator.user.entity.User;
@@ -37,7 +38,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class BidServiceImpl implements BidService {
     private final UserRepository userRepository;
-    private final TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
+    private final TransactionFeedRepository transactionFeedRepository;
     private final BidsRepository bidsRepository;
     private final UserPayService userPayService;
     private final StringRedisTemplate stringRedisTemplate;
@@ -106,7 +107,7 @@ public class BidServiceImpl implements BidService {
     }
 
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
-        return transactionFeedRepositoryCustom.findById(transactionFeedId)
+        return transactionFeedRepository.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
     }
 

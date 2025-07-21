@@ -13,6 +13,7 @@ import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 @Slf4j
@@ -20,16 +21,6 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class TransactionFeedRepositoryImpl implements TransactionFeedRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
-
-    @Override
-    public Optional<TransactionFeed> findById(Long transactionFeedId) {
-        TransactionFeed result = jpaQueryFactory
-                .selectFrom(transactionFeed)
-                .where(transactionFeed.transactionFeedId.eq(transactionFeedId))
-                .fetchOne();
-
-        return Optional.ofNullable(result);
-    }
 
     @Override
     public Optional<TransactionFeed> findFeedDetailById(Long transactionFeedId) {
@@ -41,6 +32,17 @@ public class TransactionFeedRepositoryImpl implements TransactionFeedRepositoryC
                 .leftJoin(transactionFeed.status, status).fetchJoin()
                 .where(transactionFeed.transactionFeedId.eq(transactionFeedId)
                         .and(transactionFeed.isDeleted.eq(false)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<TransactionFeed> findByIdWithLock(Long transactionFeedId) {
+        TransactionFeed result = jpaQueryFactory
+                .selectFrom(transactionFeed)
+                .where(transactionFeed.transactionFeedId.eq(transactionFeedId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .fetchOne();
 
         return Optional.ofNullable(result);
