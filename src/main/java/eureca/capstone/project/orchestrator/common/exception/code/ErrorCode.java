@@ -58,6 +58,7 @@ public enum ErrorCode {
     CANNOT_BID_ON_OWN_HIGHEST(30013, "CANNOT_BID_ON_OWN_HIGHEST", "본인이 최고 입찰자일 때는 입찰할 수 없습니다."),
     FEED_NOT_AUCTION(30014, "FEED_NOT_AUCTION", "해당 판매글은 입찰 판매글이 아닙니다."),
     LUA_SCRIPT_ERROR(30015, "LUA_SCRIPT_ERROR", "루아 스크립트 실행 중 오류가 발생했습니다."),
+    BID_PROCESSING_FAILED(30016, "BID_PROCESSING_FAILED", "입찰 처리 중 오류가 발생했습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 
