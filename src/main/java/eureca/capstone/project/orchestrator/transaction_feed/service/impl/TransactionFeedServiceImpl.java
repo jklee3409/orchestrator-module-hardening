@@ -40,11 +40,13 @@ import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepos
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -56,6 +58,7 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -79,6 +82,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final SalesTypeManager salesTypeManager;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final Map<String, Long> TELECOM_SYNONYM_MAP = new java.util.HashMap<>();
     static {
@@ -176,8 +180,16 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         String auctionType = salesTypeManager.getBidSaleType().getName();
         if (auctionType.equals(feed.getSalesType().getName())) {
             log.info("[getFeedDetail] 입찰 판매글입니다. 현재 최고가 조회");
-            // TODO: 현재 최고가 조회 필요
-            currentHeightPrice = 10000L;
+            String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
+            String highestPriceStr = stringRedisTemplate.opsForValue().get(highestPriceKey);
+
+            if (highestPriceStr != null) {
+                log.info("[getFeedDetail] 압찰 내역이 존재합니다. 최고가: {}", highestPriceStr);
+                currentHeightPrice = Long.parseLong(highestPriceStr);
+            } else {
+                log.info("[getFeedDetail] 압찰 내역이 존재하지 않습니다. 판매글의 최초 가격을 조회합니다.");
+                currentHeightPrice = feed.getSalesPrice();
+            }
         }
 
         return GetFeedDetailResponseDto.builder()
@@ -295,21 +307,11 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
         log.info("[searchFeeds] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
 
-        Set<Long> likedFeedIds = new HashSet<>();
-        if (userDetailsDto != null) {
-            List<Long> feedIds = searchHits.getSearchHits().stream()
-                    .map(hit -> hit.getContent().getId())
-                    .toList();
-            log.info("[searchFeeds] searchHit 에서 판매글 Id 추출");
+        Set<Long> likedFeedIds = getLikedFeedIds(userDetailsDto, searchHits);
+        Map<Long, Long> highestPriceMap = getHighestPricesFromRedis(searchHits);
+        log.info("[searchFeeds] 찜 목록 및 최고가 조회 완료.");
 
-            if (!feedIds.isEmpty()) {
-                User user = findUserByEmail(userDetailsDto.getEmail());
-                likedFeedIds.addAll(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
-                log.info("[searchFeeds] 사용자({})의 찜 목록 {}개 확인", userDetailsDto.getUserId(), likedFeedIds.size());
-            }
-        }
-
-        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable, likedFeedIds);
+        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable, likedFeedIds, highestPriceMap);
         log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
 
         return responseDtoPage;
@@ -539,23 +541,79 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         }
     }
 
-    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {
+    private Set<Long> getLikedFeedIds(CustomUserDetailsDto userDetailsDto, SearchHits<TransactionFeedDocument> searchHits) {
+        log.info("[getLikedFeedIds] 사용자 {}의 찜 목록 조회 시작", userDetailsDto != null ? userDetailsDto.getUserId() : "비회원");
+        if (userDetailsDto == null) {
+            return Collections.emptySet();
+        }
+        List<Long> feedIds = searchHits.getSearchHits().stream()
+                .map(hit -> hit.getContent().getId())
+                .toList();
+
+        if (feedIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        User user = findUserByEmail(userDetailsDto.getEmail());
+        log.info("[getLikedFeedIds] 사용자({})의 찜 목록 확인", userDetailsDto.getUserId());
+        return new HashSet<>(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
+    }
+
+    private Map<Long, Long> getHighestPricesFromRedis(SearchHits<TransactionFeedDocument> searchHits) {
+        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
+
+        List<Long> auctionFeedIds = new ArrayList<>();
+        List<String> redisKeys = new ArrayList<>();
+
+        searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .filter(doc -> bidSalesTypeId.equals(doc.getSalesTypeId()))
+                .forEach(doc -> {
+                    auctionFeedIds.add(doc.getId());
+                    redisKeys.add(String.format("bids:%d:highest_price", doc.getId()));
+                });
+
+        if (redisKeys.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        log.info("[getHighestPricesFromRedis] {}개의 입찰 판매글 최고가를 Redis 에서 조회", redisKeys.size());
+        List<String> highestPrices = stringRedisTemplate.opsForValue().multiGet(redisKeys);
+
+        return IntStream.range(0, auctionFeedIds.size())
+                .filter(i -> highestPrices != null && highestPrices.get(i) != null)
+                .boxed()
+                .collect(Collectors.toMap(
+                        auctionFeedIds::get,
+                        i -> Long.parseLong(highestPrices.get(i))
+                ));
+    }
+
+    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds, Map<Long, Long> highestPriceMap) {
         log.info("[toDtoPage] searchHits -> dto 변환 시작.");
 
+        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
+        SalesType auctionSalesType = salesTypeManager.getBidSaleType();
         List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
-                .map(doc -> GetFeedSummaryResponseDto.builder()
-                        .transactionFeedId(doc.getId())
-                        .title(doc.getTitle())
-                        .nickname(doc.getNickname())
-                        .salesPrice(doc.getSalesPrice())
-                        .salesDataAmount(doc.getSalesDataAmount())
-                        .telecomCompany(doc.getTelecomCompanyName())
-                        .createdAt(doc.getCreatedAt())
-                        .liked(likedFeedIds.contains(doc.getId()))
-                        .status(doc.getStatus())
-                        .defaultImageNumber(doc.getDefaultImageNumber())
-                        .build())
+                .map(doc -> {
+                    Long currentHighestPrice = highestPriceMap.getOrDefault(doc.getId(), doc.getSalesPrice());
+                    String salesType = doc.getSalesTypeId().equals(normalSalesType.getSalesTypeId()) ? normalSalesType.getName() : auctionSalesType.getName();
+
+                    return GetFeedSummaryResponseDto.builder()
+                            .transactionFeedId(doc.getId())
+                            .title(doc.getTitle())
+                            .nickname(doc.getNickname())
+                            .salesPrice(doc.getSalesPrice()) // 시작가
+                            .currentHeightPrice(currentHighestPrice) // 현재 최고가
+                            .salesDataAmount(doc.getSalesDataAmount())
+                            .telecomCompany(doc.getTelecomCompanyName())
+                            .createdAt(doc.getCreatedAt())
+                            .liked(likedFeedIds.contains(doc.getId()))
+                            .status(doc.getStatus())
+                            .salesType(salesType)
+                            .defaultImageNumber(doc.getDefaultImageNumber())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         log.info("[toDtoPage] searchHits -> dto 변환 완료.");
