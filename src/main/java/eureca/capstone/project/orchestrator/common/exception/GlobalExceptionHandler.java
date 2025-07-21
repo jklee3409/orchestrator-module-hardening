@@ -135,4 +135,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.PLAN_NOT_FOUND);
     }
+
+    @ExceptionHandler(BidException.class)
+    public BaseResponseDto<ErrorResponseDto> handleBidException(BidException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(e.getErrorCode());
+    }
 }
