@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.BidException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.pay.service.UserPayService;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.PlaceBidRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
@@ -14,6 +15,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepo
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -55,13 +57,16 @@ class BidServiceImplTest {
     private StringRedisTemplate stringRedisTemplate;
 
     @Mock
-    private RedisScript<String> bidScript;
+    private RedisScript<List> bidScript;
 
     @Mock
     private StatusManager statusManager;
 
     @Mock
     private SalesTypeManager salesTypeManager;
+
+    @Mock
+    private UserPayService userPayService;
 
     private User bidder;
     private TransactionFeed feed;
@@ -140,12 +145,15 @@ class BidServiceImplTest {
             when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(feed));
             when(statusManager.getStatus("FEED", "ON_SALE")).thenReturn(onSaleStatus);
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
+
+            List<String> mockResult = Arrays.asList("SUCCESS", "0", "0");
             when(stringRedisTemplate.execute(
                     any(RedisScript.class),
                     any(List.class),
                     anyString(),
                     anyString()
-            )).thenReturn("SUCCESS");
+            )).thenReturn(mockResult);
+
 
             // when
             bidService.placeBid(email, request);
