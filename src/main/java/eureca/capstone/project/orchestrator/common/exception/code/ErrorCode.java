@@ -51,6 +51,13 @@ public enum ErrorCode {
     AUCTION_FEED_MODIFY_NOT_ALLOWED(30006, "AUCTION_FEED_MODIFY_NOT_ALLOWED", "입찰 판매글은 수정 또는 삭제가 불가합니다."),
     ALREADY_EXISTS_LIKED_LIST(30007, "ALREADY_EXISTS_LIKED_LIST", "이미 찜한 판매글입니다."),
     WISH_FEED_NOT_FOUND(30008, "WISH_FEED_NOT_FOUND", "찜 목록에 해당 판매글이 없습니다."),
+    SELLER_CANNOT_BID(30009, "SELLER_CANNOT_BID", "판매자는 자신의 판매글에 입찰할 수 없습니다."),
+    AUCTION_NOT_ON_SALE(30010, "AUCTION_NOT_ON_SALE", "입찰 판매글이 판매 중이 아닙니다."),
+    AUCTION_EXPIRED(30011, "AUCTION_EXPIRED", "입찰 판매글이 만료되었습니다."),
+    BID_AMOUNT_TOO_LOW(30012, "BID_AMOUNT_TOO_LOW", "입찰 금액이 판매가보다 낮습니다."),
+    CANNOT_BID_ON_OWN_HIGHEST(30013, "CANNOT_BID_ON_OWN_HIGHEST", "본인이 최고 입찰자일 때는 입찰할 수 없습니다."),
+    FEED_NOT_AUCTION(30014, "FEED_NOT_AUCTION", "해당 판매글은 입찰 판매글이 아닙니다."),
+    LUA_SCRIPT_ERROR(30015, "LUA_SCRIPT_ERROR", "루아 스크립트 실행 중 오류가 발생했습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 
