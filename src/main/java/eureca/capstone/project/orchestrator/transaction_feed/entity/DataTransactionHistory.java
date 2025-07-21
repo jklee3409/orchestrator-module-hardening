@@ -3,11 +3,19 @@ package eureca.capstone.project.orchestrator.transaction_feed.entity;
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table
+@Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Table(name = "data_transaction_history")
 public class DataTransactionHistory extends BaseEntity {
-    // TODO transaction_at 가 BaseEntity로 인하여 자동생성 되는데 지울지 말지 고민
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "transaction_history_id")

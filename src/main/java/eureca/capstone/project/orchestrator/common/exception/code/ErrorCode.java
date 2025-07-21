@@ -59,6 +59,9 @@ public enum ErrorCode {
     FEED_NOT_AUCTION(30014, "FEED_NOT_AUCTION", "해당 판매글은 입찰 판매글이 아닙니다."),
     LUA_SCRIPT_ERROR(30015, "LUA_SCRIPT_ERROR", "루아 스크립트 실행 중 오류가 발생했습니다."),
     BID_PROCESSING_FAILED(30016, "BID_PROCESSING_FAILED", "입찰 처리 중 오류가 발생했습니다."),
+    FEED_NOT_ON_SALE(30017, "FEED_NOT_ON_SALE", "판매글이 판매 중이 아닙니다."),
+    CANNOT_BUY_OWN_FEED(30018, "CANNOT_BUY_OWN_FEED", "자신의 판매글을 구매할 수 없습니다."),
+    CANNOT_BUY_AUCTION_FEED(30019, "CANNOT_BUY_AUCTION_FEED", "경매 판매글은 즉시 구매할 수 없습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 
@@ -76,6 +79,7 @@ public enum ErrorCode {
     PAYMENT_CANCELLED_BY_PAY_METHOD(40056, "PAYMENT_CANCELLED_BY_PAY_METHOD", "결제 수단 불일치로 결제가 취소되었습니다."),
     PAYMENT_CANCELLED_FAIL(40056, "PAYMENT_CANCELLED_FAIL", "결제 승인 취소에 실패하였습니다."),
     USER_PAY_LACK(40057, "USER_PAY_LACK", "사용자 페이가 부족합니다."),
+    USER_PAY_NOT_FOUND(40058, "USER_PAY_NOT_FOUND", "사용자 페이 정보를 찾지 못했습니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 

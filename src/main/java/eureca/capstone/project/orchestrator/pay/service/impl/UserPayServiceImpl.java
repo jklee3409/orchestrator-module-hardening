@@ -38,10 +38,10 @@ public class UserPayServiceImpl implements UserPayService {
     @Override
     @Transactional
     public void refundPay(User user, Long amount) {
-        log.info("[refundPay] 사용자 ID: {} 페이 환불 시작. 환불 금액: {}", user.getUserId(), amount);
+        log.info("[refundPay] 사용자 ID: {} 페이 환불(지급) 시작. 환불 금액: {}", user.getUserId(), amount);
         charge(user, amount);
         UserPay userPay = findOrNewUserPay(user);
-        log.info("[refundPay] 사용자 ID: {} 페이 환불 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
+        log.info("[refundPay] 사용자 ID: {} 페이 환불(지급) 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
     }
 
     private UserPay findOrNewUserPay(User user) {
