@@ -14,7 +14,6 @@ import eureca.capstone.project.orchestrator.common.exception.custom.TransactionF
 
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 
-import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 
@@ -115,9 +114,6 @@ class TransactionFeedServiceImplTest {
 
     @Mock
     private TransactionFeedRepository transactionFeedRepository;
-
-    @Mock
-    private TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
 
     @Mock
     private UserDataService userDataService;
@@ -314,7 +310,7 @@ class TransactionFeedServiceImplTest {
             long dataChangeAmount = request.getSalesDataAmount() - transactionFeed.getSalesDataAmount();
 
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
 
@@ -349,7 +345,7 @@ class TransactionFeedServiceImplTest {
             long dataChangeAmount = transactionFeed.getSalesDataAmount() - request.getSalesDataAmount();
 
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
 
             // when
@@ -380,7 +376,7 @@ class TransactionFeedServiceImplTest {
                     .build();
 
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
 
             // when
@@ -400,7 +396,7 @@ class TransactionFeedServiceImplTest {
             UpdateFeedRequestDto request = UpdateFeedRequestDto.builder().transactionFeedId(1L).build();
             User otherUser = User.builder().userId(2L).email("other@example.com").build();
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(otherUser));
-            when(transactionFeedRepositoryCustom.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
 
             // when & then
             assertThrows(FeedModifyPermissionException.class,
@@ -418,7 +414,7 @@ class TransactionFeedServiceImplTest {
         void getFeedDetail_Success() {
             // given
             Long feedId = 1L;
-            when(transactionFeedRepositoryCustom.findFeedDetailById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findFeedDetailById(feedId)).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
             when(userRepository.findByEmail(userDetailsDto.getEmail())).thenReturn(Optional.of(user));
             when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
@@ -442,7 +438,7 @@ class TransactionFeedServiceImplTest {
         void getFeedDetail_ThrowsTransactionFeedNotFoundException() {
             // given
             Long nonExistentFeedId = 999L;
-            when(transactionFeedRepositoryCustom.findFeedDetailById(nonExistentFeedId)).thenReturn(Optional.empty());
+            when(transactionFeedRepository.findFeedDetailById(nonExistentFeedId)).thenReturn(Optional.empty());
 
             // when & then
             assertThrows(TransactionFeedNotFoundException.class,
@@ -455,7 +451,7 @@ class TransactionFeedServiceImplTest {
             // given
             String email = user.getEmail();
             Long feedId = transactionFeed.getTransactionFeedId();
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
 
             // when
@@ -463,7 +459,7 @@ class TransactionFeedServiceImplTest {
 
             // then
             assertTrue(transactionFeed.isDeleted());
-            verify(transactionFeedRepositoryCustom).findById(feedId);
+            verify(transactionFeedRepository).findById(feedId);
         }
 
 
@@ -474,7 +470,7 @@ class TransactionFeedServiceImplTest {
             // given
             Long feedId = transactionFeed.getTransactionFeedId();
             String otherUserEmail = "other@example.com";
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
 
             // when & then
             assertThrows(FeedModifyPermissionException.class,
@@ -497,7 +493,7 @@ class TransactionFeedServiceImplTest {
             requestDto.setTransactionFeedId(1L);
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(requestDto.getTransactionFeedId())).thenReturn(
+            when(transactionFeedRepository.findById(requestDto.getTransactionFeedId())).thenReturn(
                     Optional.of(transactionFeed));
             when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
 
@@ -517,7 +513,7 @@ class TransactionFeedServiceImplTest {
             requestDto.setTransactionFeedId(1L);
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(requestDto.getTransactionFeedId())).thenReturn(
+            when(transactionFeedRepository.findById(requestDto.getTransactionFeedId())).thenReturn(
                     Optional.of(transactionFeed));
             when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(true);
 
@@ -536,7 +532,7 @@ class TransactionFeedServiceImplTest {
             Long feedId = transactionFeed.getTransactionFeedId();
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
             when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(true);
 
             // when
@@ -554,7 +550,7 @@ class TransactionFeedServiceImplTest {
             Long feedId = transactionFeed.getTransactionFeedId();
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
             when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
 
             // when & then

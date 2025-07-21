@@ -76,4 +76,8 @@ public class TransactionFeed extends BaseEntity {
     public void delete() {
         this.isDeleted = true;
     }
+
+    public void updateStatus(Status status) {
+        this.status = status;
+    }
 }

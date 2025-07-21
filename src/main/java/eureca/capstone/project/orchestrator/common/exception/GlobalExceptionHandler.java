@@ -147,4 +147,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.USER_PAY_LACK);
     }
+
+    @ExceptionHandler(UserPayNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleUserPayNotFoundException(UserPayNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.USER_PAY_NOT_FOUND);
+    }
 }

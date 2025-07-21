@@ -75,7 +75,6 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final TelecomCompanyRepository telecomCompanyRepository;
     private final SalesTypeRepository salesTypeRepository;
     private final TransactionFeedRepository transactionFeedRepository;
-    private final TransactionFeedRepositoryCustom transactionFeedRepositoryCustom;
     private final LikedRepository likedRepository;
     private final UserDataService userDataService;
     private final StatusManager statusManager;
@@ -162,7 +161,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     @Transactional(readOnly = true)
     public GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId, CustomUserDetailsDto userDetailsDto) {
         log.info("[getFeedDetail] 판매글 상세 조회 시작. ID: {}", transactionFeedId);
-        TransactionFeed feed = transactionFeedRepositoryCustom.findFeedDetailById(transactionFeedId)
+        TransactionFeed feed = transactionFeedRepository.findFeedDetailById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
 
         boolean isLiked = false;
@@ -357,7 +356,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
-        return transactionFeedRepositoryCustom.findById(transactionFeedId)
+        return transactionFeedRepository.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
     }
 

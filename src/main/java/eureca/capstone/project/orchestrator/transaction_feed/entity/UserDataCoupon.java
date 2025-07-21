@@ -6,14 +6,24 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Table(name = "user_data_coupon")
 @Entity
+@Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Table(name = "user_data_coupon")
 public class UserDataCoupon extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_data_coupon_id")
     private Long userDataCouponId;
+
     @JoinColumn(name = "data_coupon_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private DataCoupon dataCoupon;
