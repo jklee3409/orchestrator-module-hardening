@@ -17,6 +17,7 @@ public class GetFeedSummaryResponseDto {
     private boolean liked;
     private String telecomCompany;
     private String status;
+    private String salesType;
 
     // 입찰 판매 시에만 사용 (Nullable)
     private final Long currentHeightPrice;

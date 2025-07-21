@@ -3,9 +3,16 @@ package eureca.capstone.project.orchestrator.transaction_feed.entity;
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
-@Table(name = "bids")
 @Entity
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Table(name = "bids")
 public class Bids extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
