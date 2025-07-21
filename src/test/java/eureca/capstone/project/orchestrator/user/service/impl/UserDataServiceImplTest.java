@@ -1,11 +1,14 @@
 package eureca.capstone.project.orchestrator.user.service.impl;
 
+import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.user.dto.PlanDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.CreateSellableDataResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user_data.GetUserDataStatusResponseDto;
+import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.entity.UserData;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
@@ -41,20 +44,35 @@ class UserDataServiceImplTest {
     @InjectMocks
     private UserDataServiceImpl userDataService;
 
+    private Plan plan;
     private UserData userData;
+    private TelecomCompany telecomCompany;
 
     @BeforeEach
     void setUp() {
         // 테스트에 사용할 객체 초기화
+        telecomCompany = TelecomCompany.builder()
+                .telecomCompanyId(1L)
+                .name("테스트 통신사")
+                .build();
+
+        plan = Plan.builder()
+                .planId(1L)
+                .planName("테스트 요금제")
+                .monthlyDataMb(10000L)
+                .telecomCompany(telecomCompany)
+                .build();
+
         userData = UserData.builder()
                 .userDataId(1L)
                 .userId(1L)
-                .planId(1L)
+                .plan(plan)
                 .totalDataMb(10000L)
                 .sellableDataMb(2000L)
                 .buyerDataMb(1000L)
                 .resetDataAt(1)
                 .build();
+
     }
 
     @Test
@@ -63,7 +81,7 @@ class UserDataServiceImplTest {
         // Given
         CreateUserDataRequestDto requestDto = CreateUserDataRequestDto.builder()
                 .userId(1L)
-                .planId(1L)
+                .plan(PlanDto.fromEntity( plan))
                 .monthlyDataMb(10000L)
                 .resetDataAt(1)
                 .build();

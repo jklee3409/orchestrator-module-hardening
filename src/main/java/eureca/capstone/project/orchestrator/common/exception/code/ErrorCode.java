@@ -39,6 +39,7 @@ public enum ErrorCode {
     // PLAN 관련 에러 코드 (20101 ~ 20150)
     RANDOM_PLAN_RETURN_FAIL(20101, "RANDOM_PLAN_RETURN_FAIL", "랜덤 요금제 조회 중 오류가 발생했습니다."),
     EMPTY_PLAN(20102, "EMPTY_PLAN", "요금제가 존재하지 않습니다."),
+    PLAN_NOT_FOUND(20103, "PLAN_NOT_FOUND", "요금제를 찾을 수 없습니다."),
 
     // transaction_feed 관련 에러코드 (30000 ~ 39999)
     TRANSACTION_FEED_CREATE_FAIL(30000, "TRANSACTION_FEED_CREATE_FAIL", "판매글 작성 도중 오류가 발생했습니다."),
