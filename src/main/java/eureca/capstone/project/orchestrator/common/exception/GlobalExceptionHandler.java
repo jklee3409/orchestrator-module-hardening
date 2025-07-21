@@ -129,4 +129,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.CHANGE_TYPE_NOT_FOUND);
     }
+
+    @ExceptionHandler(PlanNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handlePlanNotFoundException(PlanNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.PLAN_NOT_FOUND);
+    }
 }

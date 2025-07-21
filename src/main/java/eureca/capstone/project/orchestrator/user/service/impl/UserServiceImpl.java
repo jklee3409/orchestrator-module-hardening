@@ -8,12 +8,14 @@ import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailAlreadyExistsException;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
+import eureca.capstone.project.orchestrator.common.exception.custom.PlanNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.service.AIService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.user.dto.PlanDto;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
@@ -21,7 +23,9 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePassword
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.*;
+import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
@@ -48,6 +52,7 @@ public class UserServiceImpl implements UserService {
     private final UserDataService userDataService;
     private final UserRepository userRepository;
     private final TelecomCompanyRepository telecomCompanyRepository;
+    private final PlanRepository planRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final AIService aiService;
@@ -108,10 +113,13 @@ public class UserServiceImpl implements UserService {
                     .build();
             RandomPlanResponseDto randomPlan = planService.getRandomPlan(planReq);
 
+            Plan randomPlanEntity = planRepository.findById(randomPlan.getPlanId())
+                    .orElseThrow(PlanNotFoundException::new);
+
             // 사용자 데이터 레코드 생성
             CreateUserDataRequestDto userDataReq = CreateUserDataRequestDto.builder()
                     .userId(savedUser.getUserId())
-                    .planId(randomPlan.getPlanId())
+                    .plan(PlanDto.fromEntity(randomPlanEntity))
                     .monthlyDataMb(randomPlan.getMonthlyDataMb())
                     .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
                     .build();
@@ -254,10 +262,13 @@ public class UserServiceImpl implements UserService {
                 .build();
         RandomPlanResponseDto randomPlan = planService.getRandomPlan(planReq);
 
+        Plan randomPlanEntity = planRepository.findById(randomPlan.getPlanId())
+                .orElseThrow(PlanNotFoundException::new);
+
         // 사용자 데이터 레코드 생성
         CreateUserDataRequestDto createUserDataRequestDto = CreateUserDataRequestDto.builder()
                 .userId(savedUser.getUserId())
-                .planId(randomPlan.getPlanId())
+                .plan(PlanDto.fromEntity(randomPlanEntity))
                 .monthlyDataMb(randomPlan.getMonthlyDataMb())
                 .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
                 .build();

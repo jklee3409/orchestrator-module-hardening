@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequ
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,10 +59,11 @@ class PlanServiceImplTest {
         RandomPlanRequestDto requestDto = RandomPlanRequestDto.builder()
                 .telecomCompany(telecomCompany)
                 .build();
-        
-        when(planRepository.findRandomPlanByTelecomCompany(telecomCompany))
-                .thenReturn(Optional.of(plan));
 
+        Page<Plan> planPage = new PageImpl<>(List.of(plan));
+
+        when(planRepository.findRandomPlanByTelecomCompany(telecomCompany, PageRequest.of(0, 1)))
+                .thenReturn(planPage);
         // When
         RandomPlanResponseDto responseDto = planService.getRandomPlan(requestDto);
 
@@ -75,9 +80,9 @@ class PlanServiceImplTest {
         RandomPlanRequestDto requestDto = RandomPlanRequestDto.builder()
                 .telecomCompany(telecomCompany)
                 .build();
-        
-        when(planRepository.findRandomPlanByTelecomCompany(telecomCompany))
-                .thenReturn(Optional.empty());
+
+        when(planRepository.findRandomPlanByTelecomCompany(telecomCompany, PageRequest.of(0, 1)))
+                .thenReturn(Page.empty());
 
         // When & Then
         assertThrows(EmptyPlanException.class, () -> planService.getRandomPlan(requestDto));
