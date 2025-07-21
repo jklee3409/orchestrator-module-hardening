@@ -179,4 +179,70 @@ class BidServiceImplTest {
             assertThrows(BidException.class, () -> bidService.placeBid(email, request));
         }
     }
+    @Nested
+    @DisplayName("입찰 내역 조회 기능")
+    class GetBidHistory {
+
+        @Test
+        @DisplayName("입찰 내역 조회 성공 시 입찰 내역 목록이 반환되어야 한다")
+        void getBidHistory_Success() {
+            // given
+            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(feed));
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
+            
+            List<Bids> bidsList = List.of(
+                Bids.builder()
+                    .bidsId(1L)
+                    .transactionFeed(feed)
+                    .user(bidder)
+                    .bidAmount(10000L)
+                    .build()
+            );
+            
+            when(bidsRepository.findBidsWithUserByTransactionFeed(feed)).thenReturn(bidsList);
+
+            // when
+            var result = bidService.getBidHistory(feedId);
+
+            // then
+            verify(transactionFeedRepositoryCustom).findById(feedId);
+            verify(salesTypeManager).getBidSaleType();
+            verify(bidsRepository).findBidsWithUserByTransactionFeed(feed);
+            org.assertj.core.api.Assertions.assertThat(result.getBids()).hasSize(1);
+            org.assertj.core.api.Assertions.assertThat(result.getBids().get(0).getBidAmount()).isEqualTo(10000L);
+            org.assertj.core.api.Assertions.assertThat(result.getBids().get(0).getBidderNickname()).isEqualTo(bidder.getNickname());
+        }
+
+        @Test
+        @DisplayName("입찰 판매글이 아닌 경우 예외가 발생해야 한다")
+        void getBidHistory_NotAuctionFeed() {
+            // given
+            SalesType directSalesType = SalesType.builder()
+                    .SalesTypeId(1L)
+                    .name("직접 판매")
+                    .build();
+            
+            TransactionFeed directFeed = TransactionFeed.builder()
+                    .transactionFeedId(feedId)
+                    .user(feed.getUser())
+                    .title("데이터 판매")
+                    .content("데이터 판매합니다")
+                    .telecomCompany(telecomCompany)
+                    .salesType(directSalesType)  // 직접 판매 타입
+                    .salesPrice(5000L)
+                    .salesDataAmount(1000L)
+                    .defaultImageNumber(1L)
+                    .expiresAt(LocalDateTime.now().plusDays(10))
+                    .status(onSaleStatus)
+                    .isDeleted(false)
+                    .build();
+            
+            when(transactionFeedRepositoryCustom.findById(feedId)).thenReturn(Optional.of(directFeed));
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
+
+            // when & then
+            BidException exception = assertThrows(BidException.class, () -> bidService.getBidHistory(feedId));
+            org.assertj.core.api.Assertions.assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FEED_NOT_AUCTION);
+        }
+    }
 }
