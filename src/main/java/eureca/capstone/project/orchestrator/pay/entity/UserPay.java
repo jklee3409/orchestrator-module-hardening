@@ -1,6 +1,8 @@
 package eureca.capstone.project.orchestrator.pay.entity;
 
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
+import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
+import eureca.capstone.project.orchestrator.common.exception.custom.PayLackException;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,5 +39,12 @@ public class UserPay extends BaseEntity {
 
     public void charge(Long amount) {
         this.pay += amount;
+    }
+
+    public void use(Long amount) {
+        if (this.pay < amount) {
+            throw new PayLackException();
+        }
+        this.pay -= amount;
     }
 }

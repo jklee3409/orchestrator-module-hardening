@@ -58,6 +58,7 @@ public enum ErrorCode {
     CANNOT_BID_ON_OWN_HIGHEST(30013, "CANNOT_BID_ON_OWN_HIGHEST", "본인이 최고 입찰자일 때는 입찰할 수 없습니다."),
     FEED_NOT_AUCTION(30014, "FEED_NOT_AUCTION", "해당 판매글은 입찰 판매글이 아닙니다."),
     LUA_SCRIPT_ERROR(30015, "LUA_SCRIPT_ERROR", "루아 스크립트 실행 중 오류가 발생했습니다."),
+    BID_PROCESSING_FAILED(30016, "BID_PROCESSING_FAILED", "입찰 처리 중 오류가 발생했습니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 
@@ -74,6 +75,7 @@ public enum ErrorCode {
     CHANGE_TYPE_NOT_FOUND(40055, "CHANGE_TYPE_NOT_FOUND", "페이 변동 유형을 찾지 못했습니다."),
     PAYMENT_CANCELLED_BY_PAY_METHOD(40056, "PAYMENT_CANCELLED_BY_PAY_METHOD", "결제 수단 불일치로 결제가 취소되었습니다."),
     PAYMENT_CANCELLED_FAIL(40056, "PAYMENT_CANCELLED_FAIL", "결제 승인 취소에 실패하였습니다."),
+    USER_PAY_LACK(40057, "USER_PAY_LACK", "사용자 페이가 부족합니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
 
