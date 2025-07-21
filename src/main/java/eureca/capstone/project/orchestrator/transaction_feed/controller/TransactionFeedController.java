@@ -41,7 +41,7 @@ public class TransactionFeedController {
     }
 
     @GetMapping("/{transactionFeedId}")
-    @Operation(summary = "판매글 상세 조회 API [아직 개발중]", description = "판매글의 상세 정보를 조회합니다.")
+    @Operation(summary = "판매글 상세 조회 API", description = "판매글의 상세 정보를 조회합니다.")
     public BaseResponseDto<GetFeedDetailResponseDto> getFeedDetail(
             @PathVariable Long transactionFeedId,
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
