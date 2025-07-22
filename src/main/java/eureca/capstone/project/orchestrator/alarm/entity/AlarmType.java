@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.alarm.entity;
 
+import eureca.capstone.project.orchestrator.alarm.dto.AlarmTypeDto;
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
