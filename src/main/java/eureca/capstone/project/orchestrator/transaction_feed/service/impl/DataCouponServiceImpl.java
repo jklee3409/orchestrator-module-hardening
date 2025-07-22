@@ -2,7 +2,10 @@ package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.UserDataCouponDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetUserDataCouponListResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
@@ -10,7 +13,9 @@ import eureca.capstone.project.orchestrator.transaction_feed.repository.DataCoup
 import eureca.capstone.project.orchestrator.transaction_feed.repository.UserDataCouponRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponService;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataCouponServiceImpl implements DataCouponService {
     private final DataCouponRepository dataCouponRepository;
     private final UserDataCouponRepository userDataCouponRepository;
+    private final UserRepository userRepository;
     private final StatusManager statusManager;
 
     @Override
@@ -51,6 +57,25 @@ public class DataCouponServiceImpl implements DataCouponService {
         log.info("[issueDataCoupon] 사용자 데이터 쿠폰 저장 완료: 사용자 ID: {}, 쿠폰 ID: {}", buyer.getUserId(), userDataCoupon.getUserDataCouponId());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public GetUserDataCouponListResponseDto getUserDataCouponList(String email) {
+        User user = findUserByEmail(email);
+        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 목록 조회 시작", user.getUserId());
+
+        List<UserDataCoupon> userDataCoupons = userDataCouponRepository.findDetailsByUser(user);
+        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 목록 조회 완료. 쿠폰 개수: {}", user.getUserId(), userDataCoupons.size());
+
+        List<UserDataCouponDto> dtoList = userDataCoupons.stream()
+                .map(UserDataCouponDto::fromEntity)
+                .toList();
+        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 DTO 변환 완료", user.getUserId());
+
+        return GetUserDataCouponListResponseDto.builder()
+                .dataCoupons(dtoList)
+                .build();
+    }
+
     private DataCoupon findOrCreateDataCoupon(Long dataAmount, TelecomCompany telecomCompany) {
         return dataCouponRepository.findByDataAmountAndTelecomCompany(dataAmount, telecomCompany)
                 .orElseGet(() -> {
@@ -66,5 +91,10 @@ public class DataCouponServiceImpl implements DataCouponService {
 
     private String generateCouponNumber() {
         return UUID.randomUUID().toString();
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
