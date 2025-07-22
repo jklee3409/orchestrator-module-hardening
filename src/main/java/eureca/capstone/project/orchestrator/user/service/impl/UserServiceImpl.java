@@ -21,6 +21,7 @@ import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequ
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateUserTelecomAndPhoneRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.*;
@@ -278,6 +279,25 @@ public class UserServiceImpl implements UserService {
 
         // 신규 사용자의 ID를 반환하고, 신규 유저임을 알림
         return new OAuthRegistrationResultDto(savedUser.getUserId(), true);
+    }
+
+    @Override
+    public UpdateUserTelecomAndPhoneResponseDto updateUserTelecomAndPhone(String email, UpdateUserTelecomAndPhoneRequestDto requestDto) {
+        log.info("[updateUserTelecomAndPhone] 사용자 {}의 통신사 및 전화번호 업데이트 요청", email);
+
+        User user = findUserByEmail(email);
+        TelecomCompany telecomCompany = telecomCompanyRepository.findById(requestDto.getTelecomCompanyId())
+                .orElseThrow(TelecomCompanyNotFoundException::new);
+        log.info("[updateUserTelecomAndPhone] 사용자 {}의 통신사 정보: {}", email, telecomCompany.getName());
+
+        user.updateTelecomAndPhone(telecomCompany, requestDto.getPhoneNumber());
+        log.info("[updateUserTelecomAndPhone] 사용자 {} 정보 업데이트 완료", email);
+
+        return UpdateUserTelecomAndPhoneResponseDto.builder()
+                .userId(user.getUserId())
+                .telecomCompanyId(user.getTelecomCompany().getTelecomCompanyId())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
     }
 
     private User findUserByEmail(String email) {
