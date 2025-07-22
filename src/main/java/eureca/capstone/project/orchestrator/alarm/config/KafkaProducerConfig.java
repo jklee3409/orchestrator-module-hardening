@@ -1,7 +1,7 @@
 package eureca.capstone.project.orchestrator.alarm.config;
 
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ser.std.StringSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
 import java.util.HashMap;
 import java.util.Map;
