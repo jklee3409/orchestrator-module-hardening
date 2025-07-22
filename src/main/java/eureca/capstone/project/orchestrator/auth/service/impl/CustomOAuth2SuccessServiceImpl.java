@@ -10,6 +10,7 @@ import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -32,39 +33,24 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
 
+    private static final String REDIRECT_URI = "https://ureca-final.com/auth-token";
+
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Authentication authentication) {
-        // 요청값 출력 및 키값 추출
+    public void onAuthenticationSuccess(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Authentication authentication) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        Long userId = oAuth2User.getAttribute("userId");
-        String email = oAuth2User.getAttribute("email");
-        log.info("[onAuthenticationSuccess] - userId: {}", userId);
-        log.info("[onAuthenticationSuccess] - email: {}", email);
+        String authCode = (String) oAuth2User.getAttributes().get("authCode");
+        log.info("[onAuthenticationSuccess] 인증 코드: {}", authCode);
 
-        // 사용자 정보 = 역할 권한 조회
-        UserInformationDto userInformationDto = userRepository.findUserInformation(email);
-        Set<String> roles = userInformationDto.getRoles();
-        Set<String> authorities = userInformationDto.getAuthorities();
+        if (authCode == null) {
+            log.warn("[onAuthenticationSuccess] 인증 코드가 누락되었습니다.");
+            httpServletResponse.sendRedirect(REDIRECT_URI + "?error=auth_code_missing");
+            return;
+        }
 
-        // JWT 토큰 발급
-        String accessToken = jwtUtil.generateAccessToken(email, roles, authorities, userId);
-        String refreshToken = jwtUtil.generateRefreshToken(email, roles, authorities, userId);
-        log.info("[onAuthenticationSuccess] - accessToken: {}", accessToken);
-        log.info("[onAuthenticationSuccess] - refreshToken: {}", refreshToken);
-
-        // Refresh 토큰 Response 헤더에 할당 및 레디스에 저장 (14일 보관)
-        cookieUtil.createRefreshTokenCookie(refreshToken, httpServletResponse);
-        redisService.setValue(REDIS_REFRESH_TOKEN + userId, refreshToken, Duration.ofDays(14));
-
-        // 응답 객체 생성
-        BaseResponseDto<LoginResponseDto> success = BaseResponseDto.success(
-                LoginResponseDto.builder()
-                        .accessToken(accessToken)
-                        .build()
-        );
-
-        // 객체 json 으로 변환 후 반환
-        writeJsonResponse(httpServletResponse, success);
+        // authCode와 함께 프론트엔드로 리다이렉트
+        String redirectUrl = REDIRECT_URI + "?authCode=" + authCode;
+        log.info("[onAuthenticationSuccess] 리다이렉트 URL: {}", redirectUrl);
+        httpServletResponse.sendRedirect(redirectUrl);
     }
 
     public void writeJsonResponse(HttpServletResponse httpServletResponse, Object dto) {

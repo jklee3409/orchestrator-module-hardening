@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.service;
 
+import eureca.capstone.project.orchestrator.auth.dto.OAuthRegistrationResultDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
@@ -15,5 +16,5 @@ public interface UserService {
     UpdateNicknameResponseDto updateUserNickname(String email, UpdateNicknameRequestDto updateUserNicknameRequestDto);
     UpdatePasswordResponseDto updateUserPassword(String email, UpdatePasswordRequestDto updatePasswordRequestDto);
     GetUserCountResponseDto getUserCount();
-    Long OAuthUserRegisterIfNotExists(String email, String provider);
+    OAuthRegistrationResultDto OAuthUserRegisterIfNotExists(String email, String provider);
 }
