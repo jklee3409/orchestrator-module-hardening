@@ -1,10 +1,8 @@
-package eureca.capstone.project.orchestrator.alarm.service;
+package eureca.capstone.project.orchestrator.alarm.service.impl;
 
 import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
-import eureca.capstone.project.orchestrator.alarm.dto.AlarmTypeDto;
 import eureca.capstone.project.orchestrator.alarm.dto.NotificationDto;
 import eureca.capstone.project.orchestrator.alarm.entity.Alarm;
-import eureca.capstone.project.orchestrator.alarm.entity.AlarmType;
 import eureca.capstone.project.orchestrator.alarm.repository.AlarmRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;

@@ -1,4 +1,4 @@
-package eureca.capstone.project.orchestrator.alarm.service;
+package eureca.capstone.project.orchestrator.alarm.service.impl;
 
 import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
 import lombok.RequiredArgsConstructor;
