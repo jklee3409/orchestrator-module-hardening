@@ -78,6 +78,7 @@ public class TransactionFeedDocument {
                 .telecomCompanyName(transactionFeed.getTelecomCompany().getName())
                 .salesTypeId(transactionFeed.getSalesType().getSalesTypeId())
                 .status(transactionFeed.getStatus().getCode())
+                .defaultImageNumber(transactionFeed.getDefaultImageNumber())
                 .createdAt(transactionFeed.getCreatedAt())
                 .expiresAt(transactionFeed.getExpiresAt())
                 .isDeleted(transactionFeed.isDeleted())
