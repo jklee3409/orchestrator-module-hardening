@@ -49,4 +49,14 @@ public class LikedRepositoryImpl implements LikedRepositoryCustom {
                 )
                 .fetch();
     }
+
+    @Override
+    public List<Long> findFeedIdsByUser(User user) {
+        return jpaQueryFactory
+                .select(liked.transactionFeed.transactionFeedId)
+                .from(liked)
+                .where(liked.user.eq(user))
+                .orderBy(liked.createdAt.desc())
+                .fetch();
+    }
 }
