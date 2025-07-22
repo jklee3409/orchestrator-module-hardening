@@ -151,8 +151,8 @@ class RecommendServiceImplTest {
                 .thenReturn(Optional.of(userTransactionAverageDto));
         when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
         when(salesTypeManager.getNormalSaleType()).thenReturn(normalSalesType);
-        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
-                .thenReturn(new PageImpl<>(mockFeeds));
+        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), any()))
+                .thenReturn(new PageImpl<>(mockFeeds));;
 
         // when
         List<GetFeedSummaryResponseDto> result = recommendService.recommendFeed(userDetailsDto);
@@ -162,8 +162,8 @@ class RecommendServiceImplTest {
         assertThat(result.size()).isEqualTo(10);
         verify(userRepository).findByEmail(user.getEmail());
         verify(dataTransactionHistoryRepository).findAverageByUser(user);
-        verify(transactionFeedService).searchFeeds(argThat(request -> 
-                request.getSortBy() == FeedSort.LATEST), any(Pageable.class), isNull());
+        verify(transactionFeedService).searchFeeds(argThat(request ->
+                request.getSortBy() == FeedSort.LATEST), any(Pageable.class), any());
     }
     
     @Test
@@ -173,7 +173,7 @@ class RecommendServiceImplTest {
         Long feedId = transactionFeed.getTransactionFeedId();
         when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
         when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
-        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
+        when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), any()))
                 .thenReturn(new PageImpl<>(mockFeeds));
 
         // When
@@ -184,10 +184,10 @@ class RecommendServiceImplTest {
         assertThat(result.size()).isEqualTo(4); // RELATED_RECOMMENDATION_LIMIT is 4
         verify(transactionFeedRepository).findById(feedId);
         verify(statusManager).getStatus("FEED", "ON_SALE");
-        verify(transactionFeedService).searchFeeds(argThat(request -> 
-                request.getTelecomCompanyIds().contains(telecomCompany.getTelecomCompanyId()) &&
-                request.getSalesTypeIds().contains(normalSalesType.getSalesTypeId()) &&
-                request.getExcludeFeedIds().contains(feedId)), 
-                any(Pageable.class), isNull());
+        verify(transactionFeedService).searchFeeds(argThat(request ->
+                        request.getTelecomCompanyIds().contains(telecomCompany.getTelecomCompanyId()) &&
+                                request.getSalesTypeIds().contains(normalSalesType.getSalesTypeId()) &&
+                                request.getExcludeFeedIds().contains(feedId)),
+                any(Pageable.class), any());
     }
 }
