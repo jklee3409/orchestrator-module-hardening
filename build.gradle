@@ -72,6 +72,10 @@ dependencies {
     // Elastic Search
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

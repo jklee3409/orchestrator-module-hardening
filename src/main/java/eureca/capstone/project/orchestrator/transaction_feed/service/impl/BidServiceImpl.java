@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
+import eureca.capstone.project.orchestrator.alarm.service.impl.NotificationProducer;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.BidException;
@@ -45,6 +47,7 @@ public class BidServiceImpl implements BidService {
     private final RedisScript<List> bidScript;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
+    private final NotificationProducer notificationProducer;
 
     @Override
     @Transactional
@@ -188,7 +191,30 @@ public class BidServiceImpl implements BidService {
 
                     saveBidHistory(feed, newBidder, bidAmount);
                     log.info("입찰 성공 - 사용자 ID: {}, 게시글 ID: {}, 입찰가: {}", newBidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
-                    // TODO: 입찰 성공 시 알림 기능 추가
+
+                    List<User> participants = bidsRepository.findBidsWithUserByTransactionFeed(feed)
+                            .stream()
+                            .map(Bids::getUser)
+                            .distinct()
+                            .toList();
+                    log.info("[handleBidResult] 입찰 참여자 {}명 조회 완료", participants.size());
+
+                    for (User participant : participants) {
+                        if (participant.getUserId().equals(newBidder.getUserId())) {
+                            notificationProducer.send(AlarmCreationDto.builder()
+                                    .userId(participant.getUserId())
+                                    .alarmType("입찰 성공")
+                                    .content("'" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .build());
+                        } else {
+                            notificationProducer.send(AlarmCreationDto.builder()
+                                    .userId(participant.getUserId())
+                                    .alarmType("입찰 갱신")
+                                    .content(participant.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .build());
+                        }
+                    }
+                    log.info("[handleBidResult] 입찰 알림 전송 완료");
 
                 } catch (Exception e) {
                     log.error("[handleBidResult] DB 작업 중 예외 발생. 보상 트랜잭션을 시작합니다.", e);
