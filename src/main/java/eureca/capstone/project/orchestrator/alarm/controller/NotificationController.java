@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +34,15 @@ public class NotificationController {
     ) {
         Slice<NotificationDto> notifications = alarmService.getNotifications(customUserDetailsDto.getEmail(), pageable);
         return BaseResponseDto.success(notifications);
+    }
+
+    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "알림 구독 API", description = "알림을 실시간으로 구독합니다. 로그인 시 구독합니다.")
+    public BaseResponseDto<Void> subscribeNotifications(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
+    ) {
+        sseEmitterService.subscribe(customUserDetailsDto.getUserId());
+        return BaseResponseDto.voidSuccess();
     }
 
     @PostMapping("/read")
