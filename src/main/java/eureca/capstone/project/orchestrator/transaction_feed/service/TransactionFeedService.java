@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
@@ -18,7 +19,5 @@ public interface TransactionFeedService {
     GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId, CustomUserDetailsDto customUserDetailsDto);
     void deleteFeed(String email, Long transactionFeedId);
     Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto feedSearchRequestDto, Pageable pageable, CustomUserDetailsDto customUserDetailsDto);
-    void addWishFeed(String email, AddWishFeedRequestDto addWishFeedRequestDto);
-    void removeWishFeed(String email, Long transactionFeedId);
     long reindexAllFeeds();
 }
