@@ -46,9 +46,11 @@ public class NotificationService {
                 .status(unReadStatus)
                 .build();
         alarmRepository.save(alarm);
+        log.info("[consume] 알림 저장 완료: 알림 ID={}, 사용자 ID={}", alarm.getAlarmId(), user.getUserId());
 
         NotificationDto notificationDto = NotificationDto.fromEntity(alarm);
         sseEmitterService.send(creationDto.getUserId(), notificationDto);
+        log.info("[consume] SSE로 알림 전송 완료: 사용자 ID={}, 알림 ID={}", creationDto.getUserId(), alarm.getAlarmId());
     }
 
     private User findUserById(Long userId) {
