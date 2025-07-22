@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
+import eureca.capstone.project.orchestrator.alarm.service.impl.NotificationProducer;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
@@ -36,6 +38,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
     private final DataTransactionHistoryService dataTransactionHistoryService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
+    private final NotificationProducer notificationProducer;
 
     @Override
     @Transactional
@@ -68,6 +71,20 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         Status completedStatus = statusManager.getStatus("FEED", "COMPLETED");
         feed.updateStatus(completedStatus);
         log.info("[purchase] 판매글 상태 업데이트 완료. 판매글 ID: {}, 새로운 상태: {}", feed.getTransactionFeedId(), completedStatus.getCode());
+
+        notificationProducer.send(AlarmCreationDto.builder()
+                .userId(buyer.getUserId())
+                .alarmType("구매")
+                .content("'" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
+                .build());
+        log.info("[purchase] 구매자 알림 생성 완료. 구매자: {}, 판매글 ID: {}", buyer.getUserId(), feed.getTransactionFeedId());
+
+        notificationProducer.send(AlarmCreationDto.builder()
+                .userId(seller.getUserId())
+                .alarmType("판매")
+                .content(buyer.getNickname() + "님이 '" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
+                .build());
+        log.info("[purchase] 판매자 알림 생성 완료. 판매자: {}, 판매글 ID: {}", seller.getUserId(), feed.getTransactionFeedId());
 
         return PurchaseResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
