@@ -1,6 +1,10 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
+import eureca.capstone.project.orchestrator.auth.dto.OAuthRegistrationResultDto;
+import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
+import java.time.Duration;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +25,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     private final UserService userService;
+    private final RedisService redisService;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -50,13 +55,20 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
 
         // TODO 활성화된 사용자인지 확인
 
+        // 사용자가 존재하는지 확인하고 등록 결과(userId, isNewUser)를 가져옴
+        OAuthRegistrationResultDto registrationResult = userService.OAuthUserRegisterIfNotExists(email, provider);
+        log.info("[loadUser] userId -> {}, isNewUser -> {}", registrationResult.getUserId(), registrationResult.isNewUser());
 
-        // 시스템에 등록되지 않은 OAuth 사용자 확인 및 등록 + 핸들러에서 사용할 userId, email 담기
-        Long userId = userService.OAuthUserRegisterIfNotExists(email, provider);
-        log.info("[loadUser] userId -> {}", userId);
+        // 임시 인증 코드를 생성하여 redis 에 저장
+        String authCode = UUID.randomUUID().toString();
+        Map<String, Object> redisPayload = new HashMap<>();
+        redisPayload.put("email", email);
+        redisPayload.put("isNewUser", registrationResult.isNewUser());
+        redisService.setValue("oauth-temp-token:" + authCode, redisPayload, Duration.ofMinutes(5)); // 5분 만료
+
+        // 성공 핸들러에 authCode를 전달하기 위해 속성에 추가
         Map<String, Object> deepCopyAttributes = new HashMap<>(attributes);
-        deepCopyAttributes.put("userId", userId);
-        deepCopyAttributes.put("email", email);
+        deepCopyAttributes.put("authCode", authCode);
 
         // return
         return new DefaultOAuth2User(
