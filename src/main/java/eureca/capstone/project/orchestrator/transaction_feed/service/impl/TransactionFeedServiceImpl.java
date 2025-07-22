@@ -18,6 +18,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
@@ -314,40 +315,6 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
 
         return responseDtoPage;
-    }
-
-    @Override
-    @Transactional
-    public void addWishFeed(String email, AddWishFeedRequestDto requestDto) {
-        User user = findUserByEmail(email);
-        TransactionFeed transactionFeed = findTransactionFeedById(requestDto.getTransactionFeedId());
-        log.info("[addWishFeed] 사용자 및 판매글 조회 완료.");
-
-        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
-        if (likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.ALREADY_EXISTS_LIKED_LIST);
-        log.info("[addWishFeed] 찜 목록에 존재 X.");
-
-        Liked liked = Liked.builder()
-                .user(user)
-                .transactionFeed(transactionFeed)
-                .build();
-        likedRepository.save(liked);
-        log.info("[addWishFeed] 찜 목록에 추가 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeed.getTransactionFeedId());
-    }
-
-    @Override
-    @Transactional
-    public void removeWishFeed(String email, Long transactionFeedId) {
-        User user = findUserByEmail(email);
-        TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
-        log.info("[removeWishFeed] 사용자 및 판매글 조회 완료.");
-
-        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
-        if (!likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.WISH_FEED_NOT_FOUND);
-        log.info("[removeWishFeed] 찜 목록에 존재");
-
-        likedRepository.removeByFeedAndUser(transactionFeed, user);
-        log.info("[removeWishFeed] 찜 목록에서 삭제 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeedId);
     }
 
     @Override

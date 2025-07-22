@@ -23,6 +23,7 @@ import eureca.capstone.project.orchestrator.common.util.StatusManager;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
@@ -48,6 +49,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.repository.LikedRep
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 
+import eureca.capstone.project.orchestrator.transaction_feed.service.LikedService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 
 import eureca.capstone.project.orchestrator.user.entity.UserData;
@@ -58,6 +60,8 @@ import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepos
 
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 
 import org.junit.jupiter.api.DisplayName;
@@ -478,87 +482,4 @@ class TransactionFeedServiceImplTest {
             assertFalse(transactionFeed.isDeleted());
         }
     }
-
-
-    @Nested
-    @DisplayName("찜 목록 관리")
-    class WishFeedOperations {
-
-        @Test
-        @DisplayName("찜 목록 추가 성공")
-        void addWishFeed_Success() {
-            // given
-            String email = user.getEmail();
-            AddWishFeedRequestDto requestDto = new AddWishFeedRequestDto();
-            requestDto.setTransactionFeedId(1L);
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(requestDto.getTransactionFeedId())).thenReturn(
-                    Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
-
-            // when
-            transactionFeedService.addWishFeed(email, requestDto);
-
-            // then
-            verify(likedRepository).save(any(Liked.class));
-        }
-
-        @Test
-        @DisplayName("이미 찜한 피드 추가 시 예외 발생")
-        void addWishFeed_AlreadyExists_ThrowsException() {
-            // given
-            String email = user.getEmail();
-            AddWishFeedRequestDto requestDto = new AddWishFeedRequestDto();
-            requestDto.setTransactionFeedId(1L);
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(requestDto.getTransactionFeedId())).thenReturn(
-                    Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(true);
-
-            // when & then
-            assertThrows(InternalServerException.class,
-                    () -> transactionFeedService.addWishFeed(email, requestDto));
-
-            verify(likedRepository, never()).save(any(Liked.class));
-        }
-
-        @Test
-        @DisplayName("찜 목록 삭제 성공")
-        void removeWishFeed_Success() {
-            // given
-            String email = user.getEmail();
-            Long feedId = transactionFeed.getTransactionFeedId();
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(true);
-
-            // when
-            transactionFeedService.removeWishFeed(email, feedId);
-
-            // then
-            verify(likedRepository).removeByFeedAndUser(transactionFeed, user);
-        }
-
-        @Test
-        @DisplayName("찜 목록에 없는 피드 삭제 시 예외 발생")
-        void removeWishFeed_NotFound_ThrowsException() {
-            // given
-            String email = user.getEmail();
-            Long feedId = transactionFeed.getTransactionFeedId();
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
-
-            // when & then
-            assertThrows(InternalServerException.class,
-                    () -> transactionFeedService.removeWishFeed(email, feedId));
-
-            verify(likedRepository, never()).removeByFeedAndUser(any(), any());
-        }
-    }
-
 }
