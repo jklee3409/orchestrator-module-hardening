@@ -82,6 +82,7 @@ public enum ErrorCode {
     USER_PAY_NOT_FOUND(40058, "USER_PAY_NOT_FOUND", "사용자 페이 정보를 찾지 못했습니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
+    ALARM_TYPE_NOT_FOUND(50000, "ALARM_TYPE_NOT_FOUND", "알람 유형을 찾지 못했습니다."),
 
     // common 관련 에러코드 (60000 ~ 69999)
     INVALID_TELECOM_COMPANY(60001, "INVALID_TELECOM_COMPANY", "통신사가 일치하지 않습니다."),

@@ -153,4 +153,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.USER_PAY_NOT_FOUND);
     }
+
+    @ExceptionHandler(AlarmTypeNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleAlarmTypeNotFoundException(AlarmTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.ALARM_TYPE_NOT_FOUND);
+    }
 }
