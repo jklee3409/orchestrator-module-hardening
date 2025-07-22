@@ -29,7 +29,7 @@ public class NotificationController {
     @Operation(summary = "알림 조회 API", description = "최근 14일간의 알림을 조회합니다.")
     public BaseResponseDto<Slice<NotificationDto>> getNotifications(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
-            @PageableDefault(size = 20, sort = "createdAt, desc") Pageable pageable
+            @PageableDefault(size = 10, sort = "createdAt, desc") Pageable pageable
     ) {
         Slice<NotificationDto> notifications = alarmService.getNotifications(customUserDetailsDto.getEmail(), pageable);
         return BaseResponseDto.success(notifications);
