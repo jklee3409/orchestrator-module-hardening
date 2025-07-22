@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.service.impl;
 
+import eureca.capstone.project.orchestrator.auth.dto.OAuthRegistrationResultDto;
 import eureca.capstone.project.orchestrator.auth.entity.UserRole;
 import eureca.capstone.project.orchestrator.auth.repository.RoleRepository;
 import eureca.capstone.project.orchestrator.auth.repository.UserRoleRepository;
@@ -228,11 +229,11 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public Long OAuthUserRegisterIfNotExists(String email, String provider) {
+    public OAuthRegistrationResultDto OAuthUserRegisterIfNotExists(String email, String provider) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
-        // 이미 존재하는 경우 → 아무 작업 없이 기존 유저 ID 반환
+        // 이미 사용자가 존재하면 ID를 반환하고, 신규 유저가 아님을 알림
         if (optionalUser.isPresent()) {
-            return optionalUser.get().getUserId();
+            return new OAuthRegistrationResultDto(optionalUser.get().getUserId(), false);
         }
 
         // 시스템에 존재하지 않은 경우, 회원 가입 처리 및 권한 부여
@@ -275,7 +276,8 @@ public class UserServiceImpl implements UserService {
 
         userDataService.createUserData(createUserDataRequestDto);
 
-        return savedUser.getUserId();
+        // 신규 사용자의 ID를 반환하고, 신규 유저임을 알림
+        return new OAuthRegistrationResultDto(savedUser.getUserId(), true);
     }
 
     private User findUserByEmail(String email) {
