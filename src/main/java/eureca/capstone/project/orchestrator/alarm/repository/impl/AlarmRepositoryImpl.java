@@ -10,6 +10,9 @@ import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +24,7 @@ public class AlarmRepositoryImpl implements AlarmRepositoryCustom {
 
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationDto> getAlarms(Long userId) {
+    public Slice<NotificationDto> getAlarms(Long userId, Pageable pageable) {
         LocalDateTime fourteenDaysAgo = LocalDateTime.now().minusDays(14);
 
         List<Alarm> alarms = queryFactory
@@ -34,11 +37,21 @@ public class AlarmRepositoryImpl implements AlarmRepositoryCustom {
                         alarm.createdAt.after(fourteenDaysAgo)
                 )
                 .orderBy(alarm.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
 
-        return alarms.stream()
+        boolean hasNext = false;
+        if (alarms.size() > pageable.getPageSize()) {
+            alarms.remove(pageable.getPageSize());
+            hasNext = true;
+        }
+
+        List<NotificationDto> content = alarms.stream()
                 .map(NotificationDto::fromEntity)
                 .toList();
+
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     @Override
