@@ -15,6 +15,8 @@ public class FilterConstant {
             "/login/oauth2/code/google",
             "/oauth2/authorization/google",
 
+            "/orchestrator/oauth/token",
+
             "/login/oauth2/code/**",
             "/oauth2/authorization/**",
 
