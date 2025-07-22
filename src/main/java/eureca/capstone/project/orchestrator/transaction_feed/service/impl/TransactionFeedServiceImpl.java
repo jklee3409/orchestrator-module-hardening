@@ -350,6 +350,42 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         log.info("[removeWishFeed] 찜 목록에서 삭제 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeedId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long reindexAllFeeds() {
+        // 1. 기존 Elasticsearch 인덱스 삭제
+        log.info("[reindexAllFeeds] 기존 'transaction_feed' 인덱스를 삭제합니다.");
+        if (elasticsearchOperations.indexOps(TransactionFeedDocument.class).exists()) {
+            elasticsearchOperations.indexOps(TransactionFeedDocument.class).delete();
+        }
+
+        // 2. 새로운 인덱스 생성 (매핑 포함)
+        log.info("[reindexAllFeeds] 새로운 'transaction_feed' 인덱스를 생성합니다.");
+        elasticsearchOperations.indexOps(TransactionFeedDocument.class).create();
+        elasticsearchOperations.indexOps(TransactionFeedDocument.class).putMapping();
+
+        // 3. 데이터베이스에서 모든 판매글 데이터 조회
+        log.info("[reindexAllFeeds] 데이터베이스에서 모든 판매글을 조회합니다.");
+        List<TransactionFeed> allFeeds = transactionFeedRepository.findAll();
+
+        if (allFeeds.isEmpty()) {
+            log.warn("[reindexAllFeeds] 데이터베이스에 판매글이 없어 재색인을 종료합니다.");
+            return 0;
+        }
+
+        // 4. 조회된 엔티티를 Elasticsearch 문서로 변환
+        log.info("[reindexAllFeeds] {}개의 판매글을 Elasticsearch 문서로 변환합니다.", allFeeds.size());
+        List<TransactionFeedDocument> documents = allFeeds.stream()
+                .map(TransactionFeedDocument::fromEntity)
+                .toList();
+
+        // 5. 변환된 문서를 Elasticsearch에 일괄 저장
+        log.info("[reindexAllFeeds] 변환된 문서를 Elasticsearch에 저장합니다.");
+        transactionFeedSearchRepository.saveAll(documents);
+
+        return documents.size();
+    }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(UserNotFoundException::new);
