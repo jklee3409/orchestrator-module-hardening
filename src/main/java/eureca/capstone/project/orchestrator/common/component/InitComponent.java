@@ -68,14 +68,15 @@ public class InitComponent {
             Status.builder().statusId(34L).code("UNREAD").description("안읽음").domain("ALARM").build(),
             Status.builder().statusId(35L).code("PURCHASE").description("구매 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(36L).code("SALE").description("판매 알림").domain("NOTIFICATION").build(),
-            Status.builder().statusId(37L).code("BID").description("입찰 알림").domain("NOTIFICATION").build(),
+            Status.builder().statusId(37L).code("BID").description("입찰 성공 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(38L).code("COUPON_EXPIRATION").description("쿠폰 만료 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(39L).code("FEED_EXPIRATION").description("게시글 만료 알림").domain("NOTIFICATION").build(),
             Status.builder().statusId(40L).code("RESTRICT_EXPIRATION").description("제재 만료").domain("RESTRICTION").build(),
             Status.builder().statusId(41L).code("COMPLETED").description("제재 완료").domain("REPORT").build(),
             Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build(),
             Status.builder().statusId(43L).code("DONE").description("결제 승인 완료").domain("TOSS").build(),
-            Status.builder().statusId(44L).code("PENDING").description("쿠폰 사용 대기 중").domain("COUPON").build()
+            Status.builder().statusId(44L).code("PENDING").description("쿠폰 사용 대기 중").domain("COUPON").build(),
+            Status.builder().statusId(45L).code("OUTBID").description("입찰 갱신 알림").domain("NOTIFICATION").build()
     );
 
     private static final List<SalesType> HARDCODED_SALES_TYPES = List.of(
