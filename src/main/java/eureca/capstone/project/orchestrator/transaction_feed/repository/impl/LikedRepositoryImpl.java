@@ -28,12 +28,12 @@ public class LikedRepositoryImpl implements LikedRepositoryCustom {
     }
 
     @Override
-    public void removeByFeedAndUser(TransactionFeed transactionFeed, User user) {
+    public void removeByUserAndFeedIds(List<Long> transactionFeedIds, User user) {
         jpaQueryFactory
                 .delete(liked)
                 .where(
                         liked.user.eq(user),
-                        liked.transactionFeed.eq(transactionFeed)
+                        liked.transactionFeed.transactionFeedId.in(transactionFeedIds)
                 )
                 .execute();
     }

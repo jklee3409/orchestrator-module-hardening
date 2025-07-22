@@ -18,6 +18,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
@@ -337,17 +338,19 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
     @Override
     @Transactional
-    public void removeWishFeed(String email, Long transactionFeedId) {
+    public void removeWishFeed(String email, RemoveWishFeedsRequestDto requestDto) {
+        List<Long> transactionFeedIds = requestDto.getTransactionFeedIds();
+
+        if (CollectionUtils.isEmpty(transactionFeedIds)) {
+            log.info("[removeWishFeed] 삭제할 ID 리스트가 비어있어 작업을 종료합니다.");
+            return;
+        }
+
         User user = findUserByEmail(email);
-        TransactionFeed transactionFeed = findTransactionFeedById(transactionFeedId);
-        log.info("[removeWishFeed] 사용자 및 판매글 조회 완료.");
+        log.info("[removeWishFeed] 사용자 {}의 찜 목록 삭제 시작. 대상 판매글 수: {}", user.getUserId(), transactionFeedIds.size());
 
-        if (transactionFeed.isDeleted()) throw new TransactionFeedNotFoundException();
-        if (!likedRepository.existsByFeedAndUser(transactionFeed, user)) throw new InternalServerException(ErrorCode.WISH_FEED_NOT_FOUND);
-        log.info("[removeWishFeed] 찜 목록에 존재");
-
-        likedRepository.removeByFeedAndUser(transactionFeed, user);
-        log.info("[removeWishFeed] 찜 목록에서 삭제 완료. 사용자: {}, 판매글: {}", user.getUserId(), transactionFeedId);
+        likedRepository.removeByUserAndFeedIds(transactionFeedIds, user);
+        log.info("[removeWishFeed] 찜 목록에서 삭제 완료. 사용자: {}, 대상 판매글: {}", user.getUserId(), transactionFeedIds);
     }
 
     @Override

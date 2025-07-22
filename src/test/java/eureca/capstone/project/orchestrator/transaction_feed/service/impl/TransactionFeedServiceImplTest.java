@@ -23,6 +23,7 @@ import eureca.capstone.project.orchestrator.common.util.StatusManager;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
@@ -58,6 +59,8 @@ import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepos
 
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 
 import org.junit.jupiter.api.DisplayName;
@@ -525,39 +528,37 @@ class TransactionFeedServiceImplTest {
         }
 
         @Test
-        @DisplayName("찜 목록 삭제 성공")
-        void removeWishFeed_Success() {
+        @DisplayName("찜 목록에서 여러 개 삭제 성공")
+        void removeWishFeeds_Success() {
             // given
             String email = user.getEmail();
-            Long feedId = transactionFeed.getTransactionFeedId();
+            List<Long> feedIdsToRemove = List.of(1L, 2L, 3L);
+            RemoveWishFeedsRequestDto requestDto = new RemoveWishFeedsRequestDto();
+            requestDto.setTransactionFeedIds(feedIdsToRemove);
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(true);
 
             // when
-            transactionFeedService.removeWishFeed(email, feedId);
+            transactionFeedService.removeWishFeed(email, requestDto);
 
             // then
-            verify(likedRepository).removeByFeedAndUser(transactionFeed, user);
+            verify(likedRepository).removeByUserAndFeedIds(feedIdsToRemove, user);
         }
 
         @Test
-        @DisplayName("찜 목록에 없는 피드 삭제 시 예외 발생")
-        void removeWishFeed_NotFound_ThrowsException() {
+        @DisplayName("빈 리스트로 찜 삭제 요청 시 아무 작업도 하지 않음")
+        void removeWishFeeds_WithEmptyList_DoesNothing() {
             // given
             String email = user.getEmail();
-            Long feedId = transactionFeed.getTransactionFeedId();
+            RemoveWishFeedsRequestDto requestDto = new RemoveWishFeedsRequestDto();
+            requestDto.setTransactionFeedIds(Collections.emptyList());
 
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-            when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
-            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
+            // when
+            transactionFeedService.removeWishFeed(email, requestDto);
 
-            // when & then
-            assertThrows(InternalServerException.class,
-                    () -> transactionFeedService.removeWishFeed(email, feedId));
-
-            verify(likedRepository, never()).removeByFeedAndUser(any(), any());
+            // then
+            verify(userRepository, never()).findByEmail(anyString());
+            verify(likedRepository, never()).removeByUserAndFeedIds(any(), any());
         }
     }
 

@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
@@ -90,13 +91,13 @@ public class TransactionFeedController {
         return BaseResponseDto.voidSuccess();
     }
 
-    @DeleteMapping("/wish/{transactionFeedId}")
+    @DeleteMapping("/wish")
     @Operation(summary = "판매글 찜 삭제 API", description = "로그인한 사용자가 자신의 찜 목록에서 판매글을 삭제합니다.")
     public BaseResponseDto<Void> removeWishFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
-            @PathVariable Long transactionFeedId
+            @RequestBody RemoveWishFeedsRequestDto requestDto
     ) {
-        transactionFeedService.removeWishFeed(customUserDetailsDto.getEmail(), transactionFeedId);
+        transactionFeedService.removeWishFeed(customUserDetailsDto.getEmail(), requestDto);
         return BaseResponseDto.voidSuccess();
     }
 }
