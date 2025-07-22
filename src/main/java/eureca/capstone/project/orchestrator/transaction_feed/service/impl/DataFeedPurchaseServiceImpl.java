@@ -11,11 +11,13 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.PurchaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataTransactionHistory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponService;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataFeedPurchaseService;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataTransactionHistoryService;
@@ -39,6 +41,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
     private final NotificationProducer notificationProducer;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
 
     @Override
     @Transactional
@@ -71,6 +74,9 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         Status completedStatus = statusManager.getStatus("FEED", "COMPLETED");
         feed.updateStatus(completedStatus);
         log.info("[purchase] 판매글 상태 업데이트 완료. 판매글 ID: {}, 새로운 상태: {}", feed.getTransactionFeedId(), completedStatus.getCode());
+
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(feed));
+        log.info("[purchase] ES Document 상태 업데이트 완료. Document ID: {}", feed.getTransactionFeedId());
 
         notificationProducer.send(AlarmCreationDto.builder()
                 .userId(buyer.getUserId())
@@ -116,6 +122,9 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         feed.updateStatus(completedStatus);
         log.info("[purchaseAuction] 판매글 상태 업데이트 완료. 판매글 ID: {}, 새로운 상태: {}", feed.getTransactionFeedId(), completedStatus.getCode());
 
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(feed));
+        log.info("[purchaseAuction] ES Document 상태 업데이트 완료. Document ID: {}", feed.getTransactionFeedId());
+
         return PurchaseResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
                 .dataTransactionHistoryId(txHistory.getTransactionHistoryId())
@@ -129,7 +138,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         SalesType auctionSalesType = salesTypeManager.getBidSaleType();
 
         if (!feed.getStatus().equals(onSaleStatus)) {
-            log.error("[validatePurchase] 판매글이 판매 중이 아닙니다. 판매글 ID: {}, 상태: {}", feed.getTransactionFeedId(), feed.getStatus());
+            log.error("[validatePurchase] 판매글이 판매 중이 아닙니다. 판매글 ID: {}, 상태: {}", feed.getTransactionFeedId(), feed.getStatus().getCode());
             throw new InternalServerException(ErrorCode.FEED_NOT_ON_SALE);
         }
 
