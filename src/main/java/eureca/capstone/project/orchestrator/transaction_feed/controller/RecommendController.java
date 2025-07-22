@@ -31,9 +31,10 @@ public class RecommendController {
     @GetMapping("/related/{transactionFeedId}")
     @Operation(summary = "연관 상품 조회 API", description = "상품 상세 페이지에서 연관 상품을 조회합니다. 상품 ID를 기반으로 연관 상품이 추천됩니다.")
     public BaseResponseDto<List<GetFeedSummaryResponseDto>> getRelatedFeeds(
-            @PathVariable Long transactionFeedId
+            @PathVariable Long transactionFeedId,
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
     ) {
-        List<GetFeedSummaryResponseDto> response = recommendService.recommendRelateFeeds(transactionFeedId);
+        List<GetFeedSummaryResponseDto> response = recommendService.recommendRelateFeeds(transactionFeedId, customUserDetailsDto);
         return BaseResponseDto.success(response);
     }
 }

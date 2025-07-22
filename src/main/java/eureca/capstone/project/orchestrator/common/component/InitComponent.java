@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.common.component;
 
+import eureca.capstone.project.orchestrator.alarm.entity.AlarmType;
+import eureca.capstone.project.orchestrator.alarm.repository.AlarmTypeRepository;
 import eureca.capstone.project.orchestrator.auth.entity.Authority;
 import eureca.capstone.project.orchestrator.auth.entity.Role;
 import eureca.capstone.project.orchestrator.auth.entity.RoleAuthority;
@@ -37,6 +39,7 @@ public class InitComponent {
     private final SalesTypeRepository salesTypeRepository;
     private final PayTypeRepository payTypeRepository;
     private final ChangeTypeRepository changeTypeRepository;
+    private final AlarmTypeRepository alarmTypeRepository;
 
     private static final List<Status> HARDCODED_STATUSES = List.of(
             Status.builder().statusId(11L).code("EMAIL_VERIFICATION_PENDING").description("이메일 인증 중").domain("USER").build(),
@@ -95,6 +98,15 @@ public class InitComponent {
         ChangeType.builder().changeTypeId(2L).type("환전").content("환전으로 인해 페이 감소").build(),
         ChangeType.builder().changeTypeId(3L).type("구매").content("구매로 인해 페이 감소").build(),
         ChangeType.builder().changeTypeId(4L).type("판매").content("판매로 인해 페이 증가").build()
+    );
+
+    private static final List<AlarmType> HARDCODED_ALARM_TYPES = List.of(
+        AlarmType.builder().alarmTypeId(1L).type("구매").build(),
+        AlarmType.builder().alarmTypeId(2L).type("판매").build(),
+        AlarmType.builder().alarmTypeId(3L).type("입찰 성공").build(),
+        AlarmType.builder().alarmTypeId(4L).type("쿠폰 만료").build(),
+        AlarmType.builder().alarmTypeId(5L).type("게시글 만료").build(),
+        AlarmType.builder().alarmTypeId(6L).type("입찰 갱신").build()
     );
 
     /**
@@ -209,6 +221,27 @@ public class InitComponent {
             changeTypeRepository.saveAll(changeTypesToSave);
         } else {
             log.info("모든 changeType 이 DB 에 존재합니다.");
+        }
+    }
+
+    @PostConstruct
+    @Transactional
+    public void initAlarmTypes() {
+        Map<Long, AlarmType> dbAlarmTypeMap = alarmTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(AlarmType::getAlarmTypeId, Function.identity()));
+
+        List<AlarmType> alarmTypesToSave = HARDCODED_ALARM_TYPES.stream()
+                .filter(hardcodedAlarmType -> {
+                    AlarmType dbAlarmType = dbAlarmTypeMap.get(hardcodedAlarmType.getAlarmTypeId());
+                    return dbAlarmType == null || !dbAlarmType.equals(hardcodedAlarmType);
+                })
+                .collect(Collectors.toList());
+
+        if (!alarmTypesToSave.isEmpty()) {
+            log.info("{} 개의 alarmType 이 DB 에 존재하지 않거나 변경되었습니다.", alarmTypesToSave.size());
+            alarmTypeRepository.saveAll(alarmTypesToSave);
+        } else {
+            log.info("모든 alarmType 이 DB 에 존재합니다.");
         }
     }
 }

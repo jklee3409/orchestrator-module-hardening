@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
+import eureca.capstone.project.orchestrator.alarm.service.impl.NotificationProducer;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
@@ -9,11 +11,13 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.PurchaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataTransactionHistory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponService;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataFeedPurchaseService;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataTransactionHistoryService;
@@ -36,6 +40,8 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
     private final DataTransactionHistoryService dataTransactionHistoryService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
+    private final NotificationProducer notificationProducer;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
 
     @Override
     @Transactional
@@ -69,6 +75,23 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         feed.updateStatus(completedStatus);
         log.info("[purchase] 판매글 상태 업데이트 완료. 판매글 ID: {}, 새로운 상태: {}", feed.getTransactionFeedId(), completedStatus.getCode());
 
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(feed));
+        log.info("[purchase] ES Document 상태 업데이트 완료. Document ID: {}", feed.getTransactionFeedId());
+
+        notificationProducer.send(AlarmCreationDto.builder()
+                .userId(buyer.getUserId())
+                .alarmType("구매")
+                .content("'" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
+                .build());
+        log.info("[purchase] 구매자 알림 생성 완료. 구매자: {}, 판매글 ID: {}", buyer.getUserId(), feed.getTransactionFeedId());
+
+        notificationProducer.send(AlarmCreationDto.builder()
+                .userId(seller.getUserId())
+                .alarmType("판매")
+                .content(buyer.getNickname() + "님이 '" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
+                .build());
+        log.info("[purchase] 판매자 알림 생성 완료. 판매자: {}, 판매글 ID: {}", seller.getUserId(), feed.getTransactionFeedId());
+
         return PurchaseResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
                 .dataTransactionHistoryId(txHistory.getTransactionHistoryId())
@@ -99,6 +122,9 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         feed.updateStatus(completedStatus);
         log.info("[purchaseAuction] 판매글 상태 업데이트 완료. 판매글 ID: {}, 새로운 상태: {}", feed.getTransactionFeedId(), completedStatus.getCode());
 
+        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(feed));
+        log.info("[purchaseAuction] ES Document 상태 업데이트 완료. Document ID: {}", feed.getTransactionFeedId());
+
         return PurchaseResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
                 .dataTransactionHistoryId(txHistory.getTransactionHistoryId())
@@ -112,7 +138,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         SalesType auctionSalesType = salesTypeManager.getBidSaleType();
 
         if (!feed.getStatus().equals(onSaleStatus)) {
-            log.error("[validatePurchase] 판매글이 판매 중이 아닙니다. 판매글 ID: {}, 상태: {}", feed.getTransactionFeedId(), feed.getStatus());
+            log.error("[validatePurchase] 판매글이 판매 중이 아닙니다. 판매글 ID: {}, 상태: {}", feed.getTransactionFeedId(), feed.getStatus().getCode());
             throw new InternalServerException(ErrorCode.FEED_NOT_ON_SALE);
         }
 

@@ -177,7 +177,7 @@ class RecommendServiceImplTest {
                 .thenReturn(new PageImpl<>(mockFeeds));
 
         // When
-        List<GetFeedSummaryResponseDto> result = recommendService.recommendRelateFeeds(feedId);
+        List<GetFeedSummaryResponseDto> result = recommendService.recommendRelateFeeds(feedId, userDetailsDto);
 
         // Then
         assertThat(result).isNotNull();
