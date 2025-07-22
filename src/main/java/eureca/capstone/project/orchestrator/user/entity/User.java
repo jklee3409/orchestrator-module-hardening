@@ -51,4 +51,9 @@ public class User extends BaseEntity {
     public void updateUserPassword(String password) {
         this.password = password;
     }
+
+    public void updateTelecomAndPhone(TelecomCompany telecomCompany, String phoneNumber) {
+        this.telecomCompany = telecomCompany;
+        this.phoneNumber = phoneNumber;
+    }
 }
