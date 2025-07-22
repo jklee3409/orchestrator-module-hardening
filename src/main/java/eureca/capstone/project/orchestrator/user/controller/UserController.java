@@ -5,11 +5,13 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
+import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateUserTelecomAndPhoneRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
+import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateUserTelecomAndPhoneResponseDto;
 import eureca.capstone.project.orchestrator.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -73,5 +76,18 @@ public class UserController {
     public BaseResponseDto<GetUserCountResponseDto> getUserCount() {
         GetUserCountResponseDto userCountResponseDto = userService.getUserCount();
         return BaseResponseDto.success(userCountResponseDto);
+    }
+
+    @PatchMapping("/additional-info")
+    @Operation(summary = "사용자 통신사 및 전화번호 추가", description = "소셜 로그인 사용자의 통신사와 전화번호를 추가합니다. ")
+    public BaseResponseDto<UpdateUserTelecomAndPhoneResponseDto> updateUserTelecomAndPhone(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody UpdateUserTelecomAndPhoneRequestDto requestDto
+    ) {
+        UpdateUserTelecomAndPhoneResponseDto responseDto = userService.updateUserTelecomAndPhone(
+                customUserDetailsDto.getUsername(),
+                requestDto
+        );
+        return BaseResponseDto.success(responseDto);
     }
 }
