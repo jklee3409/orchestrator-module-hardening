@@ -5,7 +5,6 @@ import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.UserDataCouponDto;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetUserDataCouponListResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
@@ -15,10 +14,11 @@ import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponS
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,21 +59,16 @@ public class DataCouponServiceImpl implements DataCouponService {
 
     @Override
     @Transactional(readOnly = true)
-    public GetUserDataCouponListResponseDto getUserDataCouponList(String email) {
+    public Page<UserDataCouponDto> getUserDataCouponList(String email, Pageable pageable) {
         User user = findUserByEmail(email);
         log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 목록 조회 시작", user.getUserId());
 
-        List<UserDataCoupon> userDataCoupons = userDataCouponRepository.findDetailsByUser(user);
-        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 목록 조회 완료. 쿠폰 개수: {}", user.getUserId(), userDataCoupons.size());
+        Page<UserDataCoupon> userDataCouponsPage = userDataCouponRepository.findDetailsByUser(user, pageable);
+        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 목록 조회 완료. 총 {} 페이지 중 {} 페이지, 총 쿠폰 개수: {}",
+                user.getUserId(), userDataCouponsPage.getTotalPages(), pageable.getPageNumber(),
+                userDataCouponsPage.getTotalElements());
 
-        List<UserDataCouponDto> dtoList = userDataCoupons.stream()
-                .map(UserDataCouponDto::fromEntity)
-                .toList();
-        log.info("[getUserDataCouponList] 사용자: {} 에 대한 데이터 쿠폰 DTO 변환 완료", user.getUserId());
-
-        return GetUserDataCouponListResponseDto.builder()
-                .dataCoupons(dtoList)
-                .build();
+        return userDataCouponsPage.map(UserDataCouponDto::fromEntity);
     }
 
     private DataCoupon findOrCreateDataCoupon(Long dataAmount, TelecomCompany telecomCompany) {
