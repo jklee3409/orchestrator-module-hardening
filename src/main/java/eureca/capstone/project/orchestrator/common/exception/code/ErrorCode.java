@@ -62,6 +62,10 @@ public enum ErrorCode {
     FEED_NOT_ON_SALE(30017, "FEED_NOT_ON_SALE", "판매글이 판매 중이 아닙니다."),
     CANNOT_BUY_OWN_FEED(30018, "CANNOT_BUY_OWN_FEED", "자신의 판매글을 구매할 수 없습니다."),
     CANNOT_BUY_AUCTION_FEED(30019, "CANNOT_BUY_AUCTION_FEED", "경매 판매글은 즉시 구매할 수 없습니다."),
+    DATA_COUPON_NOT_FOUND(30020, "DATA_COUPON_NOT_FOUND", "데이터 쿠폰을 찾을 수 없습니다."),
+    DATA_COUPON_ACCESS_DENIED(30021, "DATA_COUPON_ACCESS_DENIED", "데이터 쿠폰 소유권이 없습니다."),
+    DATA_COUPON_ALREADY_USED(30022, "DATA_COUPON_ALREADY_USED", "이미 사용된 데이터 쿠폰입니다."),
+    DATA_COUPON_EXPIRED(30023, "DATA_COUPON_EXPIRED", "만료된 데이터 쿠폰입니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
 

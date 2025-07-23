@@ -5,7 +5,6 @@ import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.UserDataCouponDto;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetUserDataCouponListResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
@@ -21,6 +20,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -210,18 +213,23 @@ class DataCouponServiceImplTest {
     void getUserDataCouponList_Success() {
         // given
         String email = "user@example.com";
+        Pageable pageable = PageRequest.of(0, 10);
+        List<UserDataCoupon> couponList = List.of(userDataCoupon);
+        Page<UserDataCoupon> couponPage = new PageImpl<>(couponList, pageable, couponList.size());
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userDataCouponRepository.findDetailsByUser(user)).thenReturn(List.of(userDataCoupon));
+        when(userDataCouponRepository.findDetailsByUser(user, pageable)).thenReturn(couponPage);
 
         // when
-        GetUserDataCouponListResponseDto result = dataCouponService.getUserDataCouponList(email);
+        Page<UserDataCouponDto> result = dataCouponService.getUserDataCouponList(email, pageable);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getDataCoupons()).hasSize(1);
-        assertThat(result.getDataCoupons().get(0).getUserDataCouponId()).isEqualTo(userDataCoupon.getUserDataCouponId());
-        assertThat(result.getDataCoupons().get(0).getCouponNumber()).isEqualTo(dataCoupon.getCouponNumber());
-        assertThat(result.getDataCoupons().get(0).getDataAmount()).isEqualTo(dataCoupon.getDataAmount());
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getUserDataCouponId()).isEqualTo(userDataCoupon.getUserDataCouponId());
+        assertThat(result.getContent().get(0).getCouponNumber()).isEqualTo(dataCoupon.getCouponNumber());
+        assertThat(result.getContent().get(0).getDataAmount()).isEqualTo(dataCoupon.getDataAmount());
     }
 
     @Test
@@ -229,10 +237,11 @@ class DataCouponServiceImplTest {
     void getUserDataCouponList_UserNotFound() {
         // given
         String email = "nonexistent@example.com";
+        Pageable pageable = PageRequest.of(0, 10);
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         // when, then
-        assertThrows(UserNotFoundException.class, () -> dataCouponService.getUserDataCouponList(email));
+        assertThrows(UserNotFoundException.class, () -> dataCouponService.getUserDataCouponList(email, pageable));
     }
 
     @Test
@@ -240,57 +249,34 @@ class DataCouponServiceImplTest {
     void getUserDataCouponList_WithMultipleCoupons_Success() {
         // given
         String email = "test@example.com";
-        
-        DataCoupon dataCoupon1 = DataCoupon.builder()
-                .dataCouponId(1L)
-                .dataAmount(1000L)
-                .telecomCompany(sktTelecom)
-                .couponNumber("coupon-number-1")
-                .build();
-                
-        DataCoupon dataCoupon2 = DataCoupon.builder()
-                .dataCouponId(2L)
-                .dataAmount(2000L)
-                .telecomCompany(ktTelecom)
-                .couponNumber("coupon-number-2")
-                .build();
-                
-        UserDataCoupon userDataCoupon1 = UserDataCoupon.builder()
-                .userDataCouponId(1L)
-                .user(user)
-                .dataCoupon(dataCoupon1)
-                .status(issuedStatus)
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .build();
-                
-        UserDataCoupon userDataCoupon2 = UserDataCoupon.builder()
-                .userDataCouponId(2L)
-                .user(user)
-                .dataCoupon(dataCoupon2)
-                .status(issuedStatus)
-                .expiresAt(LocalDateTime.now().plusHours(48))
-                .build();
-                
+        Pageable pageable = PageRequest.of(0, 10);
+
+        DataCoupon dataCoupon1 = DataCoupon.builder().dataCouponId(1L).dataAmount(1000L).telecomCompany(sktTelecom).couponNumber("coupon-number-1").build();
+        DataCoupon dataCoupon2 = DataCoupon.builder().dataCouponId(2L).dataAmount(2000L).telecomCompany(ktTelecom).couponNumber("coupon-number-2").build();
+        UserDataCoupon userDataCoupon1 = UserDataCoupon.builder().userDataCouponId(1L).user(user).dataCoupon(dataCoupon1).status(issuedStatus).expiresAt(LocalDateTime.now().plusHours(24)).build();
+        UserDataCoupon userDataCoupon2 = UserDataCoupon.builder().userDataCouponId(2L).user(user).dataCoupon(dataCoupon2).status(issuedStatus).expiresAt(LocalDateTime.now().plusHours(48)).build();
         List<UserDataCoupon> userDataCoupons = List.of(userDataCoupon1, userDataCoupon2);
-        
+        Page<UserDataCoupon> couponPage = new PageImpl<>(userDataCoupons, pageable, userDataCoupons.size());
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userDataCouponRepository.findDetailsByUser(user)).thenReturn(userDataCoupons);
+        when(userDataCouponRepository.findDetailsByUser(user, pageable)).thenReturn(couponPage);
 
         // when
-        GetUserDataCouponListResponseDto result = dataCouponService.getUserDataCouponList(email);
+        Page<UserDataCouponDto> result = dataCouponService.getUserDataCouponList(email, pageable);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getDataCoupons()).hasSize(2);
-        
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent()).hasSize(2);
+
         // 첫 번째 쿠폰 검증
-        UserDataCouponDto firstCoupon = result.getDataCoupons().get(0);
+        UserDataCouponDto firstCoupon = result.getContent().get(0);
         assertThat(firstCoupon.getUserDataCouponId()).isEqualTo(userDataCoupon1.getUserDataCouponId());
         assertThat(firstCoupon.getDataAmount()).isEqualTo(dataCoupon1.getDataAmount());
         assertThat(firstCoupon.getCouponNumber()).isEqualTo(dataCoupon1.getCouponNumber());
-        
+
         // 두 번째 쿠폰 검증
-        UserDataCouponDto secondCoupon = result.getDataCoupons().get(1);
+        UserDataCouponDto secondCoupon = result.getContent().get(1);
         assertThat(secondCoupon.getUserDataCouponId()).isEqualTo(userDataCoupon2.getUserDataCouponId());
         assertThat(secondCoupon.getDataAmount()).isEqualTo(dataCoupon2.getDataAmount());
         assertThat(secondCoupon.getCouponNumber()).isEqualTo(dataCoupon2.getCouponNumber());
@@ -301,15 +287,19 @@ class DataCouponServiceImplTest {
     void getUserDataCouponList_WithNoCoupons_Success() {
         // given
         String email = "test@example.com";
-        
+        Pageable pageable = PageRequest.of(0, 10);
+        List<UserDataCoupon> emptyList = new ArrayList<>();
+        Page<UserDataCoupon> emptyPage = new PageImpl<>(emptyList, pageable, 0);
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userDataCouponRepository.findDetailsByUser(user)).thenReturn(new ArrayList<>());
+        when(userDataCouponRepository.findDetailsByUser(user, pageable)).thenReturn(emptyPage);
 
         // when
-        GetUserDataCouponListResponseDto result = dataCouponService.getUserDataCouponList(email);
+        Page<UserDataCouponDto> result = dataCouponService.getUserDataCouponList(email, pageable);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getDataCoupons()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+        assertThat(result.getContent()).isEmpty();
     }
 }

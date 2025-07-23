@@ -9,8 +9,13 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.UserDataCouponRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.entity.UserData;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,13 +24,37 @@ public class UserDataCouponRepositoryImpl implements UserDataCouponRepositoryCus
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<UserDataCoupon> findDetailsByUser(User user) {
-        return queryFactory
+    public Page<UserDataCoupon> findDetailsByUser(User user, Pageable pageable) {
+        List<UserDataCoupon> content = queryFactory
                 .selectFrom(userDataCoupon)
                 .join(userDataCoupon.dataCoupon, dataCoupon).fetchJoin()
                 .join(userDataCoupon.status, status).fetchJoin()
                 .leftJoin(dataCoupon.telecomCompany, telecomCompany).fetchJoin()
                 .where(userDataCoupon.user.eq(user))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
                 .fetch();
+
+        Long total = queryFactory
+                .select(userDataCoupon.count())
+                .from(userDataCoupon)
+                .where(userDataCoupon.user.eq(user))
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total == null ? 0L : total);
+    }
+
+    @Override
+    public Optional<UserDataCoupon> findDetailsById(Long userDataCouponId) {
+        UserDataCoupon result = queryFactory
+                .selectFrom(userDataCoupon)
+                .join(userDataCoupon.dataCoupon, dataCoupon).fetchJoin()
+                .join(userDataCoupon.user).fetchJoin()
+                .join(userDataCoupon.status, status).fetchJoin()
+                .leftJoin(dataCoupon.telecomCompany, telecomCompany).fetchJoin()
+                .where(userDataCoupon.userDataCouponId.eq(userDataCouponId))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
