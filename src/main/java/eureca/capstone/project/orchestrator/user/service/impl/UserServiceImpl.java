@@ -30,6 +30,8 @@ import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
+import eureca.capstone.project.orchestrator.pay.entity.UserPay;
+import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
@@ -63,6 +65,7 @@ public class UserServiceImpl implements UserService {
     private final AIService aiService;
     private final EmailVerificationService emailVerificationService;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
+    private final UserPayRepository userPayRepository;
 
     /**
      * 새로운 사용자를 생성합니다.
@@ -111,6 +114,11 @@ public class UserServiceImpl implements UserService {
                     .build();
 
             userRoleRepository.save(userRole);
+
+            // UserPay 생성 및 저장
+            UserPay userPay = new UserPay(savedUser);
+            userPayRepository.save(userPay);
+            log.info("[createUser] 신규 사용자 {}의 UserPay 생성 완료.", savedUser.getEmail());
 
 
             // 랜덤 요금제 조회
@@ -266,6 +274,11 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         userRoleRepository.save(userRole);
+
+        // UserPay 생성 및 저장
+        UserPay userPay = new UserPay(savedUser);
+        userPayRepository.save(userPay);
+        log.info("[OAuthUserRegisterIfNotExists] 신규 사용자 {}의 UserPay 생성 완료.", email);
 
         // 신규 사용자의 ID를 반환하고, 신규 유저임을 알림
         return new OAuthRegistrationResultDto(savedUser.getUserId(), true);
