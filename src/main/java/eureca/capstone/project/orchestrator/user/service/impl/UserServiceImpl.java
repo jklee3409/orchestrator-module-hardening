@@ -234,7 +234,10 @@ public class UserServiceImpl implements UserService {
         Optional<User> optionalUser = userRepository.findByEmail(email);
         // 이미 사용자가 존재하면 ID를 반환하고, 신규 유저가 아님을 알림
         if (optionalUser.isPresent()) {
-            return new OAuthRegistrationResultDto(optionalUser.get().getUserId(), false);
+            User user = optionalUser.get();
+            boolean isNewUser = user.getTelecomCompany() == null || user.getPhoneNumber() == null;
+            log.info("[OAuthUserRegisterIfNotExists] 기존 사용자: {}. 추가 정보 필요 여부(isNewUser): {}", email, isNewUser);
+            return new OAuthRegistrationResultDto(user.getUserId(), isNewUser);
         }
 
         // 시스템에 존재하지 않은 경우, 회원 가입 처리 및 권한 부여
