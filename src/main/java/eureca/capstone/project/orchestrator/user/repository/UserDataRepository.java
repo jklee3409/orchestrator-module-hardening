@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
 public interface UserDataRepository extends JpaRepository<UserData, Long> {
+    boolean existsByUserId(Long userId);
 }
