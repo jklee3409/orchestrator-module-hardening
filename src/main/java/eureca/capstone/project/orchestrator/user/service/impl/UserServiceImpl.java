@@ -16,6 +16,7 @@ import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepo
 import eureca.capstone.project.orchestrator.common.service.AIService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.user.dto.PlanDto;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
@@ -61,6 +62,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final AIService aiService;
     private final EmailVerificationService emailVerificationService;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
 
     /**
      * 새로운 사용자를 생성합니다.
@@ -175,6 +177,8 @@ public class UserServiceImpl implements UserService {
         User user = findUserByEmail(email);
         user.updateUserNickname(updateUserNicknameRequestDto.getNickname());
         log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트 완료. 변경된 닉네임: {}", email, user.getNickname());
+
+        transactionFeedSearchRepository.updateNicknameBySellerId(updateUserNicknameRequestDto.getNickname(), user.getUserId());
 
         return UpdateNicknameResponseDto.builder()
                 .userId(user.getUserId())
