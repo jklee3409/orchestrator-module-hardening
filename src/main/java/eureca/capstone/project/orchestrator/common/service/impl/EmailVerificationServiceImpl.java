@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
 import static eureca.capstone.project.orchestrator.common.constant.EmailConstant.EMAIL_BODY;
 import static eureca.capstone.project.orchestrator.common.constant.EmailConstant.EMAIL_SUBJECT;
@@ -42,6 +43,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
+    @Transactional
     public void verifyEmailToken(String token) {
         // 키값을 통해 레디스에 인증 대기중인 토큰 값이 존재하는지 확인
         String redisKey = REDIS_PENDING_EMAIL + token;
