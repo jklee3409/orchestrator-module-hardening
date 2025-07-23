@@ -178,7 +178,7 @@ public class UserServiceImpl implements UserService {
         user.updateUserNickname(updateUserNicknameRequestDto.getNickname());
         log.info("[updateUserNickname] 사용자 {} 닉네입 업데이트 완료. 변경된 닉네임: {}", email, user.getNickname());
 
-        transactionFeedSearchRepository.updateNicknameBySellerId(updateUserNicknameRequestDto.getNickname(), user.getUserId());
+//        transactionFeedSearchRepository.updateNicknameBySellerId(updateUserNicknameRequestDto.getNickname(), user.getUserId());
 
         return UpdateNicknameResponseDto.builder()
                 .userId(user.getUserId())

@@ -11,6 +11,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompa
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.CreateUserRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNicknameRequestDto;
@@ -72,6 +73,9 @@ class UserServiceImplTest {
 
     @Mock
     private RoleRepository roleRepository;
+
+    @Mock
+    private TransactionFeedSearchRepository transactionFeedSearchRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -221,6 +225,7 @@ class UserServiceImplTest {
         assertEquals(user.getUserId(), responseDto.getUserId());
         assertEquals(requestDto.getNickname(), responseDto.getNickname());
         verify(userRepository).findByEmail(email);
+//        verify(transactionFeedSearchRepository).updateNicknameBySellerId(requestDto.getNickname(), user.getUserId());
     }
 
     @Test
