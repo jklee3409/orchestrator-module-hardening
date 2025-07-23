@@ -65,10 +65,12 @@ public class UserDataServiceImpl implements UserDataService {
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
     @Override
+    @Transactional(readOnly = true)
     public GetUserDataStatusResponseDto getUserDataStatus(String email) {
         log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", email);
 
-        UserData userData = findUserDataByEmail(email);
+        User user = findUserByEmail(email);
+        UserData userData = findUserById(user.getUserId());
 
         return GetUserDataStatusResponseDto.fromEntity(userData);
     }
@@ -87,7 +89,8 @@ public class UserDataServiceImpl implements UserDataService {
     public CreateSellableDataResponseDto createSellableData(String email, UpdateUserDataRequestDto requestDto) {
         log.info("[createSellableData] 사용자 {} 보유 데이터에서 판매 가능 데이터로 전환", email);
         try {
-            UserData userData = findUserDataByEmail(email);
+            User user = findUserByEmail(email);
+            UserData userData = findUserByIdWithLock(user.getUserId());
 
             if (userData.getTotalDataMb() < requestDto.getAmount()) {
                 throw new InternalServerException(ErrorCode.USER_TOTAL_DATA_LACK);
@@ -114,7 +117,7 @@ public class UserDataServiceImpl implements UserDataService {
     public AddSellableDataResponseDto addSellableData(Long userId, Long amount) {
         log.info("[addSellableData] 사용자 {} 판매 가능 데이터 증가 시작", userId);
         try {
-            UserData userData = findUserById(userId);
+            UserData userData = findUserByIdWithLock(userId);
             userData.addSellableData(amount);
             log.info("[addSellableData] 사용자 {} 판매 가능 데이터 증가 완료. 최종 판매 가능 데이터: {}", userData.getUserId(), userData.getSellableDataMb());
 
@@ -144,7 +147,7 @@ public class UserDataServiceImpl implements UserDataService {
     public DeductSellableDataResponseDto deductSellableData(Long userId, Long amount) {
         log.info("[deductSellableData] 사용자 {} 판매 가능데이터 차감", userId);
         try {
-            UserData userData = findUserById(userId);
+            UserData userData = findUserByIdWithLock(userId);
 
             if (userData.getSellableDataMb() < amount) {
                 throw new InternalServerException(ErrorCode.USER_SELLABLE_DATA_LACK);
@@ -204,13 +207,18 @@ public class UserDataServiceImpl implements UserDataService {
      * @return 조회된 사용자 데이터 엔티티
      * @throws UserNotFoundException 사용자를 찾을 수 없는 경우
      */
-    private UserData findUserById(Long userId) {
+    private UserData findUserByIdWithLock(Long userId) {
         return userDataRepositoryCustom.findByUserIdWithLock(userId)
                 .orElseThrow(UserNotFoundException::new);
     }
 
-    private UserData findUserDataByEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
-        return userDataRepositoryCustom.findByUserIdWithLock(user.getUserId()).orElseThrow(UserNotFoundException::new);
+    private UserData findUserById(Long userId) {
+        return userDataRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
