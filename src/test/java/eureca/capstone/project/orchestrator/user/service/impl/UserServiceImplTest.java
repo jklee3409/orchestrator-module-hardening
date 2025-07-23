@@ -7,7 +7,7 @@ import eureca.capstone.project.orchestrator.auth.repository.UserRoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.EmailAlreadyExistsException;
-import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
+import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
@@ -250,11 +250,17 @@ class UserServiceImplTest {
         // Given
         String email = "test@example.com";
         UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
-                .password("newPassword")
+                .currentPassword("currentPassword")
+                .newPassword("newPassword")
                 .build();
 
+
+        String oldEncodedPassword = user.getPassword();
+
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
+        when(passwordEncoder.matches(requestDto.getCurrentPassword(), oldEncodedPassword)).thenReturn(true);
+        when(passwordEncoder.matches(requestDto.getNewPassword(), oldEncodedPassword)).thenReturn(false);
+        when(passwordEncoder.encode(requestDto.getNewPassword())).thenReturn("newEncodedPassword");
 
         // When
         UpdatePasswordResponseDto responseDto = userService.updateUserPassword(email, requestDto);
@@ -262,10 +268,57 @@ class UserServiceImplTest {
         // Then
         assertNotNull(responseDto);
         assertEquals(user.getUserId(), responseDto.getUserId());
+
         verify(userRepository).findByEmail(email);
-        verify(passwordEncoder).encode(requestDto.getPassword());
+        verify(passwordEncoder).matches(requestDto.getCurrentPassword(), oldEncodedPassword);
+        verify(passwordEncoder).matches(requestDto.getNewPassword(), oldEncodedPassword);
+        verify(passwordEncoder).encode(requestDto.getNewPassword());
+
+        assertEquals("newEncodedPassword", user.getPassword());
     }
 
+    @Test
+    @DisplayName("비밀번호 변경 시 현재 비밀번호 불일치 예외 발생")
+    void updateUserPassword_PasswordMismatch_ThrowsException() {
+        // Given
+        String email = "test@example.com";
+        UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
+                .currentPassword("wrongPassword")
+                .newPassword("newPassword")
+                .build();
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(requestDto.getCurrentPassword(), user.getPassword())).thenReturn(false);
+
+        // When & Then
+        assertThrows(InternalServerException.class, () -> userService.updateUserPassword(email, requestDto));
+        verify(userRepository).findByEmail(email);
+        verify(passwordEncoder).matches(requestDto.getCurrentPassword(), user.getPassword());
+        // 비밀번호 인코딩(업데이트)은 호출되지 않아야 함
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    @DisplayName("비밀번호 변경 시 새 비밀번호가 기존과 동일할 경우 예외 발생")
+    void updateUserPassword_NewPasswordSameAsOld_ThrowsException() {
+        // Given
+        String email = "test@example.com";
+        UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
+                .currentPassword("currentPassword")
+                .newPassword("sameAsOldPassword")
+                .build();
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(requestDto.getCurrentPassword(), user.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches(requestDto.getNewPassword(), user.getPassword())).thenReturn(true);
+
+        // When & Then
+        assertThrows(InternalServerException.class, () -> userService.updateUserPassword(email, requestDto));
+        verify(userRepository).findByEmail(email);
+        verify(passwordEncoder).matches(requestDto.getCurrentPassword(), user.getPassword());
+        verify(passwordEncoder).matches(requestDto.getNewPassword(), user.getPassword());
+        verify(passwordEncoder, never()).encode(anyString());
+    }
 
     @Test
     @DisplayName("존재하지 않는 사용자 비밀번호 업데이트 시 예외 발생")
@@ -273,7 +326,8 @@ class UserServiceImplTest {
         // Given
         String email = "test@example.com";
         UpdatePasswordRequestDto requestDto = UpdatePasswordRequestDto.builder()
-                .password("newPassword")
+                .currentPassword("currentPassword")
+                .newPassword("newPassword")
                 .build();
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
@@ -281,6 +335,8 @@ class UserServiceImplTest {
         // When & Then
         assertThrows(UserNotFoundException.class, () -> userService.updateUserPassword(email, requestDto));
         verify(userRepository).findByEmail(email);
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
