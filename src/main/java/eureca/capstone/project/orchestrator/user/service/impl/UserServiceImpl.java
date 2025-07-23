@@ -209,7 +209,19 @@ public class UserServiceImpl implements UserService {
         log.info("[updateUserPassword] 비밀번호 업데이트 요청");
 
         User user = findUserByEmail(email);
-        user.updateUserPassword(passwordEncoder.encode(updatePasswordRequestDto.getPassword()));
+
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(updatePasswordRequestDto.getCurrentPassword(), user.getPassword())) {
+            log.error("[updateUserPassword] 현재 비밀번호가 일치하지 않습니다.");
+            throw new InternalServerException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        if (passwordEncoder.matches(updatePasswordRequestDto.getNewPassword(), user.getPassword())) {
+            throw new InternalServerException(ErrorCode.NEW_PASSWORD_SAME_AS_OLD);
+        }
+
+        user.updateUserPassword(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
+        log.info("[updateUserPassword] 사용자 {} 비밀번호 업데이트 완료", user.getEmail());
 
         return UpdatePasswordResponseDto.builder()
                 .userId(user.getUserId())
