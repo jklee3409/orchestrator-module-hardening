@@ -33,7 +33,7 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
 
-    private static final String REDIRECT_URI = "https://ureca-final.com/auth-token";
+    private static final String REDIRECT_URI = "https://ureca-final.com/oauth/callback";
     private static final String LOCAL_REDIRECT_URI = "http://localhost:5173/oauth/callback";
 
     @Override
