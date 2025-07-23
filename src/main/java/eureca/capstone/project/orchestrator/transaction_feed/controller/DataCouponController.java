@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.UserDataCouponDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UseDataCouponResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,5 +32,15 @@ public class DataCouponController {
     ) {
         Page<UserDataCouponDto> couponPage = dataCouponService.getUserDataCouponList(customUserDetailsDto.getEmail(), pageable);
         return BaseResponseDto.success(couponPage);
+    }
+
+    @PostMapping("/{userDataCouponId}/use")
+    @Operation(summary = "데이터 충전권 사용 API", description = "데이터 충전권을 사용하여 사용자의 구매 데이터를 충전합니다.")
+    public BaseResponseDto<UseDataCouponResponseDto> useDataCoupon(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @PathVariable Long userDataCouponId
+    ) {
+        UseDataCouponResponseDto response = dataCouponService.useDataCoupon(customUserDetailsDto.getEmail(), userDataCouponId);
+        return BaseResponseDto.success(response);
     }
 }
