@@ -106,7 +106,7 @@ class UserDataServiceImplTest {
         when(mockUser.getUserId()).thenReturn(1L);
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
-        when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
+        when(userDataRepository.findById(anyLong())).thenReturn(Optional.of(userData));
 
         // When
         GetUserDataStatusResponseDto responseDto = userDataService.getUserDataStatus(email);
@@ -117,7 +117,7 @@ class UserDataServiceImplTest {
         assertEquals(userData.getSellableDataMb(), responseDto.getSellableDataMb());
         assertEquals(userData.getBuyerDataMb(), responseDto.getBuyerDataMb());
         verify(userRepository).findByEmail(email);
-        verify(userDataRepositoryCustom).findByUserIdWithLock(1L);
+        verify(userDataRepository).findById(1L);
     }
 
     @Test
