@@ -1,12 +1,18 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.TransactionHistoryType;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetTransactionHistoryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataTransactionHistory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.DataTransactionHistoryRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataTransactionHistoryService;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DataTransactionHistoryServiceImpl implements DataTransactionHistoryService {
     private final DataTransactionHistoryRepository dataTransactionHistoryRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
@@ -44,5 +51,25 @@ public class DataTransactionHistoryServiceImpl implements DataTransactionHistory
                 .isDeleted(false)
                 .build();
         return dataTransactionHistoryRepository.save(newHistory);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<GetTransactionHistoryResponseDto> getTransactionHistory(String email, TransactionHistoryType type, Pageable pageable) {
+        User user = findUserByEmail(email);
+        log.info("[getTransactionHistory] 사용자 {}의 거래 내역 조회. 타입: {}, 페이지: {}", email, type, pageable.getPageNumber());
+
+        Page<DataTransactionHistory> historyPage = dataTransactionHistoryRepository.findTransactionHistoryByUserId(user.getUserId(), type, pageable);
+        log.info("[getTransactionHistory] 사용자 {}의 거래 내역 조회 완료. 총 건수: {}", email, historyPage.getTotalElements());
+
+        return historyPage.map(history ->
+                GetTransactionHistoryResponseDto.
+                        fromEntity(history, user.getUserId())
+        );
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
