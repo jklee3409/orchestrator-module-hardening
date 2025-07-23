@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.UserDataCouponDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UseDataCouponResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.DataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
@@ -69,6 +70,12 @@ public class DataCouponServiceImpl implements DataCouponService {
                 userDataCouponsPage.getTotalElements());
 
         return userDataCouponsPage.map(UserDataCouponDto::fromEntity);
+    }
+
+    @Override
+    @Transactional
+    public UseDataCouponResponseDto useDataCoupon(String email, Long userDataCouponId) {
+        return null;
     }
 
     private DataCoupon findOrCreateDataCoupon(Long dataAmount, TelecomCompany telecomCompany) {
