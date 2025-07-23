@@ -225,7 +225,7 @@ class UserServiceImplTest {
         assertEquals(user.getUserId(), responseDto.getUserId());
         assertEquals(requestDto.getNickname(), responseDto.getNickname());
         verify(userRepository).findByEmail(email);
-//        verify(transactionFeedSearchRepository).updateNicknameBySellerId(requestDto.getNickname(), user.getUserId());
+        verify(transactionFeedSearchRepository).updateNicknameBySellerId(user.getUserId(), requestDto.getNickname());
     }
 
     @Test
