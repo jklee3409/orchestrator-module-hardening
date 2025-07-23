@@ -33,7 +33,7 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
 
-    private static final String REDIRECT_URI = "https://ureca-final.com/auth-token";
+    private static final String REDIRECT_URI = "https://ureca-final.com/oauth/callback";
     private static final String LOCAL_REDIRECT_URI = "http://localhost:5173/oauth/callback";
 
     @Override
@@ -44,12 +44,12 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
 
         if (authCode == null) {
             log.warn("[onAuthenticationSuccess] 인증 코드가 누락되었습니다.");
-            httpServletResponse.sendRedirect(LOCAL_REDIRECT_URI + "?error=auth_code_missing");
+            httpServletResponse.sendRedirect(REDIRECT_URI + "?error=auth_code_missing");
             return;
         }
 
         // authCode와 함께 프론트엔드로 리다이렉트
-        String redirectUrl = LOCAL_REDIRECT_URI + "?authCode=" + authCode;
+        String redirectUrl = REDIRECT_URI + "?authCode=" + authCode;
         log.info("[onAuthenticationSuccess] 리다이렉트 URL: {}", redirectUrl);
         httpServletResponse.sendRedirect(redirectUrl);
     }
