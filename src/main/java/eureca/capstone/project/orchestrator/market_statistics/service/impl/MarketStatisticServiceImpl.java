@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.market_statistics.entity.MarketStati
 import eureca.capstone.project.orchestrator.market_statistics.repository.MarketStatisticsRepository;
 import eureca.capstone.project.orchestrator.market_statistics.service.MarketStatisticService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -32,6 +34,8 @@ public class MarketStatisticServiceImpl implements MarketStatisticService {
         LocalDateTime startTime = endTime.minusHours(24);
 
         List<MarketStatistic> statistics = marketStatisticsRepository.findAllByStaticsTimeRange(startTime, endTime);
+
+        log.info("[getHourlyPriceStats] {} {}시 ~ {} {}시 시세통계 조회 {}건", startTime.toLocalDate(), startTime.getHour(), endTime.toLocalDate(), endTime.getHour()-1, statistics.size());
 
         Map<LocalDateTime, List<MarketStatistic>> marketStatsGroupedByTime = statistics.stream()
                 .collect(Collectors.groupingBy(MarketStatistic::getStaticsTime));
@@ -59,6 +63,9 @@ public class MarketStatisticServiceImpl implements MarketStatisticService {
                     .pricesByCarrier(pricesByCarrier)
                     .build());
         }
+
+        log.info("[getHourlyPriceStats] 시세통계 조회 완료: {}건", priceStatsDtoList.size());
+
 
         return priceStatsDtoList;
     }
