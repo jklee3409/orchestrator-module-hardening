@@ -28,6 +28,7 @@ import eureca.capstone.project.orchestrator.user.dto.response.user.*;
 import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
+import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final PlanService planService;
     private final UserDataService userDataService;
     private final UserRepository userRepository;
+    private final UserDataRepository userDataRepository;
     private final TelecomCompanyRepository telecomCompanyRepository;
     private final PlanRepository planRepository;
     private final UserRoleRepository userRoleRepository;
@@ -261,30 +263,12 @@ public class UserServiceImpl implements UserService {
 
         userRoleRepository.save(userRole);
 
-        // 랜덤 요금제 조회
-        RandomPlanRequestDto planReq = RandomPlanRequestDto.builder()
-                .telecomCompany(randomTelecomCompany)
-                .build();
-        RandomPlanResponseDto randomPlan = planService.getRandomPlan(planReq);
-
-        Plan randomPlanEntity = planRepository.findById(randomPlan.getPlanId())
-                .orElseThrow(PlanNotFoundException::new);
-
-        // 사용자 데이터 레코드 생성
-        CreateUserDataRequestDto createUserDataRequestDto = CreateUserDataRequestDto.builder()
-                .userId(savedUser.getUserId())
-                .plan(PlanDto.fromEntity(randomPlanEntity))
-                .monthlyDataMb(randomPlan.getMonthlyDataMb())
-                .resetDataAt(savedUser.getCreatedAt().getDayOfMonth())
-                .build();
-
-        userDataService.createUserData(createUserDataRequestDto);
-
         // 신규 사용자의 ID를 반환하고, 신규 유저임을 알림
         return new OAuthRegistrationResultDto(savedUser.getUserId(), true);
     }
 
     @Override
+    @Transactional
     public UpdateUserTelecomAndPhoneResponseDto updateUserTelecomAndPhone(String email, UpdateUserTelecomAndPhoneRequestDto requestDto) {
         log.info("[updateUserTelecomAndPhone] 사용자 {}의 통신사 및 전화번호 업데이트 요청", email);
 
@@ -295,6 +279,30 @@ public class UserServiceImpl implements UserService {
 
         user.updateTelecomAndPhone(telecomCompany, requestDto.getPhoneNumber());
         log.info("[updateUserTelecomAndPhone] 사용자 {} 정보 업데이트 완료", email);
+
+        if (!userDataRepository.existsByUserId(user.getUserId())) {
+            log.info("[updateUserTelecomAndPhone] 사용자 {}의 요금제 정보가 없으므로 새로 할당합니다.", email);
+
+            // 랜덤 요금제 조회
+            RandomPlanRequestDto planReq = RandomPlanRequestDto.builder()
+                    .telecomCompany(telecomCompany)
+                    .build();
+            RandomPlanResponseDto randomPlan = planService.getRandomPlan(planReq);
+
+            Plan randomPlanEntity = planRepository.findById(randomPlan.getPlanId())
+                    .orElseThrow(PlanNotFoundException::new);
+
+            // 사용자 데이터 레코드 생성
+            CreateUserDataRequestDto createUserDataRequestDto = CreateUserDataRequestDto.builder()
+                    .userId(user.getUserId())
+                    .plan(PlanDto.fromEntity(randomPlanEntity))
+                    .monthlyDataMb(randomPlan.getMonthlyDataMb())
+                    .resetDataAt(LocalDate.now().getDayOfMonth())
+                    .build();
+
+            userDataService.createUserData(createUserDataRequestDto);
+            log.info("[updateUserTelecomAndPhone] 사용자 {}의 요금제 정보 할당 완료.", email);
+        }
 
         return UpdateUserTelecomAndPhoneResponseDto.builder()
                 .userId(user.getUserId())
