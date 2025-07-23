@@ -9,7 +9,9 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.UserDataCoupon;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.UserDataCouponRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.entity.UserData;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -40,5 +42,19 @@ public class UserDataCouponRepositoryImpl implements UserDataCouponRepositoryCus
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0L : total);
+    }
+
+    @Override
+    public Optional<UserDataCoupon> findDetailsById(Long userDataCouponId) {
+        UserDataCoupon result = queryFactory
+                .selectFrom(userDataCoupon)
+                .join(userDataCoupon.dataCoupon, dataCoupon).fetchJoin()
+                .join(userDataCoupon.user).fetchJoin()
+                .join(userDataCoupon.status, status).fetchJoin()
+                .leftJoin(dataCoupon.telecomCompany, telecomCompany).fetchJoin()
+                .where(userDataCoupon.userDataCouponId.eq(userDataCouponId))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
