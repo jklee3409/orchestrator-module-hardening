@@ -103,7 +103,7 @@ public class UserController {
     ```
     
     ### 📥 요청 바디 필드 설명
-    * `nickname`: 변경할 새로운 닉네임 (문자열)
+    * `nickname`: 변경할 새로운 닉네임 (문자열, 2글자 이상)
     
     ### 🔑 권한
     * `ROLE_USER` (사용자 로그인 필요)
