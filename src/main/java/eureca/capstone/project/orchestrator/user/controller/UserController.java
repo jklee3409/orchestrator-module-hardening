@@ -7,7 +7,6 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNickname
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateUserTelecomAndPhoneRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
@@ -18,10 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -124,20 +120,37 @@ public class UserController {
     }
 
     @PutMapping("/password")
-    @Operation(summary = "사용자 비밀번호 변경", description = "로그인한 사용자의 비밀번호를 변경합니다.")
+    @Operation(summary = "사용자 비밀번호 변경", description = """
+    ## 현재 비밀번호를 확인한 후, 새로운 비밀번호로 변경합니다.
+    
+    ***
+    
+    ### 📥 요청 바디 (Request Body)
+    ```json
+    {
+      "currentPassword": "currentPassword123!",
+      "newPassword": "newPassword123!"
+    }
+    ```
+    
+    ### 📥 요청 바디 필드 설명
+    * `currentPassword`: 현재 사용 중인 비밀번호 (문자열)
+    * `newPassword`: 변경할 새로운 비밀번호 (문자열)
+    
+    ### 🔑 권한
+    * `ROLE_USER` (사용자 로그인 필요)
+    
+    ### ❌ 주요 실패 코드
+    * `20000` (USER_NOT_FOUND): 사용자를 찾을 수 없는 경우
+    * `20005` (PASSWORD_MISMATCH): 현재 비밀번호가 일치하지 않는 경우
+    * `20006` (NEW_PASSWORD_SAME_AS_OLD): 새 비밀번호가 기존 비밀번호와 동일한 경우
+    """)
     public BaseResponseDto<UpdatePasswordResponseDto> updateUserPassword(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @Valid @RequestBody UpdatePasswordRequestDto request
     ) {
         UpdatePasswordResponseDto response = userService.updateUserPassword(customUserDetailsDto.getEmail(), request);
         return BaseResponseDto.success(response);
-    }
-
-    @GetMapping("/count")
-    @Operation(summary = "전체 및 당일 가입자 수 조회", description = "전체 활성 가입자 수와 당일 가입자 수를 반환합니다.")
-    public BaseResponseDto<GetUserCountResponseDto> getUserCount() {
-        GetUserCountResponseDto userCountResponseDto = userService.getUserCount();
-        return BaseResponseDto.success(userCountResponseDto);
     }
 
     @PatchMapping("/additional-info")

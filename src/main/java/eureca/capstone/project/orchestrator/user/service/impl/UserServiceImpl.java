@@ -228,32 +228,6 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    /**
-     * 전체 활성 사용자 수와 당일 가입한 사용자 수를 조회합니다.
-     * 활성 상태인 사용자의 총 수와 오늘 생성된 사용자의 수를 계산합니다.
-     *
-     * @return 전체 활성 사용자 수와 당일 가입자 수
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public GetUserCountResponseDto getUserCount() {
-        log.info("[getUserCount] 전체 및 당일 가입자 수 조회 요청");
-
-        Status activeStatus = statusManager.getStatus("USER", "ACTIVE");
-        long totalUserCount = userRepository.countByStatus(activeStatus);
-
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
-        long todayUserCount = userRepository.countByCreatedAtBetween(startOfDay, endOfDay);
-
-        log.info("[getUserCount] 조회 완료 - 전체 활성 사용자: {}명, 당일 신규 가입자: {}명", totalUserCount, todayUserCount);
-
-        return GetUserCountResponseDto.builder()
-                .totalUserCount(totalUserCount)
-                .todayUserCount(todayUserCount)
-                .build();
-    }
-
     @Transactional
     @Override
     public OAuthRegistrationResultDto OAuthUserRegisterIfNotExists(String email, String provider) {
