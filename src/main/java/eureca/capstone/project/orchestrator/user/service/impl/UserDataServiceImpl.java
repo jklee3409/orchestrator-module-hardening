@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.user.service.impl;
 
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserDataNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.CreateUserDataRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user_data.UpdateUserDataRequestDto;
@@ -70,7 +71,7 @@ public class UserDataServiceImpl implements UserDataService {
         log.info("[getUserDataStatus] 사용자 {} 의 데이터 현황 조회", email);
 
         User user = findUserByEmail(email);
-        UserData userData = findUserById(user.getUserId());
+        UserData userData = findUserDataById(user.getUserId());
 
         return GetUserDataStatusResponseDto.fromEntity(userData);
     }
@@ -183,7 +184,7 @@ public class UserDataServiceImpl implements UserDataService {
     public AddBuyerDataResponseDto chargeBuyerData(Long userId, Long amount) {
         log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전", userId);
         try {
-            UserData userData = findUserById(userId);
+            UserData userData = findUserDataById(userId);
 
             userData.addBuyerData(amount);
             log.info("[chargeBuyerData] 사용자 {} 구매 데이터 충전 완료. 최종 구매 데이터: {}",
@@ -212,9 +213,9 @@ public class UserDataServiceImpl implements UserDataService {
                 .orElseThrow(UserNotFoundException::new);
     }
 
-    private UserData findUserById(Long userId) {
+    private UserData findUserDataById(Long userId) {
         return userDataRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(UserDataNotFoundException::new);
     }
 
     private User findUserByEmail(String email) {

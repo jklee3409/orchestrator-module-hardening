@@ -11,6 +11,4 @@ public interface UserRepository extends JpaRepository<User, Long>, UserRepositor
     Optional<User> findByEmail(String email);
 
     long countByStatus(Status status);
-
-    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
