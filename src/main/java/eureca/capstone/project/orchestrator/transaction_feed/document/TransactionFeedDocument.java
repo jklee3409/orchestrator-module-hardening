@@ -33,6 +33,12 @@ public class TransactionFeedDocument {
     private Long salesPrice;
 
     @Field(type = FieldType.Long)
+    private Long currentHighestPrice;
+
+    @Field(type = FieldType.Long)
+    private Long sortPrice;
+
+    @Field(type = FieldType.Long)
     private Long salesDataAmount;
 
     @Field(type = FieldType.Keyword)
@@ -66,11 +72,15 @@ public class TransactionFeedDocument {
     private boolean isDeleted;
     
     public static TransactionFeedDocument fromEntity(TransactionFeed transactionFeed) {
+        Long initialPrice = transactionFeed.getSalesPrice();
+
         return TransactionFeedDocument.builder()
                 .id(transactionFeed.getTransactionFeedId())
                 .title(transactionFeed.getTitle())
                 .content(transactionFeed.getContent())
-                .salesPrice(transactionFeed.getSalesPrice())
+                .salesPrice(initialPrice)
+                .currentHighestPrice(initialPrice)
+                .sortPrice(initialPrice)
                 .salesDataAmount(transactionFeed.getSalesDataAmount())
                 .sellerId(transactionFeed.getUser().getUserId())
                 .nickname(transactionFeed.getUser().getNickname())
@@ -83,5 +93,22 @@ public class TransactionFeedDocument {
                 .expiresAt(transactionFeed.getExpiresAt())
                 .isDeleted(transactionFeed.isDeleted())
                 .build();
+    }
+
+    public void updateHighestPrice(Long price) {
+        this.currentHighestPrice = price;
+        this.sortPrice = price;
+    }
+
+    public void updateNormalPrice(Long price) {
+        this.salesPrice = price;
+        this.sortPrice = price;
+    }
+
+    public void updateFields(String title, String content, Long salesDataAmount, Long defaultImageNumber) {
+        this.title = title;
+        this.content = content;
+        this.salesDataAmount = salesDataAmount;
+        this.defaultImageNumber = defaultImageNumber;
     }
 }
