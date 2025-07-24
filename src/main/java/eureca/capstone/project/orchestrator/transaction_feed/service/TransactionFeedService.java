@@ -19,6 +19,6 @@ public interface TransactionFeedService {
     GetFeedDetailResponseDto getFeedDetail(Long transactionFeedId, CustomUserDetailsDto customUserDetailsDto);
     void deleteFeed(String email, Long transactionFeedId);
     Page<GetFeedSummaryResponseDto> searchFeeds(FeedSearchRequestDto feedSearchRequestDto, Pageable pageable, CustomUserDetailsDto customUserDetailsDto);
-    Page<GetFeedSummaryResponseDto> getMyFeeds(String email, SalesTypeFilter filter, StatusFilter status, Pageable pageable);
+    Page<GetFeedSummaryResponseDto> getMyFeeds(CustomUserDetailsDto customUserDetailsDto, SalesTypeFilter filter, StatusFilter status, Pageable pageable);
     long reindexAllFeeds();
 }

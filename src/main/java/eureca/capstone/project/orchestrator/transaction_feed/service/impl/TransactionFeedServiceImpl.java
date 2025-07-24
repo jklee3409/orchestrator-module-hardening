@@ -334,36 +334,52 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     @Override
-    public Page<GetFeedSummaryResponseDto> getMyFeeds(String email, SalesTypeFilter filter, StatusFilter status, Pageable pageable) {
-        log.info("[getMyFeeds] 사용자 {}의 판매글 조회 시작. 필터: {}, 상태: {}, 페이지: {}", email, filter, status, pageable);
-
+    public Page<GetFeedSummaryResponseDto> getMyFeeds(CustomUserDetailsDto userDetailsDto, SalesTypeFilter salesTypeFilter, StatusFilter statusFilter, Pageable pageable) {
+        String email = userDetailsDto.getEmail();
         User user = findUserByEmail(email);
-        Page<TransactionFeed> myFeeds = transactionFeedRepository.findMyFeeds(user.getUserId(), filter, status, pageable);
-        log.info("[getMyFeeds] 사용자 {}의 판매글 조회 완료. 총 {}개 판매글.", user.getUserId(), myFeeds.getTotalElements());
+        log.info("[getMyFeeds] 사용자 {}의 판매글 조회 시작. 필터: {}, 상태: {}, 페이지: {}", user.getUserId(), salesTypeFilter, statusFilter, pageable);
 
-        if (myFeeds.isEmpty()) {
-            log.info("[getMyFeeds] 조회된 판매글이 없습니다.");
-            return Page.empty(pageable);
+        BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
+
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("sellerId").value(user.getUserId())));
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("isDeleted").value(false)));
+
+        if (salesTypeFilter == SalesTypeFilter.NORMAL) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("salesTypeId").value(salesTypeManager.getNormalSaleType().getSalesTypeId())));
+        } else if (salesTypeFilter == SalesTypeFilter.BID) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("salesTypeId").value(salesTypeManager.getBidSaleType().getSalesTypeId())));
         }
 
-        List<Long> feedIds = myFeeds.getContent().stream()
-                .map(TransactionFeed::getTransactionFeedId)
-                .collect(Collectors.toList());
+        if (statusFilter == StatusFilter.ON_SALE) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("status").value(statusManager.getStatus("FEED", "ON_SALE").getCode())));
+        } else if (statusFilter == StatusFilter.COMPLETED) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("status").value(statusManager.getStatus("FEED", "COMPLETED").getCode())));
+        } else if (statusFilter == StatusFilter.EXPIRED) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("status").value(statusManager.getStatus("FEED", "EXPIRED").getCode())));
+        }
 
-        Set<Long> likedFeedIds = new HashSet<>(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
-        log.info("[getMyFeeds] 찜 여부 확인 완료. 찜한 개수: {}", likedFeedIds.size());
+        String sortProperty = pageable.getSort().stream().findFirst().map(Sort.Order::getProperty).orElse("createdAt");
+        Sort.Direction direction = pageable.getSort().stream().findFirst().map(Sort.Order::getDirection).orElse(Sort.Direction.DESC);
 
-        Map<Long, Long> highestPriceMap = getHighestPricesFromRedisForFeeds(myFeeds.getContent());
-        log.info("[getMyFeeds] Redis 에서 판매글 최고가 조회 완료. 판매글 수: {}", myFeeds.getContent().size());
+        if ("salesPrice".equals(sortProperty)) {
+            sortProperty = "sortPrice";
+            log.info("[getMyFeeds] 가격 정렬 요청 -> '{}' 필드로 정렬합니다.", sortProperty);
+        }
 
-        List<GetFeedSummaryResponseDto> dtoList = myFeeds.getContent().stream()
-                .map(feed -> {
-                    boolean isLiked = likedFeedIds.contains(feed.getTransactionFeedId());
-                    return GetFeedSummaryResponseDto.fromEntity(feed, isLiked, highestPriceMap);
-                })
-                .collect(Collectors.toList());
+        Sort customSort = Sort.by(direction, sortProperty);
+        Pageable customPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), customSort);
 
-        return new PageImpl<>(dtoList, pageable, myFeeds.getTotalElements());
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(q -> q.bool(boolQueryBuilder.build()))
+                .withPageable(customPageable)
+                .build();
+
+        SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
+        log.info("[getMyFeeds] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
+
+        Set<Long> likedFeedIds = getLikedFeedIds(userDetailsDto, searchHits);
+
+        return toDtoPage(searchHits, pageable, likedFeedIds);
     }
 
     @Override
