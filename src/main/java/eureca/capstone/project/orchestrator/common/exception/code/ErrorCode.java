@@ -90,6 +90,7 @@ public enum ErrorCode {
     PAYMENT_CANCELLED_FAIL(40056, "PAYMENT_CANCELLED_FAIL", "결제 승인 취소에 실패하였습니다."),
     USER_PAY_LACK(40057, "USER_PAY_LACK", "사용자 페이가 부족합니다."),
     USER_PAY_NOT_FOUND(40058, "USER_PAY_NOT_FOUND", "사용자 페이 정보를 찾지 못했습니다."),
+    BANK_NOT_FOUND(40059, "BANK_NOT_FOUND", "은행 정보를 찾지 못했습니다."),
 
     // alarm 관련 에러코드 (50000 ~ 59999)
     ALARM_TYPE_NOT_FOUND(50000, "ALARM_TYPE_NOT_FOUND", "알람 유형을 찾지 못했습니다."),
