@@ -154,7 +154,31 @@ public class UserController {
     }
 
     @PatchMapping("/additional-info")
-    @Operation(summary = "사용자 통신사 및 전화번호 추가", description = "소셜 로그인 사용자의 통신사와 전화번호를 추가합니다. ")
+    @Operation(summary = "사용자 추가 정보 입력 (소셜 로그인)", description = """
+    ## 소셜 로그인 후 추가 정보(통신사, 전화번호)가 필요한 사용자가 정보를 입력합니다.
+    
+    ***
+    
+    ### 📥 요청 바디 (Request Body)
+    ```json
+    {
+      "telecomCompanyId": 2,
+      "phoneNumber": "010-9876-5432"
+    }
+    ```
+
+    ### 📥 요청 바디 필드 설명
+    * `telecomCompanyId`: 추가할 통신사의 ID (1:SKT, 2:KT, 3:LG U+)
+    * `phoneNumber`: 추가할 전화번호 (문자열, `010-1234-5678` 형식)
+    
+    ### 🔑 권한
+    * `ROLE_USER` (사용자 로그인 필요)
+    
+    ### ❌ 주요 실패 코드
+    * `20000` (USER_NOT_FOUND): 사용자를 찾을 수 없는 경우
+    * `60003` (TELECOM_COMPANY_NOT_FOUND): 존재하지 않는 통신사 ID를 보낸 경우
+    * `20103` (PLAN_NOT_FOUND): 요금제 정보를 찾을 수 없는 경우 (백엔드 내부 오류가 발생했을 때 이 오류가 발생할 수 있음)
+    """)
     public BaseResponseDto<UpdateUserTelecomAndPhoneResponseDto> updateUserTelecomAndPhone(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @RequestBody UpdateUserTelecomAndPhoneRequestDto requestDto
