@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -38,18 +39,21 @@ public class LikedController {
             
             ### 📥 요청 파라미터 (Query Parameters)
             * `filter`: 판매 유형 필터(default: `ALL`) (문자열, `ALL`, `NORMAL`, `BID`)
-            * `pageable`: 페이징 정보 (기본값: `size=10, sort=createdAt,desc`)
+            * `pageable`: 페이징 정보 (기본값: `size=20, sort=createdAt,desc`)
             
             ### 🔑 권한
             * `ROLE_USER` (사용자 로그인 필요)
             
             ### ❌ 주요 실패 코드
             * `20000` (USER_NOT_FOUND): 사용자를 찾을 수 없는 경우
+            
+            ### 📝 참고 사항
+            * 'sort' 파라미터는 지우고 테스트 부탁드립니다.
             """)
     public BaseResponseDto<Page<GetFeedSummaryResponseDto>> getWishList(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @RequestParam(defaultValue = "ALL") SalesTypeFilter filter,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<GetFeedSummaryResponseDto> response = likedService.getWishList(customUserDetailsDto.getEmail(), filter, pageable);
         return BaseResponseDto.success(response);
