@@ -95,9 +95,9 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("[preparePayment] 이벤트 쿠폰 적용 요청");
             coupon = userEventCouponService.validateAndGetCoupon(requestDto.getUserEventCouponId(), user);
 
-            Status pendingStatus = statusManager.getStatus("COUPON", "PENDING");
-            coupon.changeStatus(pendingStatus);
-            log.info("[preparePayment] 쿠폰 상태를 PENDING 으로 변경하여 선점 처리");
+//            Status pendingStatus = statusManager.getStatus("COUPON", "PENDING");
+//            coupon.changeStatus(pendingStatus);
+//            log.info("[preparePayment] 쿠폰 상태를 PENDING 으로 변경하여 선점 처리");
 
             double discountRate = coupon.getEventCoupon().getDiscountRate() / 100.0;
             double calculateDiscount = requestDto.getOriginalAmount() * discountRate;
