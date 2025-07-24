@@ -21,6 +21,7 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
@@ -313,10 +314,20 @@ class TransactionFeedServiceImplTest {
 
             long dataChangeAmount = request.getSalesDataAmount() - transactionFeed.getSalesDataAmount();
 
+            TransactionFeedDocument mockDocument = TransactionFeedDocument.builder()
+                    .id(transactionFeed.getTransactionFeedId())
+                    .title(transactionFeed.getTitle())
+                    .content(transactionFeed.getContent())
+                    .salesDataAmount(transactionFeed.getSalesDataAmount())
+                    .defaultImageNumber(transactionFeed.getDefaultImageNumber())
+                    .build();
+
+
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
             when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
 
             // when
             UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
@@ -348,9 +359,18 @@ class TransactionFeedServiceImplTest {
 
             long dataChangeAmount = transactionFeed.getSalesDataAmount() - request.getSalesDataAmount();
 
+            TransactionFeedDocument mockDocument = TransactionFeedDocument.builder()
+                    .id(transactionFeed.getTransactionFeedId())
+                    .title(transactionFeed.getTitle())
+                    .content(transactionFeed.getContent())
+                    .salesDataAmount(transactionFeed.getSalesDataAmount())
+                    .defaultImageNumber(transactionFeed.getDefaultImageNumber())
+                    .build();
+
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
             when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
 
             // when
             UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
@@ -379,9 +399,19 @@ class TransactionFeedServiceImplTest {
                     .defaultImageNumber(1L)
                     .build();
 
+            TransactionFeedDocument mockDocument = TransactionFeedDocument.builder()
+                    .id(transactionFeed.getTransactionFeedId())
+                    .title(transactionFeed.getTitle())
+                    .content(transactionFeed.getContent())
+                    .salesDataAmount(transactionFeed.getSalesDataAmount())
+                    .defaultImageNumber(transactionFeed.getDefaultImageNumber())
+                    .build();
+
+
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
             when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
 
             // when
             transactionFeedService.updateFeed(user.getEmail(), request);
