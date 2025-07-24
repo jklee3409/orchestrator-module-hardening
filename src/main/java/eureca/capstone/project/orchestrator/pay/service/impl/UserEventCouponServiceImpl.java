@@ -2,12 +2,18 @@ package eureca.capstone.project.orchestrator.pay.service.impl;
 
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
+import eureca.capstone.project.orchestrator.common.exception.custom.EventCouponNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserEventCouponAlreadyExistsException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.dto.UserEventCouponDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.GetUserEventCouponListResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.IssuedCouponResponseDto;
+import eureca.capstone.project.orchestrator.pay.entity.EventCoupon;
 import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
+import eureca.capstone.project.orchestrator.pay.repository.EventCouponRepository;
+import eureca.capstone.project.orchestrator.pay.repository.UserEventCouponRepository;
 import eureca.capstone.project.orchestrator.pay.repository.custom.UserEventCouponRepositoryCustom;
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.user.entity.User;
@@ -24,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserEventCouponServiceImpl implements UserEventCouponService {
     private final UserEventCouponRepositoryCustom userEventCouponRepositoryCustom;
+    private final UserEventCouponRepository userEventCouponRepository;
+    private final EventCouponRepository eventCouponRepository;
     private final UserRepository userRepository;
     private final StatusManager statusManager;
 
@@ -83,6 +91,35 @@ public class UserEventCouponServiceImpl implements UserEventCouponService {
         Status issuedStatus = statusManager.getStatus("COUPON", "ISSUED");
         coupon.changeStatus(issuedStatus);
         log.info("[revertCoupon] 사용자 이벤트 쿠폰 상태 ISSUED로 변경 완료. 쿠폰 ID: {}", coupon.getUserEventCouponId());
+    }
+
+    @Override
+    public IssuedCouponResponseDto issueEventCoupon(Long couponId, String email) {
+        log.info("[issueEventCoupon] 이벤트 쿠폰 발급 시작. 쿠폰 ID: {}", couponId);
+        User user = findUserByEmail(email);
+
+        EventCoupon eventCoupon = eventCouponRepository.findById(couponId)
+                .orElseThrow(EventCouponNotFoundException::new);
+
+        if(userEventCouponRepository.existsByUserAndEventCoupon(user, eventCoupon)){
+            throw new UserEventCouponAlreadyExistsException();
+        }
+
+        Status issuedStatus = statusManager.getStatus("COUPON", "ISSUED");
+
+        LocalDateTime expiresAt = LocalDateTime.now().plusMonths(1);
+
+        log.info("[issueEventCoupon] 이벤트 쿠폰 만료 일자: {}", expiresAt);
+        UserEventCoupon userEventCoupon = UserEventCoupon.builder()
+                .user(user)
+                .eventCoupon(eventCoupon)
+                .status(issuedStatus)
+                .expiresAt(expiresAt)
+                .build();
+        userEventCouponRepository.save(userEventCoupon);
+
+        log.info("[issueEventCoupon] 이벤트 쿠폰 발급 완료. id: {}", userEventCoupon.getUserEventCouponId());
+        return IssuedCouponResponseDto.builder().id(userEventCoupon.getUserEventCouponId()).build();
     }
 
     private User findUserByEmail(String email) {
