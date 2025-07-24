@@ -69,7 +69,7 @@ public class PayHistoryServiceImpl implements PayHistoryService {
         PayHistory payHistory = payHistoryRepository.findById(payHistoryId)
                 .orElseThrow(() -> {
                     log.error("[getPayHistoryDetail] 존재하지 않는 PayHistory ID: {}", payHistoryId);
-                    return new EntityNotFoundException("페이 변동 내역을 찾을 수 없습니다. ID: " + payHistoryId);
+                    return new InternalServerException(ErrorCode.PAY_HISTORY_NOT_FOUND);
                 });
         log.info("[getPayHistoryDetail] PayHistory ID: {}, 변동 유형: {}", payHistoryId, payHistory.getChangeType().getType());
 

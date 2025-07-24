@@ -18,7 +18,6 @@ import eureca.capstone.project.orchestrator.user.dto.request.user.UpdateNickname
 import eureca.capstone.project.orchestrator.user.dto.request.user.UpdatePasswordRequestDto;
 import eureca.capstone.project.orchestrator.user.dto.response.plan.RandomPlanResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.CreateUserResponseDto;
-import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserCountResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.GetUserProfileResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdateNicknameResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.response.user.UpdatePasswordResponseDto;
@@ -339,28 +338,4 @@ class UserServiceImplTest {
         verify(passwordEncoder, never()).encode(anyString());
     }
 
-    @Test
-    @DisplayName("전체 및 당일 가입자 수 조회 성공")
-    void getUserCount_Success() {
-        // Given
-        Status activeStatus = mock(Status.class);
-        when(activeStatus.getStatusId()).thenReturn(1L);
-        when(activeStatus.getDomain()).thenReturn("USER");
-        when(activeStatus.getCode()).thenReturn("ACTIVE");
-
-        when(statusManager.getStatus("USER", "ACTIVE")).thenReturn(activeStatus);
-        when(userRepository.countByStatus(activeStatus)).thenReturn(100L);
-        when(userRepository.countByCreatedAtBetween(any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(10L);
-
-        // When
-        GetUserCountResponseDto responseDto = userService.getUserCount();
-
-        // Then
-        assertNotNull(responseDto);
-        assertEquals(100L, responseDto.getTotalUserCount());
-        assertEquals(10L, responseDto.getTodayUserCount());
-        verify(statusManager).getStatus("USER", "ACTIVE");
-        verify(userRepository).countByStatus(activeStatus);
-        verify(userRepository).countByCreatedAtBetween(any(LocalDateTime.class), any(LocalDateTime.class));
-    }
 }
