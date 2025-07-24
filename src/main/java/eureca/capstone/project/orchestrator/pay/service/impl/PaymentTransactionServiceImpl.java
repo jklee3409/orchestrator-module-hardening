@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
+import eureca.capstone.project.orchestrator.pay.entity.PayType;
 import eureca.capstone.project.orchestrator.pay.entity.UserPay;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryRepository;
 import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
@@ -29,12 +30,12 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
     private final StatusManager statusManager;
 
     @Transactional
-    public void processPaymentSuccess(Long chargeHistoryId, String paymentKey) {
+    public void processPaymentSuccess(Long chargeHistoryId, String paymentKey, PayType payType) {
         ChargeHistory history = findById(chargeHistoryId);
         log.info("[processPaymentSuccess] 충전 내역 결제 요청 성공으로 처리 시작. 충전 내역 ID: {}", chargeHistoryId);
 
         Status completedStatus = statusManager.getStatus("PAYMENT", "COMPLETED");
-        history.processSuccess(paymentKey, completedStatus);
+        history.processSuccess(paymentKey, completedStatus, payType);
         log.info("[processPaymentSuccess] 충전 내역 결제 상태 완료로 처리. 충전 내역 ID: {}", chargeHistoryId);
 
         if (history.getUserEventCoupon() != null){

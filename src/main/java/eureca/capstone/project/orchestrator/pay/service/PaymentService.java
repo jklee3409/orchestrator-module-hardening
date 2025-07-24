@@ -5,9 +5,10 @@ import eureca.capstone.project.orchestrator.pay.dto.request.PaymentApprovalReque
 import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.PaymentResponseDto;
 
 public interface PaymentService {
     CouponCalculationResponseDto calculateDiscount(String email, CouponCalculationRequestDto couponCalculationRequestDto);
     PaymentPrepareResponseDto preparePayment(String email, PaymentPrepareRequestDto paymentPrepareRequestDto );
-    void confirmPayment(PaymentApprovalRequestDto paymentApprovalRequestDto);
+    PaymentResponseDto confirmPayment(PaymentApprovalRequestDto paymentApprovalRequestDto);
 }

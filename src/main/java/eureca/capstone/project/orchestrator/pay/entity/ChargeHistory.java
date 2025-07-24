@@ -37,7 +37,7 @@ public class ChargeHistory extends BaseEntity {
     private User user;
 
     @JoinColumn(name = "pay_type_id")
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     private PayType payType;
 
     @JoinColumn(name = "user_event_coupon_id")
@@ -71,9 +71,10 @@ public class ChargeHistory extends BaseEntity {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    public void processSuccess(String paymentKey, Status completedStatus) {
+    public void processSuccess(String paymentKey, Status completedStatus, PayType payType) {
         this.paymentKey = paymentKey;
         this.status = completedStatus;
+        this.payType = payType;
         this.completedAt = LocalDateTime.now();
     }
 

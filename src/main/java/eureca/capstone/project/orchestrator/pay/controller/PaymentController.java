@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareReques
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.GetTossClientKeyResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.PaymentResponseDto;
 import eureca.capstone.project.orchestrator.pay.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -148,12 +149,15 @@ public class PaymentController {
     * `40054` (ORDER_ALREADY_PROCESSED): 이미 처리된 주문인 경우
     * `40052` (FINAL_AMOUNT_NOT_MATCHED): `/prepare` 시점의 금액과 최종 승인 금액이 다른 경우
     * `40056` (PAYMENT_CANCELLED_BY_PAY_METHOD): 쿠폰 조건(결제수단)과 실제 결제수단이 달라 승인이 자동 취소된 경우
+    
+    ### 💡 참고
+    * 결제번호, 결제수단, 결제시간을 반환합니다.
     """)
-    public BaseResponseDto<Void> confirmPayment(
+    public BaseResponseDto<PaymentResponseDto> confirmPayment(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @RequestBody PaymentApprovalRequestDto requestDto
     ) {
-        paymentService.confirmPayment(requestDto);
-        return BaseResponseDto.voidSuccess();
+        PaymentResponseDto paymentResponseDto = paymentService.confirmPayment(requestDto);
+        return BaseResponseDto.success(paymentResponseDto);
     }
 }
