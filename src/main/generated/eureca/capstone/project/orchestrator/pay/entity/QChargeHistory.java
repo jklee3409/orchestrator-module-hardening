@@ -37,7 +37,9 @@ public class QChargeHistory extends EntityPathBase<ChargeHistory> {
 
     public final NumberPath<Long> discountAmount = createNumber("discountAmount", Long.class);
 
-    public final NumberPath<Long> orderId = createNumber("orderId", Long.class);
+    public final NumberPath<Long> finalAmount = createNumber("finalAmount", Long.class);
+
+    public final StringPath orderId = createString("orderId");
 
     public final StringPath paymentKey = createString("paymentKey");
 

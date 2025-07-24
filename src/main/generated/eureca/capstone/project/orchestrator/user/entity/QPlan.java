@@ -27,7 +27,7 @@ public class QPlan extends EntityPathBase<Plan> {
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
-    public final NumberPath<Integer> monthlyDataMb = createNumber("monthlyDataMb", Integer.class);
+    public final NumberPath<Long> monthlyDataMb = createNumber("monthlyDataMb", Long.class);
 
     public final NumberPath<Long> planId = createNumber("planId", Long.class);
 

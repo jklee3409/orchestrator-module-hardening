@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -20,8 +21,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.BLACK_LIST;
-import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.WHITE_LIST;
+import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.*;
 
 @Slf4j
 @Configuration
@@ -53,7 +53,8 @@ public class SecurityConfig {
 
                 // 요청별 인증/인가 정책 정의
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(WHITE_LIST).permitAll()               // 화이트리스트 경로는 모두 허용
+                        .requestMatchers(WHITE_LIST).permitAll()                // 화이트리스트 경로는 모두 허용
+                        .requestMatchers(HttpMethod.GET, PUBLIC_GET_URIS).permitAll()
                         .requestMatchers(BLACK_LIST).authenticated()           // 블랙리스트 경로는 인증 필요
                         .anyRequest().permitAll()                              // 나머지는 모두 허용 (필요 시 변경)
                 )

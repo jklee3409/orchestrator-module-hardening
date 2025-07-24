@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -17,22 +18,24 @@ public class QUserData extends EntityPathBase<UserData> {
 
     private static final long serialVersionUID = 889398590L;
 
+    private static final PathInits INITS = PathInits.DIRECT2;
+
     public static final QUserData userData = new QUserData("userData");
 
     public final eureca.capstone.project.orchestrator.common.entity.QBaseEntity _super = new eureca.capstone.project.orchestrator.common.entity.QBaseEntity(this);
 
-    public final NumberPath<Integer> buyerDataMb = createNumber("buyerDataMb", Integer.class);
+    public final NumberPath<Long> buyerDataMb = createNumber("buyerDataMb", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
-    public final NumberPath<Long> planId = createNumber("planId", Long.class);
+    public final QPlan plan;
 
     public final NumberPath<Integer> resetDataAt = createNumber("resetDataAt", Integer.class);
 
-    public final NumberPath<Integer> sellableDataMb = createNumber("sellableDataMb", Integer.class);
+    public final NumberPath<Long> sellableDataMb = createNumber("sellableDataMb", Long.class);
 
-    public final NumberPath<Integer> totalDataMb = createNumber("totalDataMb", Integer.class);
+    public final NumberPath<Long> totalDataMb = createNumber("totalDataMb", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
@@ -42,15 +45,24 @@ public class QUserData extends EntityPathBase<UserData> {
     public final NumberPath<Long> userId = createNumber("userId", Long.class);
 
     public QUserData(String variable) {
-        super(UserData.class, forVariable(variable));
+        this(UserData.class, forVariable(variable), INITS);
     }
 
     public QUserData(Path<? extends UserData> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QUserData(PathMetadata metadata) {
-        super(UserData.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QUserData(PathMetadata metadata, PathInits inits) {
+        this(UserData.class, metadata, inits);
+    }
+
+    public QUserData(Class<? extends UserData> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.plan = inits.isInitialized("plan") ? new QPlan(forProperty("plan"), inits.get("plan")) : null;
     }
 
 }
