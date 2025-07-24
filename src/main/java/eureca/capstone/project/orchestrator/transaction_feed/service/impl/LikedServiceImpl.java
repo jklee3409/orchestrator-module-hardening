@@ -1,10 +1,14 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
@@ -26,7 +30,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +50,7 @@ public class LikedServiceImpl implements LikedService {
     private final UserRepository userRepository;
     private final TransactionFeedRepository transactionFeedRepository;
     private final SalesTypeManager salesTypeManager;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,16 +65,54 @@ public class LikedServiceImpl implements LikedService {
         }
         log.info("[getWishList] 찜한 판매글 {}개 발견.", likedFeedIds.size());
 
-        Page<TransactionFeed> feedPage = transactionFeedRepository.findWishedFeeds(likedFeedIds, filter, pageable);
-        log.info("[getWishList] 필터링 및 페이징 조회 완료. 조회된 개수: {}", feedPage.getNumberOfElements());
+        BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        Map<Long, Long> highestPriceMap = getHighestPricesFromRedisForFeeds(feedPage.getContent());
+        List<String> likedFeedIdsAsString = likedFeedIds.stream()
+                .map(String::valueOf)
+                .toList();
 
-        List<GetFeedSummaryResponseDto> dtoList = feedPage.getContent().stream()
-                .map(feed -> GetFeedSummaryResponseDto.fromEntity(feed, true, highestPriceMap))
+        boolQueryBuilder.filter(f -> f.ids(i -> i.values(likedFeedIdsAsString)));
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("isDeleted").value(false)));
+
+        if (filter == SalesTypeFilter.NORMAL) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("salesTypeId").value(salesTypeManager.getNormalSaleType().getSalesTypeId())));
+        } else if (filter == SalesTypeFilter.BID) {
+            boolQueryBuilder.filter(f -> f.term(t -> t.field("salesTypeId").value(salesTypeManager.getBidSaleType().getSalesTypeId())));
+        }
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(q -> q.bool(boolQueryBuilder.build()))
+                .withPageable(pageable)
+                .build();
+
+        SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
+        log.info("[getWishList] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
+
+        List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .map(doc -> {
+                    String salesType = doc.getSalesTypeId().equals(salesTypeManager.getNormalSaleType().getSalesTypeId())
+                            ? salesTypeManager.getNormalSaleType().getName()
+                            : salesTypeManager.getBidSaleType().getName();
+
+                    return GetFeedSummaryResponseDto.builder()
+                            .transactionFeedId(doc.getId())
+                            .title(doc.getTitle())
+                            .nickname(doc.getNickname())
+                            .salesPrice(doc.getSalesPrice())
+                            .currentHeightPrice(doc.getCurrentHighestPrice())
+                            .salesDataAmount(doc.getSalesDataAmount())
+                            .telecomCompany(doc.getTelecomCompanyName())
+                            .createdAt(doc.getCreatedAt())
+                            .liked(true)
+                            .status(doc.getStatus())
+                            .salesType(salesType)
+                            .defaultImageNumber(doc.getDefaultImageNumber())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(dtoList, pageable, feedPage.getTotalElements());
+        return new PageImpl<>(dtoList, pageable, searchHits.getTotalHits());
     }
 
     @Override
@@ -111,34 +159,5 @@ public class LikedServiceImpl implements LikedService {
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
         return transactionFeedRepository.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
-    }
-
-    private Map<Long, Long> getHighestPricesFromRedisForFeeds(List<TransactionFeed> feeds) {
-        log.info("[getHighestPrices] Redis 에서 판매글 최고가 조회 시작. 판매글 수: {}", feeds.size());
-        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
-        List<Long> auctionFeedIds = new ArrayList<>();
-        List<String> redisKeys = new ArrayList<>();
-
-        feeds.stream()
-                .filter(feed -> bidSalesTypeId.equals(feed.getSalesType().getSalesTypeId()))
-                .forEach(feed -> {
-                    auctionFeedIds.add(feed.getTransactionFeedId());
-                    redisKeys.add(String.format("bids:%d:highest_price", feed.getTransactionFeedId()));
-                });
-
-        if (redisKeys.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        log.info("[getHighestPrices] {}개의 입찰 판매글 최고가를 Redis 에서 조회", redisKeys.size());
-        List<String> highestPrices = stringRedisTemplate.opsForValue().multiGet(redisKeys);
-
-        return IntStream.range(0, auctionFeedIds.size())
-                .filter(i -> highestPrices != null && highestPrices.get(i) != null)
-                .boxed()
-                .collect(Collectors.toMap(
-                        auctionFeedIds::get,
-                        i -> Long.parseLong(highestPrices.get(i))
-                ));
     }
 }
