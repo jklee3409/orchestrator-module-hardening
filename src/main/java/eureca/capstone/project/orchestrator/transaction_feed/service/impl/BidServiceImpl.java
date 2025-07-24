@@ -11,6 +11,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFound
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
+import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.BidDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.PlaceBidRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetBidHistoryResponseDto;
@@ -19,6 +20,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.transaction_feed.service.BidService;
 import eureca.capstone.project.orchestrator.user.entity.User;
@@ -41,6 +43,7 @@ import java.util.Objects;
 public class BidServiceImpl implements BidService {
     private final UserRepository userRepository;
     private final TransactionFeedRepository transactionFeedRepository;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final BidsRepository bidsRepository;
     private final UserPayService userPayService;
     private final StringRedisTemplate stringRedisTemplate;
@@ -192,6 +195,8 @@ public class BidServiceImpl implements BidService {
                     saveBidHistory(feed, newBidder, bidAmount);
                     log.info("입찰 성공 - 사용자 ID: {}, 게시글 ID: {}, 입찰가: {}", newBidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
 
+                    updateFeedDocumentHighestPrice(feed.getTransactionFeedId(), bidAmount);
+
                     List<User> participants = bidsRepository.findBidsWithUserByTransactionFeed(feed)
                             .stream()
                             .map(Bids::getUser)
@@ -245,5 +250,18 @@ public class BidServiceImpl implements BidService {
                 .user(bidder)
                 .bidAmount(bidAmount)
                 .build());
+    }
+
+    private void updateFeedDocumentHighestPrice(Long feedId, Long highestPrice) {
+        try {
+            TransactionFeedDocument document = transactionFeedSearchRepository.findById(feedId)
+                    .orElseThrow(TransactionFeedNotFoundException::new);
+            document.updateHighestPrice(highestPrice);
+            transactionFeedSearchRepository.save(document);
+            log.info("[updateFeedDocumentHighestPrice] Elasticsearch 문서 업데이트 완료. Document ID: {}, Highest Price: {}", feedId, highestPrice);
+
+        } catch (Exception e) {
+            log.error("[updateFeedDocumentHighestPrice] Elasticsearch 문서 업데이트 실패. Document ID: {}. Error: {}", feedId, e.getMessage());
+        }
     }
 }

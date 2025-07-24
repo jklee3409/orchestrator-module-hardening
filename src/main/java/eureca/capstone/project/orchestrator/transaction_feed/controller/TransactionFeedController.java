@@ -113,7 +113,7 @@ public class TransactionFeedController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         Page<GetFeedSummaryResponseDto> response = transactionFeedService.getMyFeeds(
-                customUserDetailsDto.getEmail(),
+                customUserDetailsDto,
                 filter,
                 status,
                 pageable
