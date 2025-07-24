@@ -2,10 +2,13 @@ package eureca.capstone.project.orchestrator.pay.entity;
 
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.*;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "event_coupon")
 public class EventCoupon extends BaseEntity {
     @Id

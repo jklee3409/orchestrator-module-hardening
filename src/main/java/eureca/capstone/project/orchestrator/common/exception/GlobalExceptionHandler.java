@@ -159,4 +159,16 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.ALARM_TYPE_NOT_FOUND);
     }
+
+    @ExceptionHandler(EventCouponNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleEventCouponNotFoundException(EventCouponNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.EVENT_COUPON_NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserEventCouponAlreadyExistsException.class)
+    public BaseResponseDto<ErrorResponseDto> handleUserEventCouponAlreadyExistsException(UserEventCouponAlreadyExistsException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.USER_EVENT_COUPON_ALREADY_EXISTS);
+    }
 }
