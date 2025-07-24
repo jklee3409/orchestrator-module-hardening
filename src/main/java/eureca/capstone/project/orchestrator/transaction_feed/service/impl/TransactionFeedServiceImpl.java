@@ -15,6 +15,8 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.StatusFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
@@ -50,6 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.utils.Java;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -318,6 +321,39 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     @Override
+    public Page<GetFeedSummaryResponseDto> getMyFeeds(String email, SalesTypeFilter filter, StatusFilter status, Pageable pageable) {
+        log.info("[getMyFeeds] 사용자 {}의 판매글 조회 시작. 필터: {}, 상태: {}, 페이지: {}", email, filter, status, pageable);
+
+        User user = findUserByEmail(email);
+        Page<TransactionFeed> myFeeds = transactionFeedRepository.findMyFeeds(user.getUserId(), filter, status, pageable);
+        log.info("[getMyFeeds] 사용자 {}의 판매글 조회 완료. 총 {}개 판매글.", user.getUserId(), myFeeds.getTotalElements());
+
+        if (myFeeds.isEmpty()) {
+            log.info("[getMyFeeds] 조회된 판매글이 없습니다.");
+            return Page.empty(pageable);
+        }
+
+        List<Long> feedIds = myFeeds.getContent().stream()
+                .map(TransactionFeed::getTransactionFeedId)
+                .collect(Collectors.toList());
+
+        Set<Long> likedFeedIds = new HashSet<>(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
+        log.info("[getMyFeeds] 찜 여부 확인 완료. 찜한 개수: {}", likedFeedIds.size());
+
+        Map<Long, Long> highestPriceMap = getHighestPricesFromRedisForFeeds(myFeeds.getContent());
+        log.info("[getMyFeeds] Redis 에서 판매글 최고가 조회 완료. 판매글 수: {}", myFeeds.getContent().size());
+
+        List<GetFeedSummaryResponseDto> dtoList = myFeeds.getContent().stream()
+                .map(feed -> {
+                    boolean isLiked = likedFeedIds.contains(feed.getTransactionFeedId());
+                    return GetFeedSummaryResponseDto.fromEntity(feed, isLiked, highestPriceMap);
+                })
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(dtoList, pageable, myFeeds.getTotalElements());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public long reindexAllFeeds() {
         // 1. 기존 Elasticsearch 인덱스 삭제
@@ -563,22 +599,37 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private Map<Long, Long> getHighestPricesFromRedis(SearchHits<TransactionFeedDocument> searchHits) {
         Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
 
-        List<Long> auctionFeedIds = new ArrayList<>();
-        List<String> redisKeys = new ArrayList<>();
-
-        searchHits.getSearchHits().stream()
+        List<Long> auctionFeedIds = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .filter(doc -> bidSalesTypeId.equals(doc.getSalesTypeId()))
-                .forEach(doc -> {
-                    auctionFeedIds.add(doc.getId());
-                    redisKeys.add(String.format("bids:%d:highest_price", doc.getId()));
-                });
+                .map(TransactionFeedDocument::getId)
+                .collect(Collectors.toList());
 
-        if (redisKeys.isEmpty()) {
+        return fetchHighestPricesFromRedis(auctionFeedIds);
+    }
+
+    private Map<Long, Long> getHighestPricesFromRedisForFeeds(List<TransactionFeed> feeds) {
+        log.info("[getHighestPrices] Redis 에서 판매글 최고가 조회 시작. 판매글 수: {}", feeds.size());
+        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
+
+        List<Long> auctionFeedIds = feeds.stream()
+                .filter(feed -> bidSalesTypeId.equals(feed.getSalesType().getSalesTypeId()))
+                .map(TransactionFeed::getTransactionFeedId)
+                .collect(Collectors.toList());
+
+        return fetchHighestPricesFromRedis(auctionFeedIds);
+    }
+
+    private Map<Long, Long> fetchHighestPricesFromRedis(List<Long> auctionFeedIds) {
+        if (CollectionUtils.isEmpty(auctionFeedIds)) {
             return Collections.emptyMap();
         }
 
-        log.info("[getHighestPricesFromRedis] {}개의 입찰 판매글 최고가를 Redis 에서 조회", redisKeys.size());
+        List<String> redisKeys = auctionFeedIds.stream()
+                .map(id -> String.format("bids:%d:highest_price", id))
+                .collect(Collectors.toList());
+
+        log.info("[fetchHighestPrices] {}개의 입찰 판매글 최고가를 Redis 에서 조회", redisKeys.size());
         List<String> highestPrices = stringRedisTemplate.opsForValue().multiGet(redisKeys);
 
         return IntStream.range(0, auctionFeedIds.size())

@@ -4,7 +4,7 @@ import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.WishListFilter;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
@@ -115,7 +115,7 @@ class LikedServiceImplTest {
         @DisplayName("찜한 목록이 없을 경우 빈 페이지 반환")
         void getWishList_Empty() {
             // given
-            WishListFilter filter = WishListFilter.ALL;
+            SalesTypeFilter filter = SalesTypeFilter.ALL;
             Pageable pageable = PageRequest.of(0, 10);
 
             when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
