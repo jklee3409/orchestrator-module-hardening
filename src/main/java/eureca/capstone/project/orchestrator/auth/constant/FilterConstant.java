@@ -32,4 +32,13 @@ public class FilterConstant {
     };
     // 리프레쉬 토큰 재발급 경로
     public static final String REFRESH_PATH = "/auth/reissue";
+
+    public static final String[] PUBLIC_GET_URIS = {
+            "/orchestrator/transaction-feed/search", // 판매글 목록 조회
+            "/orchestrator/transaction-feed/{transactionFeedId:[0-9]+}", // 판매글 상세 조회 (숫자 ID만 허용)
+            "/orchestrator/statistic", // 시세 통계 조회
+            "/orchestrator/bid/{transactionFeedId:[0-9]+}", // 입찰 내역 조회
+            "/orchestrator/recommend", // 추천 상품 조회
+            "/orchestrator/recommend/related/{transactionFeedId:[0-9]+}", // 연관 상품 조회
+    };
 }

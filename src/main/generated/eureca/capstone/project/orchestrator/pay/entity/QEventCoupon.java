@@ -24,6 +24,8 @@ public class QEventCoupon extends EntityPathBase<EventCoupon> {
 
     public final eureca.capstone.project.orchestrator.common.entity.QBaseEntity _super = new eureca.capstone.project.orchestrator.common.entity.QBaseEntity(this);
 
+    public final StringPath couponName = createString("couponName");
+
     public final StringPath couponNumber = createString("couponNumber");
 
     //inherited

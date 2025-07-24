@@ -11,20 +11,20 @@ import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
- * QMarketStatistics is a Querydsl query type for MarketStatistics
+ * QMarketStatistic is a Querydsl query type for MarketStatistic
  */
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
-public class QMarketStatistics extends EntityPathBase<MarketStatistics> {
+public class QMarketStatistic extends EntityPathBase<MarketStatistic> {
 
-    private static final long serialVersionUID = 1690093953L;
+    private static final long serialVersionUID = 2132729138L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
-    public static final QMarketStatistics marketStatistics = new QMarketStatistics("marketStatistics");
+    public static final QMarketStatistic marketStatistic = new QMarketStatistic("marketStatistic");
 
     public final eureca.capstone.project.orchestrator.common.entity.QBaseEntity _super = new eureca.capstone.project.orchestrator.common.entity.QBaseEntity(this);
 
-    public final NumberPath<Integer> averagePrice = createNumber("averagePrice", Integer.class);
+    public final NumberPath<Long> averagePrice = createNumber("averagePrice", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
@@ -35,28 +35,28 @@ public class QMarketStatistics extends EntityPathBase<MarketStatistics> {
 
     public final eureca.capstone.project.orchestrator.common.entity.QTelecomCompany telecomCompany;
 
-    public final NumberPath<Integer> transactionAmount = createNumber("transactionAmount", Integer.class);
+    public final NumberPath<Long> transactionAmount = createNumber("transactionAmount", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
 
-    public QMarketStatistics(String variable) {
-        this(MarketStatistics.class, forVariable(variable), INITS);
+    public QMarketStatistic(String variable) {
+        this(MarketStatistic.class, forVariable(variable), INITS);
     }
 
-    public QMarketStatistics(Path<? extends MarketStatistics> path) {
+    public QMarketStatistic(Path<? extends MarketStatistic> path) {
         this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
-    public QMarketStatistics(PathMetadata metadata) {
+    public QMarketStatistic(PathMetadata metadata) {
         this(metadata, PathInits.getFor(metadata, INITS));
     }
 
-    public QMarketStatistics(PathMetadata metadata, PathInits inits) {
-        this(MarketStatistics.class, metadata, inits);
+    public QMarketStatistic(PathMetadata metadata, PathInits inits) {
+        this(MarketStatistic.class, metadata, inits);
     }
 
-    public QMarketStatistics(Class<? extends MarketStatistics> type, PathMetadata metadata, PathInits inits) {
+    public QMarketStatistic(Class<? extends MarketStatistic> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.telecomCompany = inits.isInitialized("telecomCompany") ? new eureca.capstone.project.orchestrator.common.entity.QTelecomCompany(forProperty("telecomCompany")) : null;
     }

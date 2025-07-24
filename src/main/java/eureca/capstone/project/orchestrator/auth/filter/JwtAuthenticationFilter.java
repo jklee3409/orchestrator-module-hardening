@@ -24,6 +24,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -41,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final RedisService redisService;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
@@ -50,7 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.info("[JwtFilter] Incoming request URI: {}", requestURI);
         }
         // 화이트리스트 통과 처리
-        if (isPassListed(requestURI)) {
+        if (isPassListed(request)) {
             chain.doFilter(request, response);
             return;
         }
@@ -130,17 +132,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.getWriter().write(json);
     }
 
-    private boolean isPassListed(String uri) {
-        // 쿼리 스트링 제거
-        String cleanUri = uri.split("\\?")[0];
+    private boolean isPassListed(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+
+        // WHITE_LIST에 있는 경로는 HTTP 메서드와 상관없이 항상 통과
         for (String path : FilterConstant.WHITE_LIST) {
-            if (path.endsWith("/**")) {
-                String basePath = path.replace("/**", "");
-                if (cleanUri.startsWith(basePath)) return true;
-            } else {
-                if (cleanUri.equals(path)) return true;
+            if (pathMatcher.match(path, uri)) {
+                return true;
             }
         }
+
+        // PUBLIC_GET_URIS는 GET 메서드일 경우에만 통과
+        if (request.getMethod().equalsIgnoreCase("GET")) {
+            for (String path : FilterConstant.PUBLIC_GET_URIS) {
+                if (pathMatcher.match(path, uri)) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 }

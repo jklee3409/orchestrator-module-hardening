@@ -54,6 +54,8 @@ public class QTransactionFeed extends EntityPathBase<TransactionFeed> {
 
     public final eureca.capstone.project.orchestrator.user.entity.QUser user;
 
+    public final NumberPath<Long> version = createNumber("version", Long.class);
+
     public QTransactionFeed(String variable) {
         this(TransactionFeed.class, forVariable(variable), INITS);
     }
