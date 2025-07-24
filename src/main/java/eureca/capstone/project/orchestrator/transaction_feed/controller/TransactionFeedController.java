@@ -2,6 +2,8 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.StatusFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
@@ -49,6 +51,29 @@ public class TransactionFeedController {
     ) {
         GetFeedDetailResponseDto getFeedDetailResponseDto = transactionFeedService.getFeedDetail(transactionFeedId, customUserDetailsDto);
         return BaseResponseDto.success(getFeedDetailResponseDto);
+    }
+
+    @GetMapping("/my-feeds")
+    @Operation(summary = "내 판매글 목록 조회 API", description = """
+        로그인한 사용자가 자신이 등록한 판매글 목록을 조회합니다.<br>
+        **[pageable - sort 사용법]**<br>
+        - **`createdAt,desc`**: 최신순 (기본값)<br>
+        - **`salesPrice,desc`**: 가격 높은 순<br>
+        - **`salesPrice,asc`**: 가격 낮은 순
+        """)
+    public BaseResponseDto<Page<GetFeedSummaryResponseDto>> getMyFeeds(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestParam(required = false, defaultValue = "ALL") SalesTypeFilter filter,
+            @RequestParam(required = false, defaultValue = "ALL") StatusFilter status,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Page<GetFeedSummaryResponseDto> response = transactionFeedService.getMyFeeds(
+                customUserDetailsDto.getEmail(),
+                filter,
+                status,
+                pageable
+        );
+        return BaseResponseDto.success(response);
     }
 
     @PostMapping
