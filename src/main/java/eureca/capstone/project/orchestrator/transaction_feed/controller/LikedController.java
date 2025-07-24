@@ -2,7 +2,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.WishListFilter;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
@@ -33,7 +33,7 @@ public class LikedController {
             + "filter: [ALL], [NORMAL], [BID]")
     public BaseResponseDto<Page<GetFeedSummaryResponseDto>> getWishList(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
-            @RequestParam(defaultValue = "ALL") WishListFilter filter,
+            @RequestParam(defaultValue = "ALL") SalesTypeFilter filter,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<GetFeedSummaryResponseDto> response = likedService.getWishList(customUserDetailsDto.getEmail(), filter, pageable);
