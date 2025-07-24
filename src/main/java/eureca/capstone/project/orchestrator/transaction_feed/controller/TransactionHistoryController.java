@@ -6,7 +6,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.Transacti
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetTransactionHistoryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataTransactionHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "데이터 거래 내역 API", description = "사용자의 구매 및 판매 내역 조회 API")
 @RestController
 @RequestMapping("/orchestrator/transaction-history")
 @RequiredArgsConstructor

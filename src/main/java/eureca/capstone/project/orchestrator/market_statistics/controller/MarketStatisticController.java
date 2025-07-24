@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.market_statistics.dto.HourlyPriceStatDto;
 import eureca.capstone.project.orchestrator.market_statistics.service.MarketStatisticService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "시세 통계 API", description = "시간대별 시세 통계 조회 API")
 @RestController
 @RequestMapping("/orchestrator/statistic")
 @RequiredArgsConstructor

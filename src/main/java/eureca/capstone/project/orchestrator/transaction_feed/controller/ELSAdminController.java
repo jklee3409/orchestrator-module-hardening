@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.controller;
 
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "관리자용 ELS API", description = "Elasticsearch 관련 관리자 및 디버깅용 API")
 @Slf4j
 @RestController
 @RequestMapping("/orchestrator/els/admin")
