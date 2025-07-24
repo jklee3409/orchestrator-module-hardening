@@ -7,6 +7,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UseDat
 import eureca.capstone.project.orchestrator.transaction_feed.service.DataCouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "데이터 충전권 API", description = "사용자 데이터 충전권 조회 및 사용 API")
 @RestController
 @RequestMapping("/orchestrator/data-coupon")
 @RequiredArgsConstructor

@@ -12,6 +12,7 @@ import eureca.capstone.project.orchestrator.pay.dto.request.PaymentApprovalReque
 import eureca.capstone.project.orchestrator.pay.dto.request.PaymentPrepareRequestDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
+import eureca.capstone.project.orchestrator.pay.dto.response.PaymentResponseDto;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
 import eureca.capstone.project.orchestrator.pay.entity.PayType;
 import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
@@ -120,7 +121,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void confirmPayment(PaymentApprovalRequestDto requestDto) {
+    public PaymentResponseDto confirmPayment(PaymentApprovalRequestDto requestDto) {
         log.info("[confirmPayment] 최종 결제 요청 및 승인 시작. 주문 ID: {}", requestDto.getOrderId());
         ChargeHistory chargeHistory = chargeHistoryRepository.findByOrderIdWithDetails(requestDto.getOrderId())
                 .orElseThrow(() -> new InternalServerException(ErrorCode.ORDER_NOT_FOUND));
@@ -133,9 +134,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         String doneStatus = statusManager.getStatus("TOSS", "DONE").getCode();
         if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
+            PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
+            log.info("[confirmPayment] 토스 결제 승인 응답 확인 완료. 결제 수단: {}", actualPaymentMethod.getName());
             if (chargeHistory.getUserEventCoupon() != null) {
                 PayType requiredPayType = chargeHistory.getUserEventCoupon().getEventCoupon().getPayType();
-                PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
                 log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
 
                 if (!requiredPayType.equals(actualPaymentMethod)) {
@@ -151,13 +153,23 @@ public class PaymentServiceImpl implements PaymentService {
                     }
                 }
             }
-            paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey());
+            paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey(), actualPaymentMethod);
             log.info("[confirmPayment] 토스 결제 승인 요청 응답 정상 확인. 최종 결제 성공 처리. paymentKey: {}", requestDto.getPaymentKey());
 
         } else {
             paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
             log.info("[confirmPayment] 토스 결제 승인 요청 응답 실패 확인. 최종 결제 실패 처리. paymentKey: {}", requestDto.getPaymentKey());
         }
+
+        ChargeHistory updatedChargeHistory = chargeHistoryRepository.findByOrderIdWithDetails(requestDto.getOrderId())
+                .orElseThrow(() -> new InternalServerException(ErrorCode.ORDER_NOT_FOUND));
+        log.info("[confirmPayment] 최종 결제 승인 후 충전 내역 조회 완료. 충전 내역 ID: {}", updatedChargeHistory.getChargeHistoryId());
+
+        return PaymentResponseDto.builder()
+                .orderId(updatedChargeHistory.getOrderId())
+                .paymentMethod(updatedChargeHistory.getPayType().getName())
+                .completedAt(updatedChargeHistory.getCompletedAt())
+                .build();
     }
 
     private Map<String, Object> callTossConfirmApi(PaymentApprovalRequestDto requestDto) {

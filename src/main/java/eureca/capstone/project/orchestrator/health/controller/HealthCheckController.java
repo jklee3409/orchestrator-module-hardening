@@ -1,10 +1,12 @@
 package eureca.capstone.project.orchestrator.health.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Health Check API", description = "서비스 상태 확인을 위한 헬스 체크 API")
 @Slf4j
 @RestController
 public class HealthCheckController {
