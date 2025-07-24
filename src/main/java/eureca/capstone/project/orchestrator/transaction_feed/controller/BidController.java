@@ -7,6 +7,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetBid
 import eureca.capstone.project.orchestrator.transaction_feed.service.BidService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "입찰 판매글 API", description = "입찰 참여 및 입찰 내역 조회 API")
 @RestController
 @RequestMapping("/orchestrator/bid")
 @RequiredArgsConstructor

@@ -7,6 +7,7 @@ import eureca.capstone.project.orchestrator.pay.dto.response.PayHistoryDetailRes
 import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "페이 변동 내역 API", description = "페이 충전, 환전, 구매, 판매 등 변동 내역 조회 API")
 @RestController
 @RequestMapping("/orchestrator/pay-history")
 @RequiredArgsConstructor

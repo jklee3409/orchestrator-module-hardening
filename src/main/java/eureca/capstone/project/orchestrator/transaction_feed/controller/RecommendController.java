@@ -6,6 +6,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFee
 import eureca.capstone.project.orchestrator.transaction_feed.service.RecommendService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "추천 API", description = "메인 페이지 및 상품 상세 페이지 추천 상품 조회 API")
 @RestController
 @RequestMapping("/orchestrator/recommend")
 @RequiredArgsConstructor

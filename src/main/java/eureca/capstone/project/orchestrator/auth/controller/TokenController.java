@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,7 @@ import java.io.IOException;
 
 import static eureca.capstone.project.orchestrator.common.constant.UrlConstant.PRODUCT_FRONT_URL;
 
-
+@Tag(name = "이메일 인증 API", description = "이메일 인증 확인 API (클라이언트 직접 호출X)")
 @Slf4j
 @RestController
 @RequiredArgsConstructor

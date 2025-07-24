@@ -9,6 +9,7 @@ import static eureca.capstone.project.orchestrator.user.entity.QUser.user;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
+import eureca.capstone.project.orchestrator.pay.entity.QPayType;
 import eureca.capstone.project.orchestrator.pay.repository.custom.ChargeHistoryRepositoryCustom;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +22,16 @@ public class ChargeHistoryRepositoryImpl implements ChargeHistoryRepositoryCusto
 
     @Override
     public Optional<ChargeHistory> findByOrderIdWithDetails(String orderId) {
+        QPayType couponPayType = new QPayType("couponPayType");
+
         ChargeHistory result = queryFactory
                 .selectFrom(chargeHistory)
                 .join(chargeHistory.status, status).fetchJoin()
                 .leftJoin(chargeHistory.user, user).fetchJoin()
+                .leftJoin(chargeHistory.payType, payType).fetchJoin()
                 .leftJoin(chargeHistory.userEventCoupon, userEventCoupon).fetchJoin()
                 .leftJoin(userEventCoupon.eventCoupon, eventCoupon).fetchJoin()
-                .leftJoin(eventCoupon.payType, payType).fetchJoin()
+                .leftJoin(eventCoupon.payType, couponPayType).fetchJoin()
                 .where(chargeHistory.orderId.eq(orderId))
                 .fetchOne();
 

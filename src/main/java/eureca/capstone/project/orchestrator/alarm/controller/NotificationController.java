@@ -7,6 +7,7 @@ import eureca.capstone.project.orchestrator.alarm.service.impl.SseEmitterService
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+@Tag(name = "알림 API", description = "사용자 알림 조회 및 실시간 알림 구독 등 API")
 @RestController
 @RequestMapping("/orchestrator/notifications")
 @RequiredArgsConstructor
