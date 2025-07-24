@@ -20,7 +20,25 @@ public class UserEventCouponController {
     private final UserEventCouponService userEventCouponService;
 
     @GetMapping("/available")
-    @Operation(summary = "사용자 이벤트 쿠폰 목록 조회 API", description = "로그인한 사용자가 페이 충전 시 사용할 수 있는 이벤트 쿠폰 목록을 반환합니다. (페이 충전 화면에서 호출)")
+    @Operation(summary = "사용 가능한 이벤트 쿠폰 목록 조회 API", description = """
+            ## 로그인한 사용자가 페이 충전 시 사용할 수 있는 이벤트 쿠폰 목록을 조회합니다.
+            페이 충전 화면에서 사용자가 보유한 쿠폰을 보여줄 때 혹은 마이페이지에서 호출됩니다.
+            
+            ***
+            
+            ### 📥 요청 파라미터
+            * 별도의 요청 파라미터는 없으며, **Authorization 헤더의 토큰**으로 사용자를 식별합니다.
+            
+            ### 🔑 권한
+            * `ROLE_USER` (사용자 로그인 필요)
+            
+            ### ❌ 주요 실패 코드
+            * `20000` (USER_NOT_FOUND): 유효하지 않은 토큰으로 요청 시, 해당하는 사용자를 찾을 수 없을 경우 발생합니다.
+            
+            ### 📝 참고 사항
+            * 사용 가능한 쿠폰이 없을 경우, `coupons` 필드는 빈 리스트(`[]`)로 반환됩니다.
+            * 만료되었거나 이미 사용한 쿠폰은 목록에 포함되지 않습니다.
+            """)
     public BaseResponseDto<GetUserEventCouponListResponseDto> getAvailableCoupons(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
     ) {

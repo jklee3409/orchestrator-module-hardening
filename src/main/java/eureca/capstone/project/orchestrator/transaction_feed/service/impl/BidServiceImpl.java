@@ -153,7 +153,7 @@ public class BidServiceImpl implements BidService {
         if (bidAmount % 100 != 0) {
             log.error("[validateBidPrecondition] 입찰 금액은 100원 단위로 입력해야 합니다. 사용자 ID: {}, 판매글 ID: {}, 입찰가: {}",
                     bidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
-            throw new BidException(ErrorCode.BID_AMOUNT_TOO_LOW);
+            throw new BidException(ErrorCode.BID_AMOUNT_100_DIVISIBLE);
         }
     }
 

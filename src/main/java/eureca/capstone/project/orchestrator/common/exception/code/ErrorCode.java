@@ -69,6 +69,7 @@ public enum ErrorCode {
     DATA_COUPON_ALREADY_USED(30022, "DATA_COUPON_ALREADY_USED", "이미 사용된 데이터 쿠폰입니다."),
     DATA_COUPON_EXPIRED(30023, "DATA_COUPON_EXPIRED", "만료된 데이터 쿠폰입니다."),
     TRANSACTION_HISTORY_NOT_FOUND(30024, "TRANSACTION_HISTORY_NOT_FOUND", "거래 내역을 찾을 수 없습니다."),
+    BID_AMOUNT_100_DIVISIBLE(30025, "BID_AMOUNT_100_DIVISIBLE", "입찰 금액은 100원 단위로 입력해야 합니다."),
 
     // pay 관련 에러코드 (40000 ~ 49999)
     PAY_HISTORY_NOT_FOUND(40000, "PAY_HISTORY_NOT_FOUND", "페이 변동 내역을 찾을 수 없습니다."),
