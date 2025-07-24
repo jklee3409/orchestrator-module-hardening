@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.pay.service.impl;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.common.exception.custom.UserPayNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.ChangeTypeManager;
 import eureca.capstone.project.orchestrator.pay.dto.PayHistoryDto;
 import eureca.capstone.project.orchestrator.pay.dto.PayHistoryDto.PayHistorySimpleDto;
@@ -11,10 +12,12 @@ import eureca.capstone.project.orchestrator.pay.entity.ChangeType;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistoryDetail;
 import eureca.capstone.project.orchestrator.pay.entity.ExchangeHistory;
+import eureca.capstone.project.orchestrator.pay.entity.ExchangeHistoryDetail;
 import eureca.capstone.project.orchestrator.pay.entity.PayHistory;
 import eureca.capstone.project.orchestrator.pay.entity.PayHistoryDetail;
 import eureca.capstone.project.orchestrator.pay.entity.UserPay;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryDetailRepository;
+import eureca.capstone.project.orchestrator.pay.repository.ExchangeHistoryDetailRepository;
 import eureca.capstone.project.orchestrator.pay.repository.PayHistoryDetailRepository;
 import eureca.capstone.project.orchestrator.pay.repository.PayHistoryRepository;
 import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
@@ -40,6 +43,7 @@ public class PayHistoryServiceImpl implements PayHistoryService {
     private final ChangeTypeManager changeTypeManager;
     private final UserPayRepository userPayRepository;
     private final UserRepository userRepository;
+    private final ExchangeHistoryDetailRepository exchangeHistoryDetailRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -141,6 +145,32 @@ public class PayHistoryServiceImpl implements PayHistoryService {
     @Transactional
     public void createSalePayHistory(User seller, Long changedPay, DataTransactionHistory txHistory) {
         createPayHistory(seller, "판매", changedPay, txHistory);
+    }
+
+    @Override
+    public void createExchangePayHistory(User user, Long changedPay, ExchangeHistory exchangeHistory) {
+        log.info("[createExchangePayHistory] 페이 환전 변동 내역 기록 시작. 사용자 ID: {}", user.getUserId());
+
+        UserPay userPay = userPayRepository.findById(user.getUserId())
+                .orElseThrow(UserPayNotFoundException::new);
+
+        ChangeType exchangeType = changeTypeManager.getChangeType("환전");
+
+        PayHistory newPayHistory = PayHistory.builder()
+                .user(user)
+                .changeType(exchangeType)
+                .changedPay(changedPay)
+                .finalPay(userPay.getPay())
+                .build();
+        payHistoryRepository.save(newPayHistory);
+        log.info("[createExchangePayHistory] 페이 변동 내역 저장 완료. PayHistory ID: {}", newPayHistory.getPayHistoryId());
+
+        ExchangeHistoryDetail detail = ExchangeHistoryDetail.builder()
+                .payHistory(newPayHistory)
+                .exchangeHistory(exchangeHistory)
+                .build();
+        exchangeHistoryDetailRepository.save(detail);
+        log.info("[createExchangePayHistory] 환전 상세 내역 저장 완료. ExchangeHistoryDetail ID: {}", detail.getExchangeHistoryDetailId());
     }
 
     private User findUserByEmail(String email) {

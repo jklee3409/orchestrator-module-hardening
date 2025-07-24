@@ -5,7 +5,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.InternalServ
 import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
-import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.WishListFilter;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWishFeedRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
@@ -44,7 +44,7 @@ public class LikedServiceImpl implements LikedService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<GetFeedSummaryResponseDto> getWishList(String email, WishListFilter filter, Pageable pageable) {
+    public Page<GetFeedSummaryResponseDto> getWishList(String email, SalesTypeFilter filter, Pageable pageable) {
         log.info("[getWishList] 사용자 {}의 찜 목록 조회 시작. 필터: {}", email, filter);
         User user = findUserByEmail(email);
 
