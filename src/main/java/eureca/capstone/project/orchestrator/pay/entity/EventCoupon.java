@@ -23,7 +23,7 @@ public class EventCoupon extends BaseEntity {
     private String couponName;
 
     @JoinColumn(name = "pay_type_id")
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     private PayType payType;
 
     @Column(name = "discount_rate")
