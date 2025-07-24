@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.pay.service.impl;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.pay.dto.BankDto;
 import eureca.capstone.project.orchestrator.pay.dto.request.ExchangeRequestDto;
 import eureca.capstone.project.orchestrator.pay.entity.Bank;
 import eureca.capstone.project.orchestrator.pay.entity.ExchangeHistory;
@@ -14,6 +15,7 @@ import eureca.capstone.project.orchestrator.pay.service.ExchangeService;
 import eureca.capstone.project.orchestrator.pay.service.PayHistoryService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,18 @@ public class ExchangeServiceImpl implements ExchangeService {
 
         payHistoryService.createExchangePayHistory(user, -requestDto.getAmount(), exchangeHistory);
         log.info("[exchangePay] 페이 변동 내역 기록 완료.");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BankDto> getBankList() {
+        log.info("[getBankList] 은행 목록 조회 시작");
+        List<Bank> banks = bankRepository.findAll();
+        log.info("[getBankList] 은행 목록 조회 완료. 은행 개수: {}", banks.size());
+
+        return banks.stream()
+                .map(BankDto::fromEntity)
+                .toList();
     }
 
     private User findUserByEmail(String email) {

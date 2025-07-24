@@ -10,8 +10,10 @@ import eureca.capstone.project.orchestrator.auth.repository.RoleAuthorityReposit
 import eureca.capstone.project.orchestrator.auth.repository.RoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.repository.StatusRepository;
+import eureca.capstone.project.orchestrator.pay.entity.Bank;
 import eureca.capstone.project.orchestrator.pay.entity.ChangeType;
 import eureca.capstone.project.orchestrator.pay.entity.PayType;
+import eureca.capstone.project.orchestrator.pay.repository.BankRepository;
 import eureca.capstone.project.orchestrator.pay.repository.ChangeTypeRepository;
 import eureca.capstone.project.orchestrator.pay.repository.PayTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
@@ -40,6 +42,7 @@ public class InitComponent {
     private final PayTypeRepository payTypeRepository;
     private final ChangeTypeRepository changeTypeRepository;
     private final AlarmTypeRepository alarmTypeRepository;
+    private final BankRepository bankRepository;
 
     private static final List<Status> HARDCODED_STATUSES = List.of(
             Status.builder().statusId(11L).code("EMAIL_VERIFICATION_PENDING").description("이메일 인증 중").domain("USER").build(),
@@ -107,6 +110,14 @@ public class InitComponent {
         AlarmType.builder().alarmTypeId(4L).type("쿠폰 만료").build(),
         AlarmType.builder().alarmTypeId(5L).type("게시글 만료").build(),
         AlarmType.builder().alarmTypeId(6L).type("입찰 갱신").build()
+    );
+
+    private static final List<Bank> HARDCODED_BANKS = List.of(
+        Bank.builder().bankId(1L).bankName("Toss뱅크").build(),
+        Bank.builder().bankId(2L).bankName("농협은행").build(),
+        Bank.builder().bankId(3L).bankName("하나은행").build(),
+        Bank.builder().bankId(4L).bankName("기업은행").build(),
+        Bank.builder().bankId(5L).bankName("카카오뱅크").build()
     );
 
     /**
@@ -242,6 +253,27 @@ public class InitComponent {
             alarmTypeRepository.saveAll(alarmTypesToSave);
         } else {
             log.info("모든 alarmType 이 DB 에 존재합니다.");
+        }
+    }
+
+    @PostConstruct
+    @Transactional
+    public void initBanks() {
+        Map<Long, Bank> dbBankMap = bankRepository.findAll().stream()
+                .collect(Collectors.toMap(Bank::getBankId, Function.identity()));
+
+        List<Bank> banksToSave = HARDCODED_BANKS.stream()
+                .filter(hardcodedBank -> {
+                    Bank dbBank = dbBankMap.get(hardcodedBank.getBankId());
+                    return dbBank == null || !dbBank.equals(hardcodedBank);
+                })
+                .collect(Collectors.toList());
+
+        if (!banksToSave.isEmpty()) {
+            log.info("{} 개의 bank 가 DB 에 존재하지 않거나 변경되었습니다.", banksToSave.size());
+            bankRepository.saveAll(banksToSave);
+        } else {
+            log.info("모든 bank 가 DB 에 존재합니다.");
         }
     }
 }
