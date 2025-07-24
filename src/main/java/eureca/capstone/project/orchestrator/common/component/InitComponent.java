@@ -93,7 +93,9 @@ public class InitComponent {
             PayType.builder().payTypeId(4L).name("페이코").build(),
             PayType.builder().payTypeId(5L).name("카카오페이").build(),
             PayType.builder().payTypeId(6L).name("네이버페이").build(),
-            PayType.builder().payTypeId(7L).name("휴대폰").build()
+            PayType.builder().payTypeId(7L).name("휴대폰").build(),
+            PayType.builder().payTypeId(8L).name("문화상품권").build(),
+            PayType.builder().payTypeId(9L).name("가상계좌").build()
     );
 
     private static final List<ChangeType> HARDCODED_CHANGE_TYPES = List.of(
