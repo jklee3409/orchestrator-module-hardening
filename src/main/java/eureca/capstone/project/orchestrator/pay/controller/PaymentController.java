@@ -70,9 +70,9 @@ public class PaymentController {
             
             ### ❌ 주요 실패 코드
             * `20000` (USER_NOT_FOUND): 사용자를 찾을 수 없는 경우
-            * `40002` (USER_EVENT_COUPON_NOT_FOUND): 존재하지 않는 쿠폰 ID인 경우
-            * `40000` (USER_EVENT_COUPON_NOT_MATCHED): 쿠폰 소유주가 아닌 경우
-            * `40001` (USER_EVENT_COUPON_EXPIRED): 이미 사용했거나 만료된 쿠폰인 경우
+            * `40022` (USER_EVENT_COUPON_NOT_FOUND): 존재하지 않는 쿠폰 ID인 경우
+            * `40020` (USER_EVENT_COUPON_NOT_MATCHED): 쿠폰 소유주가 아닌 경우
+            * `40021` (USER_EVENT_COUPON_EXPIRED): 이미 사용했거나 만료된 쿠폰인 경우
             """)
     public BaseResponseDto<CouponCalculationResponseDto> calculateDiscount(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
