@@ -1,9 +1,12 @@
 package eureca.capstone.project.orchestrator.pay.service.impl;
 
+import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.pay.dto.response.GetPayBalanceResponseDto;
 import eureca.capstone.project.orchestrator.pay.entity.UserPay;
 import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
 import eureca.capstone.project.orchestrator.user.entity.User;
+import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserPayServiceImpl implements UserPayService {
     private final UserPayRepository userPayRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -44,8 +48,23 @@ public class UserPayServiceImpl implements UserPayService {
         log.info("[refundPay] 사용자 ID: {} 페이 환불(지급) 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public GetPayBalanceResponseDto getPay(String email) {
+        User user = findUserByEmail(email);
+        log.info("[getPay] 사용자 ID: {} 페이 잔액 조회 시작.", user.getUserId());
+        UserPay userPay = findOrNewUserPay(user);
+        log.info("[getPay] 사용자 ID: {} 페이 잔액 조회 완료. 현재 페이: {}", user.getUserId(), userPay.getPay());
+        return GetPayBalanceResponseDto.from(userPay.getPay());
+    }
+
     private UserPay findOrNewUserPay(User user) {
         return userPayRepository.findById(user.getUserId())
                 .orElseGet(() -> new UserPay(user));
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(UserNotFoundException::new);
     }
 }
