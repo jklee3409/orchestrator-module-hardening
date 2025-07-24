@@ -14,6 +14,7 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.StatusFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
@@ -56,6 +57,7 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import co.elastic.clients.elasticsearch._types.Script;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -147,8 +149,17 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         );
         log.info("[updateFeed] 판매글 DB 업데이트 완료. 판매글 ID: {}", transactionFeed.getTransactionFeedId());
 
-        transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
-        log.info("[updateFeed] ES Document 업데이트 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
+        TransactionFeedDocument document = transactionFeedSearchRepository.findById(transactionFeed.getTransactionFeedId())
+                .orElseThrow(TransactionFeedNotFoundException::new);
+
+        document.updateFields(
+                updateFeedRequestDto.getTitle(),
+                updateFeedRequestDto.getContent(),
+                updateFeedRequestDto.getSalesDataAmount(),
+                updateFeedRequestDto.getDefaultImageNumber()
+        );
+        document.updateNormalPrice(updateFeedRequestDto.getSalesPrice());
+        log.info("[updateFeed] ES Document 업데이트 완료. Document ID: {}", document.getId());
 
         return UpdateFeedResponseDto.builder()
                 .transactionFeedId(transactionFeed.getTransactionFeedId())
@@ -292,23 +303,31 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         applyDynamicFilters(boolQueryBuilder, requestDto);
         log.info("[searchFeeds] 동적 필터 적용 완료.");
 
-        Sort customSort = Sort.by(requestDto.getSortBy().getDirection(), requestDto.getSortBy().getProperty());
-        Pageable cleanPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), customSort);
+
+        FeedSort feedSort = requestDto.getSortBy();
+        String sortProperty = feedSort.getProperty();
+        Sort.Direction direction = feedSort.getDirection();
+
+        if (feedSort == FeedSort.PRICE_HIGH || feedSort == FeedSort.PRICE_LOW) {
+            sortProperty = "sortPrice";
+            log.info("[searchFeeds] 가격 정렬 요청 -> '{}' 필드로 정렬합니다.", sortProperty);
+        }
+
+        Sort customSort = Sort.by(direction, sortProperty);
+        Pageable customPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), customSort);
 
         NativeQuery nativeQuery = NativeQuery.builder()
                 .withQuery(q -> q.bool(boolQueryBuilder.build()))
-                .withPageable(cleanPageable)
+                .withPageable(customPageable)
                 .build();
 
-        log.info("[searchFeeds] Elasticsearch 쿼리 실행 시작.");
         SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
         log.info("[searchFeeds] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
 
         Set<Long> likedFeedIds = getLikedFeedIds(userDetailsDto, searchHits);
-        Map<Long, Long> highestPriceMap = getHighestPricesFromRedis(searchHits);
-        log.info("[searchFeeds] 찜 목록 및 최고가 조회 완료.");
+        log.info("[searchFeeds] 찜 목록 조회 완료.");
 
-        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable, likedFeedIds, highestPriceMap);
+        Page<GetFeedSummaryResponseDto> responseDtoPage = toDtoPage(searchHits, pageable, likedFeedIds);
         log.info("[searchFeeds] 검색 결과 DTO 변환 완료. 변환된 결과 수: {}", responseDtoPage.getNumberOfElements());
 
         return responseDtoPage;
@@ -348,38 +367,42 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public long reindexAllFeeds() {
-        // 1. 기존 Elasticsearch 인덱스 삭제
-        log.info("[reindexAllFeeds] 기존 'transaction_feed' 인덱스를 삭제합니다.");
+        log.info("[reindexAllFeeds] 인덱스 재생성 및 재색인 시작");
+
         if (elasticsearchOperations.indexOps(TransactionFeedDocument.class).exists()) {
             elasticsearchOperations.indexOps(TransactionFeedDocument.class).delete();
         }
 
-        // 2. 새로운 인덱스 생성 (매핑 포함)
-        log.info("[reindexAllFeeds] 새로운 'transaction_feed' 인덱스를 생성합니다.");
         elasticsearchOperations.indexOps(TransactionFeedDocument.class).create();
         elasticsearchOperations.indexOps(TransactionFeedDocument.class).putMapping();
 
-        // 3. 데이터베이스에서 모든 판매글 데이터 조회
-        log.info("[reindexAllFeeds] 데이터베이스에서 모든 판매글을 조회합니다.");
         List<TransactionFeed> allFeeds = transactionFeedRepository.findAll();
-
         if (allFeeds.isEmpty()) {
-            log.warn("[reindexAllFeeds] 데이터베이스에 판매글이 없어 재색인을 종료합니다.");
+            log.warn("[reindexAllFeeds] 재색인할 데이터가 없습니다.");
             return 0;
         }
 
-        // 4. 조회된 엔티티를 Elasticsearch 문서로 변환
-        log.info("[reindexAllFeeds] {}개의 판매글을 Elasticsearch 문서로 변환합니다.", allFeeds.size());
+        Map<Long, Long> highestPriceMap = getHighestPricesFromRedisForFeeds(allFeeds);
+        log.info("[reindexAllFeeds] Redis에서 {}개의 입찰 판매글 현재가 정보를 조회.", highestPriceMap.size());
+
+        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
+
         List<TransactionFeedDocument> documents = allFeeds.stream()
-                .map(TransactionFeedDocument::fromEntity)
+                .map(feed -> {
+                    TransactionFeedDocument doc = TransactionFeedDocument.fromEntity(feed);
+
+                    boolean isAuction = feed.getSalesType().getSalesTypeId().equals(bidSalesTypeId);
+                    if (isAuction && highestPriceMap.containsKey(doc.getId())) {
+                        doc.updateHighestPrice(highestPriceMap.get(doc.getId()));
+                    }
+                    return doc;
+                })
                 .toList();
 
-        // 5. 변환된 문서를 Elasticsearch에 일괄 저장
-        log.info("[reindexAllFeeds] 변환된 문서를 Elasticsearch에 저장합니다.");
         transactionFeedSearchRepository.saveAll(documents);
-
+        log.info("[reindexAllFeeds] {}개의 문서를 재색인 완료.", documents.size());
         return documents.size();
     }
 
@@ -590,18 +613,6 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return new HashSet<>(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
     }
 
-    private Map<Long, Long> getHighestPricesFromRedis(SearchHits<TransactionFeedDocument> searchHits) {
-        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
-
-        List<Long> auctionFeedIds = searchHits.getSearchHits().stream()
-                .map(SearchHit::getContent)
-                .filter(doc -> bidSalesTypeId.equals(doc.getSalesTypeId()))
-                .map(TransactionFeedDocument::getId)
-                .collect(Collectors.toList());
-
-        return fetchHighestPricesFromRedis(auctionFeedIds);
-    }
-
     private Map<Long, Long> getHighestPricesFromRedisForFeeds(List<TransactionFeed> feeds) {
         log.info("[getHighestPrices] Redis 에서 판매글 최고가 조회 시작. 판매글 수: {}", feeds.size());
         Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
@@ -635,23 +646,23 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 ));
     }
 
-    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds, Map<Long, Long> highestPriceMap) {
+    private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {
         log.info("[toDtoPage] searchHits -> dto 변환 시작.");
 
         SalesType normalSalesType = salesTypeManager.getNormalSaleType();
         SalesType auctionSalesType = salesTypeManager.getBidSaleType();
+
         List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .map(doc -> {
-                    Long currentHighestPrice = highestPriceMap.getOrDefault(doc.getId(), doc.getSalesPrice());
                     String salesType = doc.getSalesTypeId().equals(normalSalesType.getSalesTypeId()) ? normalSalesType.getName() : auctionSalesType.getName();
 
                     return GetFeedSummaryResponseDto.builder()
                             .transactionFeedId(doc.getId())
                             .title(doc.getTitle())
                             .nickname(doc.getNickname())
-                            .salesPrice(doc.getSalesPrice()) // 시작가
-                            .currentHeightPrice(currentHighestPrice) // 현재 최고가
+                            .salesPrice(doc.getSalesPrice())
+                            .currentHeightPrice(doc.getCurrentHighestPrice())
                             .salesDataAmount(doc.getSalesDataAmount())
                             .telecomCompany(doc.getTelecomCompanyName())
                             .createdAt(doc.getCreatedAt())
