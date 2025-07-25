@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.common.dto.StatusDto;
 import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
@@ -141,7 +142,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         Status onSaleStatus = statusManager.getStatus("FEED", "ON_SALE");
         if (transactionFeed.isDeleted() || !transactionFeed.getStatus().equals(onSaleStatus)) {
             log.warn("[updateFeed] 삭제되었거나 거래가 완료된 판매글에 대한 수정 요청입니다. ID: {}", transactionFeed.getTransactionFeedId());
-            throw new FeedModifyPermissionException();
+            throw new InternalServerException(ErrorCode.FEED_NOT_ON_SALE);
         }
 
         handleSaleDataChange(user, transactionFeed.getSalesDataAmount(), updateFeedRequestDto.getSalesDataAmount());
