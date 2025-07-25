@@ -36,8 +36,7 @@ public class MarketStatisticController {
             
             ### 📝 참고 사항
             * 응답은 항상 **현재 시간 기준 과거 24시간**에 대한 24개의 시간별 데이터 목록을 포함합니다.
-            * 특정 시간대에 특정 통신사의 거래 내역이 없는 경우, 해당 통신사에 대한 `CarrierPriceDto` 객체는 `pricesByCarrier` 목록에 포함되지 않습니다.
-            * 만약 한 시간대에 모든 통신사의 거래 내역이 없다면, `pricesByCarrier`는 빈 리스트(`[]`)로 반환됩니다.
+            * 특정 시간대에 특정 통신사의 거래 내역이 없는 경우, 해당 통신사에 대한 `pricePerMb` 값은 `null`로 반환됩니다.
             """)
     @GetMapping
     public BaseResponseDto<List<HourlyPriceStatDto>> getStatistics() {
