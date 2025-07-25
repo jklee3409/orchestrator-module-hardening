@@ -77,6 +77,21 @@ public class TransactionFeedController {
             
             ### ❌ 주요 실패 코드
             * `30003` (TRANSACTION_FEED_NOT_FOUND): 해당 ID의 판매글이 존재하지 않을 경우
+            
+            ### 📝 참고 사항
+            ** 게시글가격과 시세 비교 응답 값 설명: **
+            * `priceCompare` (가격 비교 결과)는 다음 네 가지 값 중 하나입니다:
+                - `NO_STATISTIC`: 해당 시간대에 시세 통계가 없어 비교할 수 없습니다.
+                
+                - `EXPENSIVE`: 게시글의 가격이 시세보다 비쌉니다.
+                
+                - `CHEAPER` : 게시글의 가격이 시세보다 쌉니다.
+                
+                - `SAME` : 게시글의 가격과 시세가 동일합니다.
+
+            * `rate` (비교 비율)는 시세와의 차이를 백분율(%)로 나타낸 값입니다.
+                - 항상 양수로 표시되며, 소수점 첫째 자리까지 반올림됩니다.
+                - 예: **priceCompare** = EXPENSIVE, **rate** = 25.3  → 시세보다 **25.3% 비쌈**
             """)
     public BaseResponseDto<GetFeedDetailResponseDto> getFeedDetail(
             @PathVariable Long transactionFeedId,
