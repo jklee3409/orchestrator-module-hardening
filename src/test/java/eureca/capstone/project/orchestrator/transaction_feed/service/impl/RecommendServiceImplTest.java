@@ -129,6 +129,8 @@ class RecommendServiceImplTest {
     @DisplayName("비로그인 사용자에게 가격 기준 피드 추천")
     void recommendFeed_ForGuestUser() {
         // given
+        when(salesTypeManager.getNormalSaleType()).thenReturn(normalSalesType);
+        when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
         when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), isNull()))
                 .thenReturn(new PageImpl<>(mockFeeds));
 
@@ -172,6 +174,7 @@ class RecommendServiceImplTest {
         // Given
         Long feedId = transactionFeed.getTransactionFeedId();
         when(transactionFeedRepository.findById(feedId)).thenReturn(Optional.of(transactionFeed));
+        when(salesTypeManager.getNormalSaleType()).thenReturn(normalSalesType);
         when(statusManager.getStatus(eq("FEED"), eq("ON_SALE"))).thenReturn(onSaleStatus);
         when(transactionFeedService.searchFeeds(any(FeedSearchRequestDto.class), any(Pageable.class), any()))
                 .thenReturn(new PageImpl<>(mockFeeds));

@@ -92,9 +92,10 @@ public class RecommendServiceImpl implements RecommendService {
         log.info("[recommendRelateFeeds] 판매글 ID: {} 조회 완료", transactionFeedId);
 
         Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
+        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
         FeedSearchRequestDto requestDto = FeedSearchRequestDto.builder()
                 .telecomCompanyIds(List.of(targetFeed.getTelecomCompany().getTelecomCompanyId()))
-                .salesTypeIds(List.of(targetFeed.getSalesType().getSalesTypeId()))
+                .salesTypeIds(List.of(normalSalesType.getSalesTypeId()))
                 .statuses(List.of(salesStatus.getCode()))
                 .excludeFeedIds(List.of(transactionFeedId))
                 .sortBy(FeedSort.LATEST)
@@ -125,8 +126,12 @@ public class RecommendServiceImpl implements RecommendService {
     }
 
     private List<GetFeedSummaryResponseDto> recommendForGuest() {
+        SalesType normalSalesType = salesTypeManager.getNormalSaleType();
+        Status onSaleStatus = statusManager.getStatus("FEED", "ON_SALE");
         FeedSearchRequestDto requestDto = FeedSearchRequestDto.builder()
                 .sortBy(FeedSort.PRICE_LOW)
+                .salesTypeIds(List.of(normalSalesType.getSalesTypeId()))
+                .statuses(List.of(onSaleStatus.getCode()))
                 .build();
         Pageable pageable = PageRequest.of(0, RECOMMENDATION_LIMIT);
         log.info("[recommendForGuest] 비로그인 사용자용 추천(가격 오름차순) 요청");
