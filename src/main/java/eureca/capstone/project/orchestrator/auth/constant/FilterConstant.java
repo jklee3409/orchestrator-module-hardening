@@ -6,6 +6,7 @@ public class FilterConstant {
             "/healthCheck",
 
             "/orchestrator/user/",
+            "/orchestrator/user/check-email",
 
             "/orchestrator/auth/login",
             "/orchestrator/auth/verify-email",
