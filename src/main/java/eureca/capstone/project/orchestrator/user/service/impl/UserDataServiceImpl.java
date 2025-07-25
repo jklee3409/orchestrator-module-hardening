@@ -214,7 +214,7 @@ public class UserDataServiceImpl implements UserDataService {
     }
 
     private UserData findUserDataById(Long userId) {
-        return userDataRepository.findById(userId)
+        return userDataRepository.findByUserId(userId)
                 .orElseThrow(UserDataNotFoundException::new);
     }
 
