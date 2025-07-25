@@ -17,6 +17,7 @@ import eureca.capstone.project.orchestrator.market_statistics.repository.MarketS
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.PriceCompare;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.SalesTypeFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.StatusFilter;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
@@ -214,25 +215,26 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime previousHour = now.minusHours(1).truncatedTo(ChronoUnit.HOURS);
-
         Long statisticPrice = marketStatisticsRepository.findByTime(previousHour, feed.getTelecomCompany().getTelecomCompanyId());
         log.info("[getFeedDetail] 현재시각: {}시. {} 시의 시세 내역 조회 완료. 시세: {}", now, previousHour, statisticPrice);
 
-        boolean existStatistic = false;
-        Boolean isExpensive = null;
+        PriceCompare priceCompare;
         Double rate = null;
 
         if(statisticPrice != null && statisticPrice > 0) {
             log.info("[getFeedDetail] 시세 존재. 시세와 비교 계산 시작");
-            existStatistic = true;
 
             double feedPricePerMB = ((double) feed.getSalesPrice() / feed.getSalesDataAmount()) * PRICE_PER_MB;
             rate = ((feedPricePerMB - statisticPrice) / (double) statisticPrice) * 100.0;
-            isExpensive = rate > 0;
+            if(rate > 0) priceCompare = PriceCompare.EXPENSIVE;
+            else if(rate < 0) priceCompare = PriceCompare.CHEAPER;
+            else priceCompare = PriceCompare.SAME;
+
             rate = Math.round(Math.abs(rate) * 10.0) / 10.0;
-            log.info("[getFeedDetail] 시세 계산 완료. isExpensive: {}, rate: {}%", isExpensive, rate);
+            log.info("[getFeedDetail] 시세 계산 완료. priceCompare: {}, rate: {}%", priceCompare, rate);
         }else{
-            log.info("[getFeedDetail] 시세 없음. 비교 불가. existStatistic: {}", existStatistic);
+            priceCompare = PriceCompare.NO_STATISTIC;
+            log.info("[getFeedDetail] 시세 없음. 비교 불가. priceCompare: {}", priceCompare);
         }
 
 
@@ -252,9 +254,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .salesType(SalesTypeDto.fromEntity(feed.getSalesType()))
                 .expiredAt(feed.getExpiresAt())
                 .currentHeightPrice(currentHeightPrice)
-                .existStatistic(existStatistic)
+                .priceCompare(priceCompare)
                 .rate(rate)
-                .isExpensive(isExpensive)
                 .build();
     }
 
