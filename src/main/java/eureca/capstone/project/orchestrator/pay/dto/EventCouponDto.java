@@ -19,7 +19,10 @@ public class EventCouponDto {
                 .couponDescription(eventCoupon.getCouponDescription())
                 .couponName(eventCoupon.getCouponName())
                 .discountRate(eventCoupon.getDiscountRate())
-                .payType(PayTypeDto.fromEntity(eventCoupon.getPayType()))
+                .payType(
+                        eventCoupon.getPayType() != null
+                        ? PayTypeDto.fromEntity(eventCoupon.getPayType())
+                        : null)
                 .build();
     }
 }

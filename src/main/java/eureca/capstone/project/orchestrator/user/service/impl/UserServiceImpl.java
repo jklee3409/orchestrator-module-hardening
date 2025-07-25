@@ -16,6 +16,7 @@ import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepo
 import eureca.capstone.project.orchestrator.common.service.AIService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.user.dto.PlanDto;
 import eureca.capstone.project.orchestrator.user.dto.request.plan.RandomPlanRequestDto;
@@ -66,6 +67,7 @@ public class UserServiceImpl implements UserService {
     private final EmailVerificationService emailVerificationService;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final UserPayRepository userPayRepository;
+    private final UserEventCouponService userEventCouponService;
 
     /**
      * 새로운 사용자를 생성합니다.
@@ -82,6 +84,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public CreateUserResponseDto createUser(CreateUserRequestDto createUserRequestDto) {
         log.info("[createUser] 사용자 등록 요청");
+
+        Long couponId = 7L;
 
         Optional<User> optionalUser = userRepository.findByEmail(createUserRequestDto.getEmail());
         if (optionalUser.isPresent()) {
@@ -139,9 +143,14 @@ public class UserServiceImpl implements UserService {
                     .build();
 
             userDataService.createUserData(userDataReq);
+            log.info("[createUser] 신규 사용자 {}의 UserData 생성 완료.", savedUser.getEmail());
 
             // 인증 이메일 발송
             emailVerificationService.sendVerificationEmail(createUserRequestDto.getEmail());
+            log.info("[createUser] 신규 사용자 {}에게 인증메일 발송 완료.", savedUser.getEmail());
+
+            userEventCouponService.issueEventCoupon(couponId, createUserRequestDto.getEmail());
+            log.info("[createUser] 신규 사용자 {}에게 신규회원 쿠폰 발송 완료.", savedUser.getEmail());
 
             return CreateUserResponseDto.builder()
                     .id(user.getUserId())
