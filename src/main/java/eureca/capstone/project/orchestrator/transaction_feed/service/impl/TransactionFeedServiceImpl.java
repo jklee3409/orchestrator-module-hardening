@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.common.dto.StatusDto;
 import eureca.capstone.project.orchestrator.common.dto.TelecomCompanyDto;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
+import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
@@ -138,6 +139,12 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         if (transactionFeed.getSalesType().getName().equals(salesTypeManager.getBidSaleType().getName())) throw new AuctionTypeModifyNotAllowedException();
         log.info("[updateFeed] 입찰 판매가 아닙니다.");
 
+        Status onSaleStatus = statusManager.getStatus("FEED", "ON_SALE");
+        if (transactionFeed.isDeleted() || !transactionFeed.getStatus().equals(onSaleStatus)) {
+            log.warn("[updateFeed] 삭제되었거나 거래가 완료된 판매글에 대한 수정 요청입니다. ID: {}", transactionFeed.getTransactionFeedId());
+            throw new InternalServerException(ErrorCode.FEED_NOT_ON_SALE);
+        }
+
         handleSaleDataChange(user, transactionFeed.getSalesDataAmount(), updateFeedRequestDto.getSalesDataAmount());
 
         transactionFeed.update(
@@ -159,6 +166,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 updateFeedRequestDto.getDefaultImageNumber()
         );
         document.updateNormalPrice(updateFeedRequestDto.getSalesPrice());
+        transactionFeedSearchRepository.save(document);
         log.info("[updateFeed] ES Document 업데이트 완료. Document ID: {}", document.getId());
 
         return UpdateFeedResponseDto.builder()
@@ -240,6 +248,11 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         transactionFeed.delete();
         log.info("[deleteFeed] 판매글 논리적 삭제 완료");
+
+        if(transactionFeed.getStatus().equals(statusManager.getStatus("FEED","ON_SALE"))) {
+            userDataService.addSellableData(transactionFeed.getUser().getUserId(), transactionFeed.getSalesDataAmount());
+            log.info("[deleteFeed] 판매중인 글 삭제시 판매자 판매 데이터 {}MB 복구 완료", transactionFeed.getSalesDataAmount());
+        }
 
         transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
         log.info("[deleteFeed] ES Document 삭제 상태 업데이트 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
