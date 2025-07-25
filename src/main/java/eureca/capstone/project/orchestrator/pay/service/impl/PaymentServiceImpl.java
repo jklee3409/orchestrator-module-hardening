@@ -102,8 +102,10 @@ public class PaymentServiceImpl implements PaymentService {
             discountAmount = Math.min(Math.round(calculateDiscount), 2000L);
             log.info("[preparePayment] 할인 금액 계산 검증. 할인 금액: {}", discountAmount);
 
-            requiredPayType = payTypeManager.getPayType(coupon.getEventCoupon().getPayType().getName());
-            log.info("[preparePayment] 쿠폰 사용을 위한 결제 수단: {}", requiredPayType.getName());
+            if (coupon.getEventCoupon().getPayType() != null) {
+                requiredPayType = payTypeManager.getPayType(coupon.getEventCoupon().getPayType().getName());
+                log.info("[preparePayment] 쿠폰 사용을 위한 결제 수단: {}", requiredPayType.getName());
+            }
         }
 
         Long expectedFinalAmount = requestDto.getOriginalAmount() - discountAmount;
@@ -133,7 +135,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
             PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
             log.info("[confirmPayment] 토스 결제 승인 응답 확인 완료. 결제 수단: {}", actualPaymentMethod.getName());
-            if (chargeHistory.getUserEventCoupon() != null) {
+            if (chargeHistory.getUserEventCoupon() != null && chargeHistory.getUserEventCoupon().getEventCoupon().getPayType() != null) {
                 PayType requiredPayType = chargeHistory.getUserEventCoupon().getEventCoupon().getPayType();
                 log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
 
