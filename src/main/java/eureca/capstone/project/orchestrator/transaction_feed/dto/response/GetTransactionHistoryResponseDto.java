@@ -20,8 +20,9 @@ public class GetTransactionHistoryResponseDto {
     private final String telecomCompany;
     private final String salesType;
     private final String transactionType; // "구매" 또는 "판매"
+    private final boolean liked;
 
-    public static GetTransactionHistoryResponseDto fromEntity(DataTransactionHistory history, Long currentUserId) {
+    public static GetTransactionHistoryResponseDto fromEntity(DataTransactionHistory history, Long currentUserId, boolean isLiked) {
         User buyer = history.getUser();
         User seller = history.getTransactionFeed().getUser();
 
@@ -41,6 +42,7 @@ public class GetTransactionHistoryResponseDto {
                 .telecomCompany(history.getTransactionFeed().getTelecomCompany().getName())
                 .salesType(history.getTransactionFeed().getSalesType().getName())
                 .transactionType(transactionType)
+                .liked(isLiked)
                 .build();
     }
 }
