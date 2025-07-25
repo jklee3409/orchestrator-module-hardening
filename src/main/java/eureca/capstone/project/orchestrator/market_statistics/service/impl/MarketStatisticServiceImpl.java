@@ -53,7 +53,7 @@ public class MarketStatisticServiceImpl implements MarketStatisticService {
                             .stream()
                             .map(stat -> CarrierPriceDto.builder()
                                     .carrierName(stat.getTelecomCompany().getName())
-                                    .pricePerGb(stat.getAveragePrice())
+                                    .pricePerMb(stat.getAveragePrice())
                                     .build())
                             .toList();
 
