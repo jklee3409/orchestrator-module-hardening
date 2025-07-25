@@ -8,15 +8,15 @@ import lombok.Data;
 @Builder
 public class EventCouponDto {
     private Long eventCouponId;
-    private String couponNumber;
     private String couponName;
+    private String couponDescription;
     private Long discountRate;
     private PayTypeDto payType;
 
     public static EventCouponDto fromEntity(EventCoupon eventCoupon) {
         return EventCouponDto.builder()
                 .eventCouponId(eventCoupon.getEventCouponId())
-                .couponNumber(eventCoupon.getCouponNumber())
+                .couponDescription(eventCoupon.getCouponDescription())
                 .couponName(eventCoupon.getCouponName())
                 .discountRate(eventCoupon.getDiscountRate())
                 .payType(PayTypeDto.fromEntity(eventCoupon.getPayType()))
