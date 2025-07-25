@@ -318,4 +318,11 @@ public class UserServiceImpl implements UserService {
         log.info("email: {}", email);
         return userRepository.findByEmail(email).orElseThrow(UserNotFoundException::new);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean checkEmailDuplicate(String email) {
+        log.info("[checkEmailDuplicate] 이메일 중복 확인 요청: {}", email);
+        return userRepository.findByEmail(email).isPresent();
+    }
 }
