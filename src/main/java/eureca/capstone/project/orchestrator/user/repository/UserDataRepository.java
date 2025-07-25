@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.Lock;
 
 public interface UserDataRepository extends JpaRepository<UserData, Long> {
     boolean existsByUserId(Long userId);
+    Optional<UserData> findByUserId(Long userId);
 }
