@@ -7,7 +7,9 @@ public class FilterConstant {
 
             "/orchestrator/user/",
             "/orchestrator/user/check-email",
-            "/orchestrator/user/password-reset/request",
+
+            "/orchestrator/user/password-reset/**",
+
 
             "/orchestrator/auth/login",
             "/orchestrator/auth/verify-email",
