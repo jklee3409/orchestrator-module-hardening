@@ -21,6 +21,7 @@ import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 
+import eureca.capstone.project.orchestrator.market_statistics.repository.MarketStatisticsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
 
@@ -119,6 +120,9 @@ class TransactionFeedServiceImplTest {
 
     @Mock
     private TransactionFeedRepository transactionFeedRepository;
+
+    @Mock
+    private MarketStatisticsRepository marketStatisticsRepository;
 
     @Mock
     private UserDataService userDataService;
