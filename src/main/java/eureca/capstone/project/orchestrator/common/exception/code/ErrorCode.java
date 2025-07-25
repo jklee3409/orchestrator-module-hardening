@@ -26,6 +26,7 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(20004, "EMAIL_ALREADY_EXISTS", "이미 존재하는 이메일입니다."),
     PASSWORD_MISMATCH(20005, "PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다."),
     NEW_PASSWORD_SAME_AS_OLD(20006, "NEW_PASSWORD_SAME_AS_OLD", "새 비밀번호가 기존 비밀번호와 동일합니다."),
+    PASSWORD_RESET_LINK_EXPIRED(20007, "PASSWORD_RESET_LINK_EXPIRED", "유효하지 않거나 만료된 비밀번호 재설정 링크입니다."),
 
     // USER_DATA 관련 에러 코드 (20051 ~ 20100)
     USER_DATA_CREATE_FAIL(20051, "USER_DATA_CREATE_FAIL", "사용자 데이터 등록 중 오류가 발생했습니다."),
