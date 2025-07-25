@@ -199,6 +199,7 @@ public class TransactionFeedController {
             * `20054` (USER_SELLABLE_DATA_LACK): 수정한 데이터가 판매가능 데이터보다 많은 경우
             * `20058` (USER_DATA_NOT_FOUND): 사용자의 데이터 정보가 없는 경우
             * `20055` (SELLABLE_DATA_DEDUCT_FAIL):  판매 가능 데이터 차감 도중 오류가 발생한 경우
+            * '30017' (FEED_NOT_ON_SALE): 판매 중이 아닌 판매글을 수정하려는 경우
             """)
     public BaseResponseDto<UpdateFeedResponseDto> updateFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
