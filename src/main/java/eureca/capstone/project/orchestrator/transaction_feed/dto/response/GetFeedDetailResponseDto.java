@@ -24,6 +24,10 @@ public class GetFeedDetailResponseDto {
     private final StatusDto status;
     private final SalesTypeDto salesType;
     private final LocalDateTime expiredAt;
+    private final boolean existStatistic; // 시세 존재 여부
+    private final Double rate; // 쌈/비쌈 비율
+    private final Boolean isExpensive; // 싼지 비싼지
+
 
     // 입찰 판매 시에만 사용 (Nullable)
     private final Long currentHeightPrice;

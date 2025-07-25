@@ -13,6 +13,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.market_statistics.repository.MarketStatisticsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.SalesTypeDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.enums.FeedSort;
@@ -39,6 +40,7 @@ import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,6 +72,7 @@ import org.springframework.util.CollectionUtils;
 @Service
 @RequiredArgsConstructor
 public class TransactionFeedServiceImpl implements TransactionFeedService {
+    private static final int PRICE_PER_MB = 100;
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
     private final UserDataRepositoryCustom userDataRepositoryCustom;
@@ -83,6 +86,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
     private final StringRedisTemplate stringRedisTemplate;
+    private final MarketStatisticsRepository marketStatisticsRepository;
 
     private static final Map<String, Long> TELECOM_SYNONYM_MAP = new java.util.HashMap<>();
     static {
@@ -200,13 +204,37 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
             String highestPriceStr = stringRedisTemplate.opsForValue().get(highestPriceKey);
 
             if (highestPriceStr != null) {
-                log.info("[getFeedDetail] 압찰 내역이 존재합니다. 최고가: {}", highestPriceStr);
+                log.info("[getFeedDetail] 입찰 내역이 존재합니다. 최고가: {}", highestPriceStr);
                 currentHeightPrice = Long.parseLong(highestPriceStr);
             } else {
-                log.info("[getFeedDetail] 압찰 내역이 존재하지 않습니다. 판매글의 최초 가격을 조회합니다.");
+                log.info("[getFeedDetail] 입찰 내역이 존재하지 않습니다. 판매글의 최초 가격을 조회합니다.");
                 currentHeightPrice = feed.getSalesPrice();
             }
         }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime previousHour = now.minusHours(1).truncatedTo(ChronoUnit.HOURS);
+
+        Long statisticPrice = marketStatisticsRepository.findByTime(previousHour, feed.getTelecomCompany().getTelecomCompanyId());
+        log.info("[getFeedDetail] 현재시각: {}시. {} 시의 시세 내역 조회 완료. 시세: {}", now, previousHour, statisticPrice);
+
+        boolean existStatistic = false;
+        Boolean isExpensive = null;
+        Double rate = null;
+
+        if(statisticPrice != null && statisticPrice > 0) {
+            log.info("[getFeedDetail] 시세 존재. 시세와 비교 계산 시작");
+            existStatistic = true;
+
+            double feedPricePerMB = ((double) feed.getSalesPrice() / feed.getSalesDataAmount()) * PRICE_PER_MB;
+            rate = ((feedPricePerMB - statisticPrice) / (double) statisticPrice) * 100.0;
+            isExpensive = rate > 0;
+            rate = Math.round(Math.abs(rate) * 10.0) / 10.0;
+            log.info("[getFeedDetail] 시세 계산 완료. isExpensive: {}, rate: {}%", isExpensive, rate);
+        }else{
+            log.info("[getFeedDetail] 시세 없음. 비교 불가. existStatistic: {}", existStatistic);
+        }
+
 
         return GetFeedDetailResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
@@ -224,6 +252,9 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .salesType(SalesTypeDto.fromEntity(feed.getSalesType()))
                 .expiredAt(feed.getExpiresAt())
                 .currentHeightPrice(currentHeightPrice)
+                .existStatistic(existStatistic)
+                .rate(rate)
+                .isExpensive(isExpensive)
                 .build();
     }
 

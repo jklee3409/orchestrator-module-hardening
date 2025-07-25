@@ -13,4 +13,9 @@ public interface MarketStatisticsRepository extends JpaRepository<MarketStatisti
             "where ms.staticsTime >= :from and ms.staticsTime < :to " +
             "order by ms.staticsTime asc")
     List<MarketStatistic> findAllByStaticsTimeRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("select ms.averagePrice from MarketStatistic ms join ms.telecomCompany tc " +
+            "where tc.telecomCompanyId = :telecomId " +
+            "and ms.staticsTime = :time")
+    Long findByTime(@Param("time") LocalDateTime time, @Param("telecomId") Long telecomId);
 }
