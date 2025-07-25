@@ -21,7 +21,7 @@ public class MarketStatisticController {
 
     @Operation(summary = "시간대별 시세 통계 조회 API", description = """
             ## 최근 24시간 동안의 시간대별 데이터 시세를 조회합니다.
-            각 시간대별로 통신사(SKT, KT, LGU+)의 1GB당 평균 시세 정보를 제공합니다.
+            각 시간대별로 통신사(SKT, KT, LGU+)의 100MB당 평균 시세 정보를 제공합니다.
             
             ***
             
