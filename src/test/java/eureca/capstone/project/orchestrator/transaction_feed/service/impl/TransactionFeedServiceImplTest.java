@@ -328,6 +328,7 @@ class TransactionFeedServiceImplTest {
             when(userDataRepositoryCustom.findByUserIdWithLock(anyLong())).thenReturn(Optional.of(userData));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
             when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
+            when(statusManager.getStatus(anyString(), anyString())).thenReturn(onSaleStatus);
 
             // when
             UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
@@ -371,6 +372,7 @@ class TransactionFeedServiceImplTest {
             when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
             when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
+            when(statusManager.getStatus(anyString(), anyString())).thenReturn(onSaleStatus);
 
             // when
             UpdateFeedResponseDto response = transactionFeedService.updateFeed(user.getEmail(), request);
@@ -412,6 +414,7 @@ class TransactionFeedServiceImplTest {
             when(transactionFeedRepository.findById(anyLong())).thenReturn(Optional.of(transactionFeed));
             when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
             when(transactionFeedSearchRepository.findById(anyLong())).thenReturn(Optional.of(mockDocument));
+            when(statusManager.getStatus(anyString(), anyString())).thenReturn(onSaleStatus);
 
             // when
             transactionFeedService.updateFeed(user.getEmail(), request);
