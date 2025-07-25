@@ -159,6 +159,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 updateFeedRequestDto.getDefaultImageNumber()
         );
         document.updateNormalPrice(updateFeedRequestDto.getSalesPrice());
+        transactionFeedSearchRepository.save(document);
         log.info("[updateFeed] ES Document 업데이트 완료. Document ID: {}", document.getId());
 
         return UpdateFeedResponseDto.builder()
