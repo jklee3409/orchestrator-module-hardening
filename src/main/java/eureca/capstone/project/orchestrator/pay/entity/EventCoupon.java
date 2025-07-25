@@ -16,11 +16,11 @@ public class EventCoupon extends BaseEntity {
     @Column(name = "event_coupon_id")
     private Long eventCouponId;
 
-    @Column(name = "coupon_number")
-    private String couponNumber;
-
     @Column(name = "coupon_name")
     private String couponName;
+
+    @Column(name = "coupon_description")
+    private String couponDescription;
 
     @JoinColumn(name = "pay_type_id")
     @ManyToOne(fetch = FetchType.LAZY)
