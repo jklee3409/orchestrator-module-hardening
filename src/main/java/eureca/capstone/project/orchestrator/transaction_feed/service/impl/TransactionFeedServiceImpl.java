@@ -241,6 +241,11 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         transactionFeed.delete();
         log.info("[deleteFeed] 판매글 논리적 삭제 완료");
 
+        if(transactionFeed.getStatus().equals(statusManager.getStatus("FEED","ON_SALE"))) {
+            userDataService.addSellableData(transactionFeed.getUser().getUserId(), transactionFeed.getSalesDataAmount());
+            log.info("[deleteFeed] 판매중인 글 삭제시 판매자 판매 데이터 {}MB 복구 완료", transactionFeed.getSalesDataAmount());
+        }
+
         transactionFeedSearchRepository.save(TransactionFeedDocument.fromEntity(transactionFeed));
         log.info("[deleteFeed] ES Document 삭제 상태 업데이트 완료. Document ID: {}", transactionFeed.getTransactionFeedId());
     }
