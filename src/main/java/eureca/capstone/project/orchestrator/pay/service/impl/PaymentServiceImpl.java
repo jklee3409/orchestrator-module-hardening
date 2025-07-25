@@ -23,6 +23,7 @@ import eureca.capstone.project.orchestrator.pay.service.PaymentTransactionServic
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -66,7 +67,7 @@ public class PaymentServiceImpl implements PaymentService {
         double discountRate = coupon.getEventCoupon().getDiscountRate() / 100.0;
         double calculateDiscount = requestDto.getOriginalAmount() * discountRate;
 
-        Long discountAmount = Math.round(calculateDiscount);
+        Long discountAmount = Math.min(Math.round(calculateDiscount), 2000L);
         Long finalAmount = requestDto.getOriginalAmount() - discountAmount;
         log.info("[calculateDiscount] 할인 금액 및 최종 금액 계산 완료. 할인 금액: {}, 최종 금액: {}", discountAmount, finalAmount);
 
@@ -95,14 +96,10 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("[preparePayment] 이벤트 쿠폰 적용 요청");
             coupon = userEventCouponService.validateAndGetCoupon(requestDto.getUserEventCouponId(), user);
 
-//            Status pendingStatus = statusManager.getStatus("COUPON", "PENDING");
-//            coupon.changeStatus(pendingStatus);
-//            log.info("[preparePayment] 쿠폰 상태를 PENDING 으로 변경하여 선점 처리");
-
             double discountRate = coupon.getEventCoupon().getDiscountRate() / 100.0;
             double calculateDiscount = requestDto.getOriginalAmount() * discountRate;
 
-            discountAmount = Math.round(calculateDiscount);
+            discountAmount = Math.min(Math.round(calculateDiscount), 2000L);
             log.info("[preparePayment] 할인 금액 계산 검증. 할인 금액: {}", discountAmount);
 
             requiredPayType = payTypeManager.getPayType(coupon.getEventCoupon().getPayType().getName());
@@ -141,16 +138,10 @@ public class PaymentServiceImpl implements PaymentService {
                 log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
 
                 if (!requiredPayType.equals(actualPaymentMethod)) {
-                    try {
-                        log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
-                        callTossCancelApi(requestDto.getPaymentKey(), "쿠폰 조건 불일치: 결제 수단 상이");
-                        paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
-                        throw new InternalServerException(ErrorCode.PAYMENT_CANCELLED_BY_PAY_METHOD);
-
-                    } catch (Exception e) {
-                        log.error(e.getMessage());
-                        throw new InternalServerException(ErrorCode.PAYMENT_CANCELLED_FAIL);
-                    }
+                    log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
+                    callTossCancelApi(requestDto.getPaymentKey(), "쿠폰 조건 불일치: 결제 수단 상이");
+                    paymentTransactionService.processPaymentFailed(chargeHistory.getChargeHistoryId());
+                    throw new InternalServerException(ErrorCode.PAYMENT_CANCELLED_BY_PAY_METHOD);
                 }
             }
             paymentTransactionService.processPaymentSuccess(chargeHistory.getChargeHistoryId(), requestDto.getPaymentKey(), actualPaymentMethod);
