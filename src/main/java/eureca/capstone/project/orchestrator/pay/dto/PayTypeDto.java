@@ -11,6 +11,7 @@ public class PayTypeDto {
     private String name;
 
     public static PayTypeDto fromEntity(PayType payType) {
+        if(payType == null) return null;
         return PayTypeDto.builder()
                 .payTypeId(payType.getPayTypeId())
                 .name(payType.getName())
