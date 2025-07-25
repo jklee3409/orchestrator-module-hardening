@@ -41,7 +41,7 @@ public class ChargeHistory extends BaseEntity {
     private PayType payType;
 
     @JoinColumn(name = "user_event_coupon_id")
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     private UserEventCoupon userEventCoupon;
 
     @Column(name = "order_id", unique = true)

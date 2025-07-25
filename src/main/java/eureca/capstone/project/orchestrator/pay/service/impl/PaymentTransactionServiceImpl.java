@@ -39,6 +39,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
         log.info("[processPaymentSuccess] 충전 내역 결제 상태 완료로 처리. 충전 내역 ID: {}", chargeHistoryId);
 
         if (history.getUserEventCoupon() != null){
+            userEventCouponService.validateAndGetCoupon(history.getUserEventCoupon().getUserEventCouponId(), history.getUser());
             userEventCouponService.useCoupon(history.getUserEventCoupon());
             log.info("[processPaymentSuccess] 사용자 이벤트 쿠폰 사용 처리 완료. 쿠폰 ID: {}", history.getUserEventCoupon().getUserEventCouponId());
         }
