@@ -46,19 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        // 현재 요청 매핑 정보 추출 (healthCheck 로그 제외)
         String requestURI = request.getRequestURI();
         if (!requestURI.equals("/healthCheck")) {
             log.info("[JwtFilter] Incoming request URI: {}", requestURI);
         }
-        // 화이트리스트 통과 처리
-        if (isPassListed(request)) {
-            chain.doFilter(request, response);
-            return;
-        }
 
         String authHeader;
-        // 헤더 값 추출 (액세스 토큰에 대한 요청인지, 토큰 재발급에 대한 요청인지 경로값으로 구분)
         if (requestURI.equals(FilterConstant.REFRESH_PATH)) {
             String refreshTokenByCookie = cookieUtil.extractTokenFromCookie(request);
             log.info("[JwtFilter] Refresh token by cookie is: {}", refreshTokenByCookie);
@@ -67,16 +60,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authHeader = request.getHeader("Authorization");
         }
 
+        // 토큰이 없는 경우
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("Authorization header missing or invalid: {}", authHeader);
+            // 공개된 경로(Pass-listed)는 인증 없이 통과
+            if (isPassListed(request)) {
+                log.debug("[JwtFilter] No token found for pass-listed URI: {}. Passing as anonymous.", requestURI);
+                chain.doFilter(request, response);
+                return;
+            }
+            // 보호된 경로인데 토큰이 없으면 에러 반환
+            log.warn("Authorization header missing or invalid for protected URI: {}", requestURI);
             writeErrorResponse(response, ErrorCode.MISSING_TOKEN);
             return;
         }
 
-        // 헤더에서 jwt 토큰 값만 추출
+        // 토큰이 있는 경우, 경로와 상관없이 검증 시도
         String token = authHeader.substring(7);
         try {
-            // 토큰이 유효한지 검증 (만료시간 + 시그니처 검증, 만약 예외발생시 catch 로 처리)
             jwtUtil.isValidToken(token);
 
             Long userId = jwtUtil.extractUserId(token);
@@ -84,39 +84,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Set<String> roles = jwtUtil.extractRoles(token);
             Set<String> authorities = jwtUtil.extractAuthorities(token);
 
-            // 블랙리스트 유저 확인 및 Exception 처리
             if (redisService.hasKey(REDIS_BLACK_LIST_USER + userId)) {
-                log.error("[doFilterInternal 메서드] BlackListUserException 발생");
+                log.error("[JwtFilter] Blacklisted user access attempt. User ID: {}", userId);
                 throw new BlackListUserException();
             }
 
-            // roles + authorities → GrantedAuthority 리스트로 통합
             List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
-            for (String role : roles) grantedAuthorities.add(new SimpleGrantedAuthority(role)); // ROLE_ 접두사 이미 포함돼 있음
-            for (String authority : authorities)
-                grantedAuthorities.add(new SimpleGrantedAuthority(authority)); // 그대로 READ, WRITE 등
+            for (String role : roles) grantedAuthorities.add(new SimpleGrantedAuthority(role));
+            for (String authority : authorities) grantedAuthorities.add(new SimpleGrantedAuthority(authority));
 
-            // UserDetails 생성
-            CustomUserDetailsDto userDetails =
-                    new CustomUserDetailsDto(userId, email, "", grantedAuthorities);
+            CustomUserDetailsDto userDetails = new CustomUserDetailsDto(userId, email, "", grantedAuthorities);
 
-            // 인증 객체 생성 및 SecurityContext 등록
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("[JwtFilter] Authentication successful for user: {}. URI: {}", email, requestURI);
+
         } catch (ExpiredJwtException e) {
-            log.warn("ExpiredJwtException {}", e.getMessage());
+            log.warn("[JwtFilter] Expired JWT token for URI: {}. Message: {}", requestURI, e.getMessage());
             writeErrorResponse(response, ErrorCode.TOKEN_EXPIRED);
             return;
         } catch (SignatureException e) {
-            log.warn("SignatureException {}", e.getMessage());
+            log.warn("[JwtFilter] Invalid JWT signature for URI: {}. Message: {}", requestURI, e.getMessage());
             writeErrorResponse(response, ErrorCode.INVALID_SIGNATURE);
             return;
         } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
-            log.warn("MalformedJwtException |  UnsupportedJwtException | IllegalArgumentException {}", e.getMessage());
+            log.warn("[JwtFilter] Malformed/Unsupported/Illegal JWT token for URI: {}. Message: {}", requestURI, e.getMessage());
             writeErrorResponse(response, ErrorCode.MALFORMED_TOKEN);
             return;
+        } catch (BlackListUserException e) {
+            writeErrorResponse(response, ErrorCode.BLACK_LIST_USER_FOUND);
+            return;
         }
+
         chain.doFilter(request, response);
     }
 

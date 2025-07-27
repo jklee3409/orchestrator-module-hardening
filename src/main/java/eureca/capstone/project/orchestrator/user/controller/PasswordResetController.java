@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.user.dto.request.user.PasswordResetConfirmRequest;
 import eureca.capstone.project.orchestrator.user.dto.request.user.PasswordResetRequest;
 import eureca.capstone.project.orchestrator.user.service.PasswordResetService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -45,6 +46,7 @@ public class PasswordResetController {
         return BaseResponseDto.success("입력하신 이메일로 비밀번호 재설정 안내 메일을 발송했습니다. 메일이 오지 않으면 스팸함을 확인해주세요.");
     }
 
+    @Hidden
     @Operation(summary = "비밀번호 재설정 폼 페이지 요청 (View)", description = "이메일로 발송된 링크를 통해 비밀번호 재설정 폼 페이지를 요청합니다.")
     @GetMapping("/form")
     public String showPasswordResetForm(@RequestParam("token") String token, Model model) {
@@ -57,6 +59,7 @@ public class PasswordResetController {
         return "password-reset-form"; // 비밀번호 재설정 폼 View 이름
     }
 
+    @Hidden
     @PostMapping("/confirm")
     @ResponseBody
     public BaseResponseDto<String> confirmPasswordReset(@Valid @RequestBody
