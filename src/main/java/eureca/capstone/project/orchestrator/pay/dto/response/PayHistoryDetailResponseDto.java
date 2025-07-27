@@ -15,7 +15,6 @@ import lombok.Getter;
 public class PayHistoryDetailResponseDto {
     private Long payHistoryId;
     private String changeType;
-    private Long finalUserPay;
     private LocalDateTime createdAt;
 
     private ChargeDetailDto chargeDetail;
@@ -33,8 +32,9 @@ public class PayHistoryDetailResponseDto {
         private Long chargedPay;
         private LocalDateTime chargedAt;
         private String payTypeName;
+        private Long finalUserPay;
 
-        public static ChargeDetailDto fromEntity(ChargeHistory chargeHistory) {
+        public static ChargeDetailDto fromEntity(ChargeHistory chargeHistory, Long finalUserPay) {
             return ChargeDetailDto.builder()
                     .orderId(chargeHistory.getOrderId())
                     .paymentAmount(chargeHistory.getAmount())
@@ -43,6 +43,7 @@ public class PayHistoryDetailResponseDto {
                     .chargedPay(chargeHistory.getChargePay())
                     .chargedAt(chargeHistory.getCompletedAt())
                     .payTypeName(chargeHistory.getPayType() != null ? chargeHistory.getPayType().getName() : "정보없음")
+                    .finalUserPay(finalUserPay)
                     .build();
         }
     }
@@ -58,8 +59,9 @@ public class PayHistoryDetailResponseDto {
         private LocalDateTime exchangedAt;
         private String bankName;
         private String exchangeAccount;
+        private Long finalUserPay;
 
-        public static ExchangeDetailDto fromEntity(ExchangeHistory exchangeHistory, Long changedPay) {
+        public static ExchangeDetailDto fromEntity(ExchangeHistory exchangeHistory, Long changedPay, Long finalUserPay) {
             return ExchangeDetailDto.builder()
                     .exchangeHistoryId(exchangeHistory.getExchangeHistoryId())
                     .exchangeAmount(exchangeHistory.getAmount())
@@ -69,6 +71,7 @@ public class PayHistoryDetailResponseDto {
                     .exchangedAt(exchangeHistory.getCreatedAt())
                     .bankName(exchangeHistory.getBank() != null ? exchangeHistory.getBank().getBankName() : "정보없음")
                     .exchangeAccount(exchangeHistory.getExchangeAccount())
+                    .finalUserPay(finalUserPay)
                     .build();
         }
     }
@@ -82,8 +85,9 @@ public class PayHistoryDetailResponseDto {
         private Long transactionPay;
         private LocalDateTime transactedAt;
         private String telecom;
+        private Long finalUserPay;
 
-        public static TransactionDetailDto fromEntity(DataTransactionHistory txHistory, Long changedPay) {
+        public static TransactionDetailDto fromEntity(DataTransactionHistory txHistory, Long changedPay, Long finalUserPay) {
             return TransactionDetailDto.builder()
                     .transactionHistoryId(txHistory.getTransactionHistoryId())
                     .transactionType(txHistory.getTransactionFeed().getSalesType().getName())
@@ -91,6 +95,7 @@ public class PayHistoryDetailResponseDto {
                     .transactionPay(changedPay)
                     .transactedAt(txHistory.getCreatedAt())
                     .telecom(txHistory.getTransactionFeed().getTelecomCompany().getName())
+                    .finalUserPay(finalUserPay)
                     .build();
         }
     }

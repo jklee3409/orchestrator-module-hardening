@@ -76,7 +76,6 @@ public class PayHistoryServiceImpl implements PayHistoryService {
         var responseBuilder = PayHistoryDetailResponseDto.builder()
                 .payHistoryId(payHistory.getPayHistoryId())
                 .changeType(payHistory.getChangeType().getType())
-                .finalUserPay(payHistory.getFinalPay())
                 .createdAt(payHistory.getCreatedAt());
 
         String type = payHistory.getChangeType().getType();
@@ -85,14 +84,14 @@ public class PayHistoryServiceImpl implements PayHistoryService {
             case "충전":
                 ChargeHistory chargeHistory = payHistoryRepository.findChargeHistoryByPayHistoryId(payHistoryId)
                         .orElseThrow(() -> new InternalServerException(ErrorCode.CHARGE_HISTORY_NOT_FOUND));
-                responseBuilder.chargeDetail(PayHistoryDetailResponseDto.ChargeDetailDto.fromEntity(chargeHistory));
+                responseBuilder.chargeDetail(PayHistoryDetailResponseDto.ChargeDetailDto.fromEntity(chargeHistory, payHistory.getFinalPay()));
                 log.info("[getPayHistoryDetail] ChargeHistory ID: {}", chargeHistory.getChargeHistoryId());
                 break;
 
             case "환전":
                 ExchangeHistory exchangeHistory = payHistoryRepository.findExchangeHistoryByPayHistoryId(payHistoryId)
                         .orElseThrow(() -> new InternalServerException(ErrorCode.EXCHANGE_HISTORY_NOT_FOUND));
-                responseBuilder.exchangeDetail(PayHistoryDetailResponseDto.ExchangeDetailDto.fromEntity(exchangeHistory, payHistory.getChangedPay()));
+                responseBuilder.exchangeDetail(PayHistoryDetailResponseDto.ExchangeDetailDto.fromEntity(exchangeHistory, payHistory.getChangedPay(), payHistory.getFinalPay()));
                 log.info("[getPayHistoryDetail] ExchangeHistory ID: {}", exchangeHistory.getExchangeHistoryId());
                 break;
 
@@ -100,7 +99,7 @@ public class PayHistoryServiceImpl implements PayHistoryService {
             case "판매":
                 DataTransactionHistory txHistory = payHistoryRepository.findTransactionHistoryByPayHistoryId(payHistoryId)
                         .orElseThrow(() -> new InternalServerException(ErrorCode.TRANSACTION_HISTORY_NOT_FOUND));
-                responseBuilder.transactionDetail(PayHistoryDetailResponseDto.TransactionDetailDto.fromEntity(txHistory, payHistory.getChangedPay()));
+                responseBuilder.transactionDetail(PayHistoryDetailResponseDto.TransactionDetailDto.fromEntity(txHistory, payHistory.getChangedPay(), payHistory.getFinalPay()));
                 log.info("[getPayHistoryDetail] DataTransactionHistory ID: {}", txHistory.getTransactionHistoryId());
                 break;
 
