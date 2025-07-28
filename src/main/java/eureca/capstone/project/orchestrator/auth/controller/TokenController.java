@@ -1,9 +1,8 @@
 package eureca.capstone.project.orchestrator.auth.controller;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
-import eureca.capstone.project.orchestrator.auth.dto.response.TokenParsingResponseDto;
-import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.ReGenerateTokenResponseDto;
+import eureca.capstone.project.orchestrator.auth.dto.response.TokenParsingResponseDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
@@ -18,8 +17,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
