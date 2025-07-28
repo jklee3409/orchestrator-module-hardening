@@ -46,14 +46,10 @@ public class PasswordResetController {
             
             ***
             
-            ### 📥 요청 파라미터 (Query Parameters)
-            | 이름 | 타입 | 필수 | 설명 |
-            |---|---|:---:|---|
-            | `token` | `String` | O | 이메일로 전송된 고유 인증 토큰 |
-            
             ### 📥 요청 바디 (Request Body)
             ```json
             {
+              "token":"url에 있는 토큰값",
               "newPassword": "12345678"
             }
             ```
@@ -62,8 +58,8 @@ public class PasswordResetController {
             * `20007` (PASSWORD_RESET_LINK_EXPIRED): 유효하지 않거나 만료된 비밀번호 재설정 토큰일 경우
             """)
     @PostMapping("/confirm")
-    public BaseResponseDto<String> confirmPasswordReset(@RequestParam String token, @RequestBody PasswordResetConfirmRequest request) {
-        passwordResetService.resetPassword(token, request.getNewPassword());
+    public BaseResponseDto<String> confirmPasswordReset(@RequestBody PasswordResetConfirmRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
         return BaseResponseDto.success("비밀번호가 성공적으로 변경되었습니다.");
     }
 
