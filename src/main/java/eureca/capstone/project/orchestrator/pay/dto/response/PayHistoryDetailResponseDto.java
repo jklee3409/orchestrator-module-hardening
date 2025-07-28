@@ -81,7 +81,7 @@ public class PayHistoryDetailResponseDto {
     public static class TransactionDetailDto {
         private Long transactionHistoryId;
         private String transactionType;
-        private String dataTitle;
+        private Long dataAmount;
         private Long transactionPay;
         private LocalDateTime transactedAt;
         private String telecom;
@@ -91,7 +91,7 @@ public class PayHistoryDetailResponseDto {
             return TransactionDetailDto.builder()
                     .transactionHistoryId(txHistory.getTransactionHistoryId())
                     .transactionType(txHistory.getTransactionFeed().getSalesType().getName())
-                    .dataTitle(txHistory.getTransactionFeed().getTitle())
+                    .dataAmount(txHistory.getTransactionFeed().getSalesDataAmount())
                     .transactionPay(changedPay)
                     .transactedAt(txHistory.getCreatedAt())
                     .telecom(txHistory.getTransactionFeed().getTelecomCompany().getName())
