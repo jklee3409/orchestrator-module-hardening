@@ -186,6 +186,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         TransactionFeed feed = transactionFeedRepository.findFeedDetailById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
 
+        Long sellerId = feed.getUser().getUserId();
         boolean isLiked = false;
         if (userDetailsDto != null) {
             User user = findUserByEmail(userDetailsDto.getEmail());
@@ -240,6 +241,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         return GetFeedDetailResponseDto.builder()
                 .transactionFeedId(feed.getTransactionFeedId())
+                .sellerId(sellerId)
                 .title(feed.getTitle())
                 .content(feed.getContent())
                 .salesDataAmount(feed.getSalesDataAmount())
