@@ -13,6 +13,7 @@ import lombok.Data;
 @Builder
 public class GetFeedDetailResponseDto {
     private final Long transactionFeedId;
+    private final Long sellerId;
     private final String title;
     private final String content;
     private final Long salesDataAmount;
