@@ -37,7 +37,7 @@ public class FilterConstant {
             "/**"
     };
     // 리프레쉬 토큰 재발급 경로
-    public static final String REFRESH_PATH = "/auth/reissue";
+    public static final String REFRESH_PATH = "/orchestrator/auth/re-generate-token";
 
     public static final String[] PUBLIC_GET_URIS = {
             "/orchestrator/transaction-feed/search", // 판매글 목록 조회
