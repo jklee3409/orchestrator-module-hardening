@@ -46,7 +46,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             redisService.setValue(redisKey, String.valueOf(user.getUserId()), 15, TimeUnit.MINUTES);
 
             // 이메일 발송
-            String resetLink = RESET_PASSWORD_TOKEN_URL + token;
+//            String resetLink = RESET_PASSWORD_TOKEN_URL + token; 배포주소
+            String resetLink = "http://localhost:5173/reset-password?token="+token;
             String emailBody = String.format(PASSWORD_RESET_BODY, resetLink);
             emailService.sendEmail(email, PASSWORD_RESET_SUBJECT, emailBody);
 
