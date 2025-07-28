@@ -56,12 +56,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
     @Override
-    public boolean isTokenValid(String token) {
-        String redisKey = "password-reset-token:" + token;
-        return redisService.hasKey(redisKey);
-    }
-
-    @Override
     @Transactional
     public void resetPassword(String token, String newPassword) {
         String redisKey = "password-reset-token:" + token;
