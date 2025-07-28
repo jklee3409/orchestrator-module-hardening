@@ -1,5 +1,7 @@
 package eureca.capstone.project.orchestrator.auth.controller;
 
+import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
+import eureca.capstone.project.orchestrator.auth.dto.response.TokenParsingResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,5 +56,87 @@ public class TokenController {
         BaseResponseDto<Void> success = BaseResponseDto.voidSuccess();
         log.info("success: {}", success);
         httpServletResponse.sendRedirect(PRODUCT_FRONT_URL);
+    }
+
+    @Operation(summary = "JWT 토큰 파싱 API", description = """
+            ### 📌 설명
+            클라이언트가 HTTP Header에 포함한 **JWT Access Token (Bearer)**을 파싱하여 토큰에 포함된 주요 정보를 반환합니다.  
+            서버는 해당 토큰에서 **이메일(email)**, **사용자 ID(userId)**, **역할(roles)**, **권한(authorities)**를 추출합니다.
+            
+            ---
+            
+            ### 📥 요청 헤더 (Request Headers)
+            | 이름            | 타입      | 필수 | 설명                                  |
+            |-----------------|-----------|:----:|---------------------------------------|
+            | `Authorization` | `String`  | O    | `Bearer {ACCESS_TOKEN}` 형식의 토큰   |
+            
+            ---
+            
+            ### 📤 응답
+            성공 시 아래 정보가 반환됩니다.
+            | 필드         | 타입           | 설명                  |
+            |--------------|----------------|-----------------------|
+            | `email`      | `String`       | 토큰에 포함된 이메일  |
+            | `userId`     | `Long`         | 사용자 고유 식별자    |
+            | `roles`      | `Set<String>` | 사용자 역할 목록      |
+            | `authorities`| `Set<String>` | 사용자 권한 목록      |
+            
+            ---
+            
+            ### 🔑 권한
+            * 모든 사용자 (유효한 JWT 토큰 필요)
+            
+            ---
+            
+            ### ❌ 주요 실패 코드
+            * `401 Unauthorized`: 토큰값이 유효하지 않은 경우, Spring Security가 반환하는 표준 응답입니다.
+            
+            ---
+            
+            ### 📝 예시
+            **Request**
+            ```
+            GET /token-parsing
+            Header: Authorization: Bearer {ACCESS_TOKEN}
+            ```
+            
+            **Response**
+            ```json
+            {
+              "statusCode": 200,
+              "message": "success",
+              "data": {
+                "email": "user@example.com",
+                "userId": 123,
+                "roles": [
+                  "ROLE_USER"
+                ],
+                "authorities": [
+                  "READ",
+                  "NOTICE",
+                  "TRANSACTION",
+                  "WRITE"
+                ]
+              }
+            }
+            ```
+            """
+    )
+    @GetMapping("/token-parsing")
+    public BaseResponseDto<TokenParsingResponseDto> tokenParsing(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto) {
+        log.info("tokenParsing customUserDetailsDto: {}", customUserDetailsDto);
+
+        TokenParsingResponseDto tokenParsingResponseDto = TokenParsingResponseDto.builder()
+                .email(customUserDetailsDto.getEmail())
+                .userId(customUserDetailsDto.getUserId())
+                .roles(customUserDetailsDto.getRoleStrings())
+                .authorities(customUserDetailsDto.getAuthorityStrings())
+                .build();
+        log.info("tokenParsingResponseDto: {}", tokenParsingResponseDto);
+
+        BaseResponseDto<TokenParsingResponseDto> success = BaseResponseDto.success(tokenParsingResponseDto);
+        log.info("success: {}", success);
+
+        return success;
     }
 }
