@@ -1,13 +1,30 @@
 {
   "analysis": {
     "analyzer": {
-      "nori": {
+      "index_analyzer": {
+        "type": "custom",
+        "tokenizer": "nori_tokenizer",
+        "filter": [
+          "lowercase",
+          "nori_part_of_speech",
+          "nori_readingform"
+        ]
+      },
+      "search_analyzer": {
         "type": "custom",
         "tokenizer": "nori_tokenizer",
         "filter": [
           "lowercase",
           "nori_readingform",
           "synonym_graph_filter"
+        ]
+      },
+      "prefix_analyzer": {
+        "type": "custom",
+        "tokenizer": "keyword",
+        "filter": [
+          "lowercase",
+          "edge_ngram_filter"
         ]
       }
     },
@@ -21,6 +38,11 @@
           "GB, gb, 기가, 기가바이트",
           "MB, mb, 메가, 메가바이트"
         ]
+      },
+      "edge_ngram_filter": {
+        "type": "edge_ngram",
+        "min_gram": 1,
+        "max_gram": 20
       }
     }
   }

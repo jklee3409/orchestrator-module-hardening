@@ -313,6 +313,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
             // 키워드를 공백 기준으로 단어별로 분리
             String[] words = keyword.trim().split("\\s+");
+            log.info("[searchFeeds] 분리된 키워드 배열: {}", java.util.Arrays.toString(words));
 
             for (String word : words) {
                 String lowerWord = word.toLowerCase();
@@ -342,7 +343,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 log.info("[searchFeeds] >> 나머지 단어 '{}'에 대해 텍스트 검색을 수행합니다.", searchText);
                 boolQueryBuilder.filter(f -> f.multiMatch(mm -> mm
                         .query(searchText)
-                        .fields("title", "content", "nickname", "telecomCompanyName")
+                        .fields("title", "content", "nickname",
+                                "title.prefix", "content.prefix", "nickname.prefix")
                 ));
             }
         }
@@ -350,6 +352,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         applyDynamicFilters(boolQueryBuilder, requestDto);
         log.info("[searchFeeds] 동적 필터 적용 완료.");
 
+        BoolQuery finalQuery = boolQueryBuilder.build();
+        log.info("[searchFeeds] 최종 실행될 Elasticsearch Bool Query: {}", finalQuery.toString());
 
         FeedSort feedSort = requestDto.getSortBy();
         String sortProperty = feedSort.getProperty();
@@ -364,7 +368,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         Pageable customPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), customSort);
 
         NativeQuery nativeQuery = NativeQuery.builder()
-                .withQuery(q -> q.bool(boolQueryBuilder.build()))
+                .withQuery(q -> q.bool(finalQuery))
                 .withPageable(customPageable)
                 .build();
 
