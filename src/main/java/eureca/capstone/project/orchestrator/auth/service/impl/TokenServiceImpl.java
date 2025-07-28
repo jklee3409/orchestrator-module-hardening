@@ -4,6 +4,7 @@ import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.exception.custom.RefreshTokenMismatchException;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -49,5 +50,19 @@ public class TokenServiceImpl implements TokenService {
 
         // return
         return accessToken;
+    }
+
+    @Override
+    public String reGenerateToken(CustomUserDetailsDto customUserDetailsDto, HttpServletResponse httpServletResponse) {
+        // 요청 값 로그 출력
+        log.info("reGenerateToken token - customUserDetailsDto : {}", customUserDetailsDto);
+        log.info("reGenerateToken token - httpServletResponse : {}", httpServletResponse);
+        // 서버에서 발급한 리프레쉬 토큰값이 맞는지 확인
+        if (!redisService.hasKey(REDIS_REFRESH_TOKEN + customUserDetailsDto.getUserId())) {
+            log.error("redis 에 해당 리프레쉬 토큰 값이 존재하지 않습니다.");
+            throw new RefreshTokenMismatchException();
+        }
+        // 토큰 재 발행
+        return generateToken(customUserDetailsDto, httpServletResponse);
     }
 }
