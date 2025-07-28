@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.InnerField;
+import org.springframework.data.elasticsearch.annotations.MultiField;
 import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
@@ -23,10 +25,28 @@ public class TransactionFeedDocument {
     @Id
     private Long id;
 
-    @Field(type = FieldType.Text, analyzer = "nori")
+    @MultiField(
+            mainField = @Field(
+                    type = FieldType.Text,
+                    analyzer = "index_analyzer",
+                    searchAnalyzer = "search_analyzer"
+            ),
+            otherFields = {
+                    @InnerField(suffix = "prefix", type = FieldType.Text, analyzer = "prefix_analyzer")
+            }
+    )
     private String title;
 
-    @Field(type = FieldType.Text, analyzer = "nori")
+    @MultiField(
+            mainField = @Field(
+                    type = FieldType.Text,
+                    analyzer = "index_analyzer",
+                    searchAnalyzer = "search_analyzer"
+            ),
+            otherFields = {
+                    @InnerField(suffix = "prefix", type = FieldType.Text, analyzer = "prefix_analyzer")
+            }
+    )
     private String content;
 
     @Field(type = FieldType.Long)
@@ -44,13 +64,21 @@ public class TransactionFeedDocument {
     @Field(type = FieldType.Keyword)
     private Long sellerId;
 
-    @Field(type = FieldType.Keyword)
+    @MultiField(
+            mainField = @Field(
+                    type = FieldType.Text,
+                    analyzer = "index_analyzer",
+                    searchAnalyzer = "search_analyzer"
+            ),
+            otherFields = {
+                    @InnerField(suffix = "prefix", type = FieldType.Text, analyzer = "prefix_analyzer")
+            }
+    )
     private String nickname;
 
     @Field(type = FieldType.Keyword)
     private Long telecomCompanyId;
 
-    @Field(type = FieldType.Text, analyzer = "nori")
     private String telecomCompanyName; // 검색용
 
     @Field(type = FieldType.Keyword)
