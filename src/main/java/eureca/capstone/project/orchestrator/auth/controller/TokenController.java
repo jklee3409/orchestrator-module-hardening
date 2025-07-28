@@ -108,7 +108,7 @@ public class TokenController {
             ```
             """
     )
-    @PostMapping("/re-generate-token")
+    @GetMapping("/re-generate-token")
     public BaseResponseDto<ReGenerateTokenResponseDto> reGenerateToken(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto, HttpServletResponse httpServletResponse) throws IOException {
         log.info("reGenerateToken customUserDetailsDto: {}", customUserDetailsDto);
         String accessToken = tokenService.reGenerateToken(customUserDetailsDto, httpServletResponse);
