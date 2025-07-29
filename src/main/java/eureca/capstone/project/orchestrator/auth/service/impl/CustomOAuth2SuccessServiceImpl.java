@@ -1,16 +1,12 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eureca.capstone.project.orchestrator.auth.dto.response.LoginResponseDto;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
-import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
-import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -18,10 +14,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.util.Set;
-
-import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_REFRESH_TOKEN;
+import java.io.IOException;
 
 @Slf4j
 @Service
