@@ -34,7 +34,7 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
         String provider = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        // SNS 고유 ID 변수 (카카오, 구글, 애플)
+        // SNS 고유 ID 변수 (카카오, 구글, 네이버)
         String providerId = null;
         String email = null;
 
@@ -51,9 +51,14 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
                 email = providerId + "@gmail.com";
                 log.info("[loadUser] google: providerId -> {} , email -> {}", providerId, email);
             }
+            case "naver" -> {
+                // 네이버 response 고유 식별자
+                Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+                providerId = (String) response.get("id");  // 네이버 고유 식별자
+                email = (String) response.get("email");    // 이메일 직접 제공
+                log.info("[loadUser] naver: providerId -> {}, email -> {}", providerId, email);
+            }
         }
-
-        // TODO 활성화된 사용자인지 확인
 
         // 사용자가 존재하는지 확인하고 등록 결과(userId, isNewUser)를 가져옴
         OAuthRegistrationResultDto registrationResult = userService.OAuthUserRegisterIfNotExists(email, provider);

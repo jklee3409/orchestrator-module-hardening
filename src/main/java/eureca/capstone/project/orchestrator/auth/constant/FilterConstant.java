@@ -18,6 +18,8 @@ public class FilterConstant {
             "/oauth2/authorization/kakao",
             "/login/oauth2/code/google",
             "/oauth2/authorization/google",
+            "/login/oauth2/code/naver",
+            "/oauth2/authorization/naver",
 
             "/orchestrator/oauth/token",
 
