@@ -55,7 +55,7 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
                 // 네이버 response 고유 식별자
                 Map<String, Object> response = (Map<String, Object>) attributes.get("response");
                 providerId = (String) response.get("id");  // 네이버 고유 식별자
-                email = (String) response.get("email");    // 이메일 직접 제공
+                email = providerId + "@naver.com";
                 log.info("[loadUser] naver: providerId -> {}, email -> {}", providerId, email);
             }
         }
