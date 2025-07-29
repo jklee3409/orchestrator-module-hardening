@@ -14,6 +14,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.Update
 import eureca.capstone.project.orchestrator.transaction_feed.service.TransactionFeedService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -173,10 +174,11 @@ public class TransactionFeedController {
             * `20054` (USER_SELLABLE_DATA_LACK): 판매하려는 데이터보다 판매 가능 데이터가 부족한 경우
             * `60003` (TELECOM_COMPANY_NOT_FOUND): 유효하지 않은 통신사 ID인 경우
             * `60001` (INVALID_TELECOM_COMPANY): 가입된 통신사와 판매글의 통신사가 다른 경우
+            * '60004' (METHOD_ARGUMENT_NOT_VALID): 제목이나 내용 등 파라미터 형식이 유효하지 않은 경우 (공백, 음수 등)
             """)
     public BaseResponseDto<CreateFeedResponseDto> createFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
-            @RequestBody CreateFeedRequestDto createFeedRequestDto
+            @Valid @RequestBody CreateFeedRequestDto createFeedRequestDto
     ) {
         CreateFeedResponseDto createFeedResponse = transactionFeedService.createFeed(customUserDetailsDto.getEmail(), createFeedRequestDto);
         return BaseResponseDto.success(createFeedResponse);
@@ -215,10 +217,11 @@ public class TransactionFeedController {
             * `20058` (USER_DATA_NOT_FOUND): 사용자의 데이터 정보가 없는 경우
             * `20055` (SELLABLE_DATA_DEDUCT_FAIL):  판매 가능 데이터 차감 도중 오류가 발생한 경우
             * '30017' (FEED_NOT_ON_SALE): 판매 중이 아닌 판매글을 수정하려는 경우
+            * '60004' (METHOD_ARGUMENT_NOT_VALID): 제목이나 내용 등 파라미터 형식이 유효하지 않은 경우 (공백, 음수 등)
             """)
     public BaseResponseDto<UpdateFeedResponseDto> updateFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
-            @RequestBody UpdateFeedRequestDto updateFeedRequestDto
+            @Valid @RequestBody UpdateFeedRequestDto updateFeedRequestDto
     ) {
         UpdateFeedResponseDto updateFeedResponse = transactionFeedService.updateFeed(customUserDetailsDto.getEmail(), updateFeedRequestDto);
         return BaseResponseDto.success(updateFeedResponse);

@@ -9,6 +9,7 @@ import eureca.capstone.project.orchestrator.common.exception.custom.EmailVerifyT
 import eureca.capstone.project.orchestrator.common.exception.custom.RefreshTokenMismatchException;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -170,5 +171,11 @@ public class GlobalExceptionHandler {
     public BaseResponseDto<ErrorResponseDto> handleUserEventCouponAlreadyExistsException(UserEventCouponAlreadyExistsException e) {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.USER_EVENT_COUPON_ALREADY_EXISTS);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public BaseResponseDto<ErrorResponseDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.METHOD_ARGUMENT_NOT_VALID);
     }
 }

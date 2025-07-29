@@ -102,7 +102,8 @@ public enum ErrorCode {
     // common 관련 에러코드 (60000 ~ 69999)
     INVALID_TELECOM_COMPANY(60001, "INVALID_TELECOM_COMPANY", "통신사가 일치하지 않습니다."),
     STATUS_NOT_FOUND(60002, "STATUS_NOT_FOUND", "상태를 찾지 못하였습니다."),
-    TELECOM_COMPANY_NOT_FOUND(60003, "TELECOM_COMPANY_NOT_FOUND", "통신사를 찾지 못하였습니다.");
+    TELECOM_COMPANY_NOT_FOUND(60003, "TELECOM_COMPANY_NOT_FOUND", "통신사를 찾지 못하였습니다."),
+    METHOD_ARGUMENT_NOT_VALID(60004, "METHOD_ARGUMENT_NOT_VALID", "입력 파라미터가 유효하지 않습니다. ex) 이메일, 제목, 내용...");
 
     private final int code;
     private final String name;
