@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.BidException;
+import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
@@ -20,6 +21,13 @@ import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.T
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,7 +49,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -167,7 +179,120 @@ class BidServiceImplTest {
             BidException exception = assertThrows(BidException.class, () -> bidService.placeBid(seller.getEmail(), request));
             assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SELLER_CANNOT_BID);
         }
+
+        @Test
+        @DisplayName("[예외] DB 처리 실패 시 Redis 상태를 롤백해야 한다")
+        void placeBid_whenDBFails_shouldRollbackRedis() {
+            // given
+            PlaceBidRequestDto request = PlaceBidRequestDto.builder()
+                    .transactionFeedId(feed.getTransactionFeedId())
+                    .bidAmount(7000L)
+                    .build();
+            User prevBidder = User.builder().userId(99L).build();
+            Long prevBidAmount = 6000L;
+            List<Object> mockResult = List.of("SUCCESS", String.valueOf(prevBidder.getUserId()), String.valueOf(prevBidAmount));
+
+            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString()))
+                    .thenReturn(mockResult);
+            when(userRepository.findById(prevBidder.getUserId())).thenReturn(Optional.of(prevBidder));
+
+            // 페이 사용 과정에서 DB 예외 발생 가정
+            doThrow(new RuntimeException("DB 처리 중 오류 발생!!!")).when(userPayService).usePay(any(), anyLong());
+
+            when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+
+            // when & then
+            assertThrows(InternalServerException.class, () -> bidService.placeBid(bidder.getEmail(), request));
+
+            // Redis 롤백 검증
+            String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
+            String highestBidderKey = String.format("bids:%d:highest_bidder_id", feed.getTransactionFeedId());
+
+            verify(valueOperations).set(highestPriceKey, String.valueOf(prevBidAmount));
+            verify(valueOperations).set(highestBidderKey, String.valueOf(prevBidder.getUserId()));
+        }
+
+        @Test
+        @DisplayName("[안정성] 100개의 유효한 입찰 동시 처리 시, 서비스 로직이 안정적으로 모두 수행되어야 한다")
+        void placeBid_concurrency_100_users_success() throws InterruptedException {
+            // given
+            int numberOfBidders = 100;
+            long startPrice = feed.getSalesPrice(); // 5000L
+            long bidIncrement = 100L;
+
+            // 입찰자 100명 생성
+            List<User> bidders = IntStream.range(0, numberOfBidders)
+                    .mapToObj(i -> User.builder().userId(100L + i).email("bidder" + i + "@test.com").nickname("동시입찰자" + i).telecomCompany(telecomCompany).build())
+                    .toList();
+
+            // Mock
+            for (User b : bidders) {
+                when(userRepository.findByEmail(b.getEmail())).thenReturn(Optional.of(b));
+            }
+            for (User b : bidders) {
+                lenient().when(userRepository.findById(b.getUserId())).thenReturn(Optional.of(b));
+            }
+
+            final Map<String, String> redisState = new ConcurrentHashMap<>();
+            redisState.put("highestPrice", String.valueOf(startPrice));
+            redisState.put("highestBidder", "0");
+
+            // Redis 스크립트가 이전 입찰자를 반환
+            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString()))
+                    .thenAnswer(invocation -> {
+                        synchronized (redisState) {
+                            long currentPrice = Long.parseLong(invocation.getArgument(2));
+                            String currentBidderId = invocation.getArgument(3);
+
+                            long prevPrice = Long.parseLong(redisState.get("highestPrice"));
+                            String prevBidderId = redisState.get("highestBidder");
+
+                            redisState.put("highestPrice", String.valueOf(currentPrice));
+                            redisState.put("highestBidder", currentBidderId);
+
+                            return Arrays.asList("SUCCESS", prevBidderId, String.valueOf(prevPrice));
+                        }
+                    });
+
+            // when
+            ExecutorService executorService = Executors.newFixedThreadPool(numberOfBidders);
+            CountDownLatch doneLatch = new CountDownLatch(numberOfBidders);
+
+            for (int i = 0; i < numberOfBidders; i++) {
+                User currentBidder = bidders.get(i);
+                long currentBidAmount = startPrice + ((i + 1) * bidIncrement);
+                PlaceBidRequestDto request = PlaceBidRequestDto.builder().transactionFeedId(feed.getTransactionFeedId()).bidAmount(currentBidAmount).build();
+
+                executorService.submit(() -> {
+                    try {
+                        bidService.placeBid(currentBidder.getEmail(), request);
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            doneLatch.await(); // 모든 스레드가 끝날 때까지 대기
+            executorService.shutdown();
+
+            // then
+            User winner = bidders.get(numberOfBidders - 1);
+            long winningBid = startPrice + (numberOfBidders * bidIncrement);
+
+            // DB 입찰 내역 save 검증
+            verify(bidsRepository, times(numberOfBidders)).save(any(Bids.class));
+
+            // 입찰 성공 시 페이 사용 로직 호출 검증
+            for (int i = 0; i < numberOfBidders; i++) {
+                User currentBidder = bidders.get(i);
+                long currentBidAmount = startPrice + ((i + 1) * bidIncrement);
+                verify(userPayService).usePay(eq(currentBidder), eq(currentBidAmount));
+            }
+
+            // 이전 입찰자들에 대한 페이 환불 검증
+            verify(userPayService, times(numberOfBidders - 1)).refundPay(any(User.class), anyLong());
+        }
     }
+
     @Nested
     @DisplayName("입찰 내역 조회 기능")
     class GetBidHistory {
