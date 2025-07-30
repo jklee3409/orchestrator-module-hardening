@@ -19,4 +19,6 @@ public interface UserService {
     OAuthRegistrationResultDto OAuthUserRegisterIfNotExists(String email, String provider);
     UpdateUserTelecomAndPhoneResponseDto updateUserTelecomAndPhone(String email, UpdateUserTelecomAndPhoneRequestDto requestDto);
     boolean checkEmailDuplicate(String email);
+
+    boolean checkBanUser(String email);
 }

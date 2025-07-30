@@ -10,4 +10,5 @@ public interface UserRepositoryCustom {
     UserInformationDto findUserInformation(String email);
     Long updateStatusByEmail(String email, Status newStatus);
     Optional<User> findActiveUserByEmail(String email);
+    boolean checkBanUserByEmail(String email);
 }

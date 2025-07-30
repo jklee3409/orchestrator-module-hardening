@@ -3,8 +3,10 @@ package eureca.capstone.project.orchestrator.auth.service.impl;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.orchestrator.auth.entity.UserAuthority;
 import eureca.capstone.project.orchestrator.auth.repository.UserAuthorityRepository;
+import eureca.capstone.project.orchestrator.common.exception.custom.BlockUserException;
 import eureca.capstone.project.orchestrator.user.dto.UserInformationDto;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
+import eureca.capstone.project.orchestrator.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,11 +25,18 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsServiceImpl implements UserDetailsService {
+    private final UserService userService;
     private final UserRepository userRepository;
     private final UserAuthorityRepository userAuthorityRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // 혹시 차단된 사용자인지 확인
+        if (userService.checkBanUser(email)) {
+            log.error("[loadUserByUsername] : checkBanUser throw BlockUserException");
+            throw new BlockUserException();
+        }
+
         // 요청 파라미터 로그 출력 및 사용자 정보 추출
         log.info("loadUserByUsername : {}", email);
         UserInformationDto userInformationDto = userRepository.findUserInformation(email);

@@ -1,6 +1,7 @@
 package eureca.capstone.project.orchestrator.auth.service.impl;
 
 import eureca.capstone.project.orchestrator.auth.dto.OAuthRegistrationResultDto;
+import eureca.capstone.project.orchestrator.common.exception.custom.BlockUserException;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.user.service.UserService;
 import java.time.Duration;
@@ -63,6 +64,12 @@ public class CustomOAuth2UserServiceImpl implements OAuth2UserService<OAuth2User
         // 사용자가 존재하는지 확인하고 등록 결과(userId, isNewUser)를 가져옴
         OAuthRegistrationResultDto registrationResult = userService.OAuthUserRegisterIfNotExists(email, provider);
         log.info("[loadUser] userId -> {}, isNewUser -> {}", registrationResult.getUserId(), registrationResult.isNewUser());
+
+        // 혹시 차단된 사용자인지 확인
+        if (userService.checkBanUser(email)) {
+            log.error("[CustomOAuth2UserServiceImpl] : checkBanUser throw BlockUserException");
+            throw new BlockUserException();
+        }
 
         // 임시 인증 코드를 생성하여 redis 에 저장
         String authCode = UUID.randomUUID().toString();
