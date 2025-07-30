@@ -11,6 +11,7 @@ import lombok.Data;
 public class NotificationDto {
     private Long alarmId;
     private String content;
+    private Long transactionFeedId;
     private AlarmTypeDto alarmType;
     private StatusDto status;
     private LocalDateTime createdAt;
@@ -19,6 +20,7 @@ public class NotificationDto {
         return NotificationDto.builder()
                 .alarmId(alarm.getAlarmId())
                 .content(alarm.getContent())
+                .transactionFeedId(alarm.getTransactionFeedId())
                 .alarmType(AlarmTypeDto.fromEntity(alarm.getAlarmType()))
                 .status(StatusDto.fromEntity(alarm.getStatus()))
                 .createdAt(alarm.getCreatedAt())

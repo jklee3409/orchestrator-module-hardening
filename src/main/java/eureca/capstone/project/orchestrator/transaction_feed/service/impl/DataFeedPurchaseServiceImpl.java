@@ -81,6 +81,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         notificationProducer.send(AlarmCreationDto.builder()
                 .userId(buyer.getUserId())
                 .alarmType("구매")
+                .transactionFeedId(feed.getTransactionFeedId())
                 .content("'" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
                 .build());
         log.info("[purchase] 구매자 알림 생성 완료. 구매자: {}, 판매글 ID: {}", buyer.getUserId(), feed.getTransactionFeedId());
@@ -88,6 +89,7 @@ public class DataFeedPurchaseServiceImpl implements DataFeedPurchaseService {
         notificationProducer.send(AlarmCreationDto.builder()
                 .userId(seller.getUserId())
                 .alarmType("판매")
+                .transactionFeedId(feed.getTransactionFeedId())
                 .content(buyer.getNickname() + "님이 '" + feed.getTitle() + "' 를(을) (다챠페이)" + price + "원에 구매하였습니다.")
                 .build());
         log.info("[purchase] 판매자 알림 생성 완료. 판매자: {}, 판매글 ID: {}", seller.getUserId(), feed.getTransactionFeedId());

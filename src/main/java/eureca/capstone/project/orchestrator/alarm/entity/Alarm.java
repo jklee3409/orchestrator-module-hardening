@@ -41,6 +41,9 @@ public class Alarm extends BaseEntity {
 
     private String content;
 
+    @Column(name = "transaction_feed_id")
+    private Long transactionFeedId;
+
     @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
