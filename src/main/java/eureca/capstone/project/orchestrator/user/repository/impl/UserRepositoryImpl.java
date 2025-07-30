@@ -101,4 +101,16 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         .fetchOne()
         );
     }
+
+    @Override
+    public boolean checkBanUserByEmail(String email) {
+        return jpaQueryFactory
+                .selectOne()
+                .from(user)
+                .where(
+                        user.email.eq(email),
+                        user.status.code.eq("BANNED")
+                )
+                .fetchFirst() != null;
+    }
 }

@@ -7,15 +7,13 @@ import eureca.capstone.project.orchestrator.auth.repository.UserRoleRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.entity.TelecomCompany;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
-import eureca.capstone.project.orchestrator.common.exception.custom.EmailAlreadyExistsException;
-import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
-import eureca.capstone.project.orchestrator.common.exception.custom.PlanNotFoundException;
-import eureca.capstone.project.orchestrator.common.exception.custom.TelecomCompanyNotFoundException;
-import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
+import eureca.capstone.project.orchestrator.common.exception.custom.*;
 import eureca.capstone.project.orchestrator.common.repository.TelecomCompanyRepository;
 import eureca.capstone.project.orchestrator.common.service.AIService;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.pay.entity.UserPay;
+import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.pay.service.UserEventCouponService;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.orchestrator.user.dto.PlanDto;
@@ -31,8 +29,6 @@ import eureca.capstone.project.orchestrator.user.entity.Plan;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.PlanRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
-import eureca.capstone.project.orchestrator.pay.entity.UserPay;
-import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PlanService;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
@@ -44,8 +40,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -333,5 +327,11 @@ public class UserServiceImpl implements UserService {
     public boolean checkEmailDuplicate(String email) {
         log.info("[checkEmailDuplicate] 이메일 중복 확인 요청: {}", email);
         return userRepository.findByEmail(email).isPresent();
+    }
+
+    @Override
+    public boolean checkBanUser(String email) {
+        log.info("[checkBanUser] 차단된 사용자인지 확인 요청: {}", email);
+        return userRepository.checkBanUserByEmail(email);
     }
 }
