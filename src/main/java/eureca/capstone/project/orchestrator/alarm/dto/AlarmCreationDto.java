@@ -13,4 +13,5 @@ public class AlarmCreationDto {
     private Long userId;
     private String alarmType;
     private String content;
+    private Long transactionFeedId;
 }

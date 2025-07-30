@@ -205,17 +205,20 @@ public class BidServiceImpl implements BidService {
                     log.info("[handleBidResult] 입찰 참여자 {}명 조회 완료", participants.size());
 
                     for (User participant : participants) {
+                        log.info("transaction_feed_id: {}", feed.getTransactionFeedId());
                         if (participant.getUserId().equals(newBidder.getUserId())) {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 성공")
+                                    .transactionFeedId(feed.getTransactionFeedId())
                                     .content("'" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         } else {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 갱신")
-                                    .content(participant.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .transactionFeedId(feed.getTransactionFeedId())
+                                    .content(newBidder.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         }
                     }

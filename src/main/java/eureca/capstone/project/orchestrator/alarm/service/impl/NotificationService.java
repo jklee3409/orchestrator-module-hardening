@@ -32,10 +32,6 @@ public class NotificationService {
         log.info("[consume] 알림 생성 요청 수신: {}", creationDto.getContent());
 
         User user = findUserById(creationDto.getUserId());
-        if (user == null) {
-            log.warn("[consume] SSE 연결이 설정되지 않은 사용자: userId={}", creationDto.getUserId());
-            return;
-        }
 
         Status unReadStatus = statusManager.getStatus("ALARM", "UNREAD");
 
@@ -44,7 +40,9 @@ public class NotificationService {
                 .content(creationDto.getContent())
                 .alarmType(alarmTypeManager.getAlarmType(creationDto.getAlarmType()))
                 .status(unReadStatus)
+                .transactionFeedId(creationDto.getTransactionFeedId())
                 .build();
+        log.info("[consume] 판매글 ID: {}", creationDto.getTransactionFeedId());
         alarmRepository.save(alarm);
         log.info("[consume] 알림 저장 완료: 알림 ID={}, 사용자 ID={}", alarm.getAlarmId(), user.getUserId());
 
