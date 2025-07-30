@@ -15,6 +15,7 @@ public enum ErrorCode {
     REFRESH_TOKEN_MISMATCH(10005, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Refresh Token, 요청값의 Refresh Token 값 불일치"),
     EMAIL_TOKEN_MISMATCH(10006, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Email Token, 요청값의 Email Token 값 불일치"),
     BLACK_LIST_USER_FOUND(10007, "BLACK_LIST_USER_FOUND", "해당 사용자는 BlackList 포함된 사용자 입니다."),
+    BLOCK_USER(10008, "BLOCK_USER", "해당 계정은 차단된 User 입니다."),
 
     // user 관련 에러코드 (20000 ~ 29999)
 
