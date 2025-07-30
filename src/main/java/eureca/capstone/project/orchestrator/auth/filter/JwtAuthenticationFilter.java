@@ -86,6 +86,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (redisService.hasKey(REDIS_BLACK_LIST_USER + userId)) {
                 log.error("[JwtFilter] Blacklisted user access attempt. User ID: {}", userId);
+                redisService.deleteValue(REDIS_BLACK_LIST_USER + userId);
+                log.error("[JwtFilter] Blacklisted user delete key. key: {}", REDIS_BLACK_LIST_USER + userId);
                 throw new BlackListUserException();
             }
 
