@@ -23,7 +23,7 @@ public class SseEmitterService {
     public SseEmitter subscribe(Long userId) {
         log.info("[subscribe] SSE 연결 요청 서비스 레이어 도착. userId: {}", userId);
 
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(2 * 60 * 60 * 1000L);
         emitters.put(userId, emitter);
 
         ScheduledFuture<?> heartbeat = scheduler.scheduleAtFixedRate(
@@ -49,6 +49,7 @@ public class SseEmitterService {
 
         log.info("[subscribe] SSE 연결 설정 완료");
         sendToClient(emitter, userId, "connect", Map.of("message", "SSE 연결 설정 완료"));
+        log.info("[subscribe] SSE 연결 설정 메시지 전송 완료");
         return emitter;
     }
 
