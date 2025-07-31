@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.auth.config;
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2SuccessServiceImpl;
 import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2UserServiceImpl;
+import eureca.capstone.project.orchestrator.auth.service.impl.CustomUserDetailsServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -30,6 +32,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final RedisService redisService;
+    private final UserDetailsService userDetailsService;
     private final CustomOAuth2UserServiceImpl customOAuth2UserService;
     private final CustomOAuth2SuccessServiceImpl customOAuth2SuccessService;
 
@@ -61,7 +64,7 @@ public class SecurityConfig {
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 등록
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService),
+                        new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class
                 )
 
