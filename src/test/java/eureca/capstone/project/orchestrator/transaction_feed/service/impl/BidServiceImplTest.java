@@ -33,6 +33,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -139,14 +140,19 @@ class BidServiceImplTest {
                     .build();
             List<String> mockResult = Arrays.asList("SUCCESS", "0", "0");
 
-            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString()))
+            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString(), anyString()))
                     .thenReturn(mockResult);
 
             // when
             bidService.placeBid(bidder.getEmail(), request);
 
             // then
-            verify(bidsRepository).save(any(Bids.class));
+            ArgumentCaptor<Bids> bidsCaptor = ArgumentCaptor.forClass(Bids.class);
+            verify(bidsRepository).save(bidsCaptor.capture());
+            Bids savedBids = bidsCaptor.getValue();
+
+            assertThat(savedBids.getBidTime()).isNotNull();
+
             verify(userPayService).usePay(bidder, 6000L);
             verify(userPayService, never()).refundPay(any(User.class), anyLong()); // 첫 입찰이므로 환불 없음
         }
@@ -159,6 +165,15 @@ class BidServiceImplTest {
                     .transactionFeedId(feed.getTransactionFeedId())
                     .bidAmount(4000L)
                     .build();
+
+            List<String> mockResult = Arrays.asList("BID_TOO_LOW", "0", "0");
+            when(stringRedisTemplate.execute(
+                    any(RedisScript.class),
+                    any(List.class),
+                    anyString(),
+                    anyString(),
+                    anyString()
+            )).thenReturn(mockResult);
 
             // when & then
             BidException exception = assertThrows(BidException.class, () -> bidService.placeBid(bidder.getEmail(), request));
@@ -192,7 +207,7 @@ class BidServiceImplTest {
             Long prevBidAmount = 6000L;
             List<Object> mockResult = List.of("SUCCESS", String.valueOf(prevBidder.getUserId()), String.valueOf(prevBidAmount));
 
-            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString()))
+            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString(), anyString()))
                     .thenReturn(mockResult);
             when(userRepository.findById(prevBidder.getUserId())).thenReturn(Optional.of(prevBidder));
 
@@ -228,8 +243,6 @@ class BidServiceImplTest {
             // Mock
             for (User b : bidders) {
                 when(userRepository.findByEmail(b.getEmail())).thenReturn(Optional.of(b));
-            }
-            for (User b : bidders) {
                 lenient().when(userRepository.findById(b.getUserId())).thenReturn(Optional.of(b));
             }
 
@@ -238,7 +251,7 @@ class BidServiceImplTest {
             redisState.put("highestBidder", "0");
 
             // Redis 스크립트가 이전 입찰자를 반환
-            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString()))
+            when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), anyString(), anyString(), anyString()))
                     .thenAnswer(invocation -> {
                         synchronized (redisState) {
                             long currentPrice = Long.parseLong(invocation.getArgument(2));

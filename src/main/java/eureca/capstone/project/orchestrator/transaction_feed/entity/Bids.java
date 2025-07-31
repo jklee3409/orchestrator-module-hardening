@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.entity;
 import eureca.capstone.project.orchestrator.common.entity.BaseEntity;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,4 +32,7 @@ public class Bids extends BaseEntity {
 
     @Column(name = "bid_amount")
     private Long bidAmount;
+
+    @Column(name = "bid_time")
+    private LocalDateTime bidTime;
 }
