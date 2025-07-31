@@ -22,7 +22,7 @@ public class BidsRepositoryImpl implements BidsRepositoryCustom {
                 .selectFrom(bids)
                 .join(bids.user, user).fetchJoin()
                 .where(bids.transactionFeed.eq(transactionFeed))
-                .orderBy(bids.createdAt.desc())
+                .orderBy(bids.bidTime.desc())
                 .fetch();
     }
 }

@@ -18,7 +18,7 @@ public class BidDto {
                 .bidId(bid.getBidsId())
                 .bidderNickname(bid.getUser().getNickname())
                 .bidAmount(bid.getBidAmount())
-                .bidAt(bid.getCreatedAt())
+                .bidAt(bid.getBidTime())
                 .build();
     }
 }
