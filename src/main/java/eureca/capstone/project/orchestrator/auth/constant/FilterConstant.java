@@ -32,7 +32,8 @@ public class FilterConstant {
             "/swagger-ui/**",
             "/swagger-ui.html",
 
-            "/orchestrator/webhook/toss"
+            "/orchestrator/webhook/toss",
+            "/orchestrator/notifications/subscribe"
     };
     // 블랙리스트 (인증 필요, 추가적인 제한 걸 경로 – 예: 관리자 등급)
     public static final String[] BLACK_LIST = {
