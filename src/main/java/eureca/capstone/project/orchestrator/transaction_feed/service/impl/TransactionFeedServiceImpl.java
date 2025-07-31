@@ -614,7 +614,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         addTermsFilter(boolBuilder, "salesTypeId", request.getSalesTypeIds());
         addTermsFilter(boolBuilder, "status", request.getStatuses());
 
-        addRangeFilter(boolBuilder, "salesPrice", request.getMinPrice(), request.getMaxPrice());
+        addRangeFilter(boolBuilder, "sortPrice", request.getMinPrice(), request.getMaxPrice());
         addRangeFilter(boolBuilder, "salesDataAmount", request.getMinDataAmount(), request.getMaxDataAmount());
 
         addExclusionFilter(boolBuilder, request.getExcludeFeedIds());
