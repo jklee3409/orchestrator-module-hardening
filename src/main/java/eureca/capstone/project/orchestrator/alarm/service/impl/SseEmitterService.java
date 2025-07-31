@@ -14,6 +14,7 @@ public class SseEmitterService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long userId) {
+        log.info("[subscribe] SSE 연결 요청 서비스 레이어 도착. userId: {}", userId);
         SseEmitter emitter = new SseEmitter(DEFAULT_TIMEOUT);
         emitters.put(userId, emitter);
 
@@ -30,6 +31,7 @@ public class SseEmitterService {
             emitters.remove(userId);
         });
 
+        log.info("[subscribe] SSE 연결 설정 완료");
         sendToClient(userId, "connect", Map.of("message", "SSE 연결 설정 완료"));
         return emitter;
     }
@@ -39,7 +41,9 @@ public class SseEmitterService {
     }
 
     private void sendToClient(Long userId, String eventName, Object data) {
+        log.info("[sendToClient] userId={}, eventName={}, data={}", userId, eventName, data);
         SseEmitter emitter = emitters.get(userId);
+        log.info("[sendToClient] emitter 획득 완료");
 
         if (emitter != null) {
             try {
