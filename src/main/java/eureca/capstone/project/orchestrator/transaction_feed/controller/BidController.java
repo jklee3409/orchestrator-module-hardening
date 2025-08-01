@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,6 +54,7 @@ public class BidController {
         return BaseResponseDto.success(response);
     }
 
+    @PreAuthorize("hasAuthority('TRANSACTION')")
     @Operation(summary = "입찰 참여 API", description = """
             ## 입찰 판매글에 입찰을 시도합니다.
             성공 시, 입찰 금액만큼 페이가 차감되며 이전 최고 입찰자에게는 페이가 환불됩니다. 또한 입찰 참여자들에게 실시간 알림이 전송됩니다.

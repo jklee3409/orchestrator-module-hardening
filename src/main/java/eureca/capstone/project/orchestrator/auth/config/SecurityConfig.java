@@ -3,7 +3,6 @@ package eureca.capstone.project.orchestrator.auth.config;
 import eureca.capstone.project.orchestrator.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2SuccessServiceImpl;
 import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2UserServiceImpl;
-import eureca.capstone.project.orchestrator.auth.service.impl.CustomUserDetailsServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,6 +27,7 @@ import static eureca.capstone.project.orchestrator.auth.constant.FilterConstant.
 
 @Slf4j
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtUtil jwtUtil;

@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,6 +49,7 @@ public class PaymentController {
         return BaseResponseDto.success(responseDto);
     }
 
+    @PreAuthorize("hasAuthority('PAY_CHARGE')")
     @PostMapping("/event-coupon/calculate")
     @Operation(summary = "쿠폰 적용 시 할인액 계산", description = """
             ## 결제 전, 특정 쿠폰을 적용했을 때의 예상 할인액과 최종 결제 금액을 미리 계산하여 반환합니다.
@@ -84,6 +86,7 @@ public class PaymentController {
     }
 
     @PostMapping("/prepare")
+    @PreAuthorize("hasAuthority('PAY_CHARGE')")
     @Operation(summary = "결제 정보 사전 생성", description = """
             ## 토스 페이먼츠에 최종 결제 승인 요청을 보내기 전, 서버에 주문 정보를 미리 생성합니다.
             이 API 호출 성공 시 반환되는 `orderId`를 최종 결제 승인 시 사용해야 합니다.
@@ -120,6 +123,7 @@ public class PaymentController {
         return BaseResponseDto.success(responseDto);
     }
 
+    @PreAuthorize("hasAuthority('PAY_CHARGE')")
     @PostMapping("/confirm")
     @Operation(summary = "최종 결제 승인", description = """
     ## 토스 페이먼츠 결제창에서 성공적으로 인증 후, 리다이렉트된 페이지에서 최종 결제 승인을 요청합니다.

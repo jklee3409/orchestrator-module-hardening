@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.auth.dto.request.LoginRequestDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.LoginResponseDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.common.exception.custom.BlackListUserException;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_BLACK_LIST_USER;
 import static eureca.capstone.project.orchestrator.common.constant.RedisConstant.REDIS_REFRESH_TOKEN;
 
 @Tag(name = "인증 API", description = "사용자 로그인, 로그아웃 등 인증 관련 API")
@@ -68,9 +70,16 @@ public class AuthController {
 
         CustomUserDetailsDto customUserDetailsDto = (CustomUserDetailsDto) authentication.getPrincipal();
 
+        // 혹시 제제 대상인 사용자라면, 이미 로그인시에 필요한 제제권한을 제외한 권한을 갖게 되므로, 예외를 터트려서 로그인 페이지로 이동할 필요가 없음
+        // 해서, 해당 레디스 값을 삭제 처리함.
+        if (redisService.hasKey(REDIS_BLACK_LIST_USER + customUserDetailsDto.getUserId())) {
+            redisService.deleteValue(REDIS_BLACK_LIST_USER + customUserDetailsDto.getUserId());
+            log.error("[JwtFilter] Blacklisted user delete key. key: {}", REDIS_BLACK_LIST_USER + customUserDetailsDto.getUserId());
+        }
+
         // JWT 토큰 발급 (AccessToken, RefreshToken)
         String accessToken = tokenService.generateToken(
-                (CustomUserDetailsDto) authentication.getPrincipal(),
+                customUserDetailsDto,
                 httpServletResponse
         );
 
