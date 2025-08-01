@@ -5,9 +5,12 @@ import eureca.capstone.project.orchestrator.alarm.dto.NotificationDto;
 import eureca.capstone.project.orchestrator.alarm.entity.Alarm;
 import eureca.capstone.project.orchestrator.alarm.repository.AlarmRepository;
 import eureca.capstone.project.orchestrator.common.entity.Status;
+import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.AlarmTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ public class NotificationService {
     private final SseEmitterService sseEmitterService;
     private final AlarmTypeManager alarmTypeManager;
     private final StatusManager statusManager;
+    private final TransactionFeedRepository transactionFeedRepository;
 
     @Transactional
     @KafkaListener(topics = "notification", groupId = "notification-group")
@@ -46,9 +50,17 @@ public class NotificationService {
         alarmRepository.save(alarm);
         log.info("[consume] 알림 저장 완료: 알림 ID={}, 사용자 ID={}", alarm.getAlarmId(), user.getUserId());
 
-        NotificationDto notificationDto = NotificationDto.fromEntity(alarm);
+        TransactionFeed transactionFeed = findTransactionFeedById(creationDto.getTransactionFeedId());
+
+        NotificationDto notificationDto = NotificationDto.fromEntity(alarm, transactionFeed);
         sseEmitterService.send(creationDto.getUserId(), notificationDto);
         log.info("[consume] SSE로 알림 전송 완료: 사용자 ID={}, 알림 ID={}", creationDto.getUserId(), alarm.getAlarmId());
+    }
+
+    private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
+        if(transactionFeedId == null) return null;
+        return transactionFeedRepository.findById(transactionFeedId)
+                .orElseThrow(TransactionFeedNotFoundException::new);
     }
 
     private User findUserById(Long userId) {
