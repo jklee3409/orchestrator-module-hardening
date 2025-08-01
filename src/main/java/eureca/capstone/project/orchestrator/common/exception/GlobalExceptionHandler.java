@@ -38,6 +38,12 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.BLOCK_USER);
     }
 
+    @ExceptionHandler(MismatchUserIdException.class)
+    public BaseResponseDto<ErrorResponseDto> handleMismatchUserIdException(MismatchUserIdException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.MISMATCH_USERID);
+    }
+
     @ExceptionHandler(FeedModifyPermissionException.class)
     public BaseResponseDto<ErrorResponseDto> handleFeedModifyPermissionException(FeedModifyPermissionException e) {
         log.error(e.getMessage(), e);

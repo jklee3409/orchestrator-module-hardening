@@ -8,4 +8,5 @@ import lombok.Data;
 public class LoginResponseDto {
     private String accessToken;
     private boolean isNewUser;
+    private Long userId;
 }
