@@ -35,6 +35,8 @@ public class QAlarm extends EntityPathBase<Alarm> {
 
     public final eureca.capstone.project.orchestrator.common.entity.QStatus status;
 
+    public final NumberPath<Long> transactionFeedId = createNumber("transactionFeedId", Long.class);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
 
