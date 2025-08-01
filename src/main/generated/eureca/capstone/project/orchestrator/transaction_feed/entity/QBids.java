@@ -28,6 +28,8 @@ public class QBids extends EntityPathBase<Bids> {
 
     public final NumberPath<Long> bidsId = createNumber("bidsId", Long.class);
 
+    public final DateTimePath<java.time.LocalDateTime> bidTime = createDateTime("bidTime", java.time.LocalDateTime.class);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
