@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.PlaceBidRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetBidHistoryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.service.BidService;
+import eureca.capstone.project.orchestrator.transaction_feed.service.impl.BidServiceWithLock;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BidController {
     private final BidService bidService;
+    private final BidServiceWithLock bidServiceWithLock;
 
     @Operation(summary = "입찰 내역 조회 API", description = """
             ## 특정 입찰 판매글의 전체 입찰 내역을 조회합니다.
@@ -96,6 +98,27 @@ public class BidController {
             @RequestBody PlaceBidRequestDto placeBidRequestDto
     ) {
         bidService.placeBid(customUserDetailsDto.getEmail(), placeBidRequestDto);
+        return BaseResponseDto.voidSuccess();
+    }
+
+    @Operation(summary = "[DB Lock] 입찰 참여 API (성능 테스트용)", description = """
+            ## Pessimistic Lock 을 이용한 입찰 API 입니다.
+            Redis 버전과의 성능 비교를 위해 사용됩니다. 로직은 동일하나 동시성 제어 방식에 차이가 있습니다.
+            
+            ***
+            
+            ### 🔑 권한
+            * `ROLE_USER` (사용자 로그인 필요)
+            
+            ### ❌ 주요 실패 코드
+            * Redis 버전과 동일한 실패 코드를 반환합니다. (단, `LUA_SCRIPT_ERROR`는 발생하지 않음)
+            """)
+    @PostMapping("/db-lock")
+    public BaseResponseDto<Void> placeBidWithDbLock(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            @RequestBody PlaceBidRequestDto placeBidRequestDto
+    ) {
+        bidServiceWithLock.placeBidWithDbLock(customUserDetailsDto.getEmail(), placeBidRequestDto);
         return BaseResponseDto.voidSuccess();
     }
 }
