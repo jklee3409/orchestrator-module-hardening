@@ -10,6 +10,7 @@ import lombok.Data;
 @Data
 @Builder
 public class NotificationDto {
+    private Long userId;
     private Long alarmId;
     private String content;
     private Long transactionFeedId;
@@ -25,6 +26,7 @@ public class NotificationDto {
         }
         
         return NotificationDto.builder()
+                .userId(alarm.getUser().getUserId())
                 .alarmId(alarm.getAlarmId())
                 .content(alarm.getContent())
                 .transactionFeedId(alarm.getTransactionFeedId())

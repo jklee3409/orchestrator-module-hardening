@@ -1,7 +1,6 @@
 package eureca.capstone.project.orchestrator.alarm.service.impl;
 
 import eureca.capstone.project.orchestrator.alarm.dto.NotificationDto;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -80,8 +79,8 @@ public class SseEmitterService {
     private void sendPing(SseEmitter emitter, Long userId) {
         try {
             emitter.send(SseEmitter.event().comment("ping"));
-            log.debug("[sendPing] Heartbeat 전송 성공: userId={}", userId);
-        } catch (IOException e) {
+            log.info("[sendPing] Heartbeat 전송 성공: userId={}", userId);
+        } catch (Exception e) {
             log.error("[sendPing] Heartbeat 전송 실패, 연결을 종료합니다. userId={}, error={}", userId, e.getMessage());
             emitter.completeWithError(e);
         }

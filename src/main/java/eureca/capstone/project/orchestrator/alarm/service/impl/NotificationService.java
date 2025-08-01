@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.alarm.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
 import eureca.capstone.project.orchestrator.alarm.dto.NotificationDto;
 import eureca.capstone.project.orchestrator.alarm.entity.Alarm;
@@ -15,6 +16,7 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ public class NotificationService {
     private final AlarmTypeManager alarmTypeManager;
     private final StatusManager statusManager;
     private final TransactionFeedRepository transactionFeedRepository;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     @KafkaListener(topics = "notification", groupId = "notification-group")
@@ -54,6 +58,15 @@ public class NotificationService {
 
         NotificationDto notificationDto = NotificationDto.fromEntity(alarm, transactionFeed);
         sseEmitterService.send(creationDto.getUserId(), notificationDto);
+
+        try {
+            String json = objectMapper.writeValueAsString(notificationDto);
+            redisTemplate.convertAndSend("alarm-channel", json);
+            log.info("[consume] Redis Pub 전송 완료: userId={}, alarmId={}", creationDto.getUserId(), alarm.getAlarmId());
+
+        } catch (Exception e) {
+            log.error("[consume] Redis Pub 전송 실패", e);
+        }
         log.info("[consume] SSE로 알림 전송 완료: 사용자 ID={}, 알림 ID={}", creationDto.getUserId(), alarm.getAlarmId());
     }
 
