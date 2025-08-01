@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.BidsRepositoryCustom;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -24,5 +25,17 @@ public class BidsRepositoryImpl implements BidsRepositoryCustom {
                 .where(bids.transactionFeed.eq(transactionFeed))
                 .orderBy(bids.bidTime.desc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<Bids> findHighestBidByFeed(TransactionFeed feed) {
+        Bids result = queryFactory
+                .selectFrom(bids)
+                .where(bids.transactionFeed.eq(feed))
+                .orderBy(bids.bidAmount.desc())
+                .limit(1)
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
