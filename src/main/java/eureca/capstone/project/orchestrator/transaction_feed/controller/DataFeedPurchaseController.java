@@ -8,6 +8,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.service.DataFeedPur
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataFeedPurchaseController {
     private final DataFeedPurchaseService dataFeedPurchaseService;
 
+    @PreAuthorize("hasAuthority('TRANSACTION')")
     @Operation(summary = "일반 판매글 즉시 구매 API", description = """
             ## '일반 판매' 유형의 데이터 판매글을 구매합니다.
             구매 성공 시, 판매글 가격만큼 구매자의 페이가 차감되고 판매자에게 지급됩니다. 구매자에게는 해당 데이터 양만큼의 **'데이터 충전권'**이 발급됩니다.

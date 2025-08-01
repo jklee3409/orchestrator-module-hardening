@@ -9,6 +9,7 @@ import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.web.PageableDefault;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "알림 API", description = "사용자 알림 조회 및 실시간 알림 구독 등 API")
+@Slf4j
 @RestController
 @RequestMapping("/orchestrator/notifications")
 @RequiredArgsConstructor
@@ -81,6 +83,7 @@ public class NotificationController {
     public SseEmitter subscribeNotifications(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto
     ) {
+        log.info("[subscribeNotifications] SSE 컨트롤러 요청. userId: {}", customUserDetailsDto.getUserId());
         return sseEmitterService.subscribe(customUserDetailsDto.getUserId());
     }
 

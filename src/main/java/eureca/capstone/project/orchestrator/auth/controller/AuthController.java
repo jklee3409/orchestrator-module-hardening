@@ -86,6 +86,7 @@ public class AuthController {
         // 리턴 객체 생성 및 로그 출력
         LoginResponseDto loginResponseDto = LoginResponseDto.builder()
                 .accessToken(accessToken)
+                .userId(customUserDetailsDto.getUserId())
                 .build();
         BaseResponseDto<LoginResponseDto> success = BaseResponseDto.success(loginResponseDto);
         log.info("success: {}", success);

@@ -9,6 +9,7 @@ import eureca.capstone.project.orchestrator.user.service.UserDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,6 +45,7 @@ public class UserDataController {
         return BaseResponseDto.success(responseDto);
     }
 
+    @PreAuthorize("hasAuthority('DATA_TRANSFER')")
     @PutMapping("/enable-sale/change")
     @Operation(summary = "보유 데이터 → 판매 가능 데이터 전환", description = """
     ## 로그인한 사용자의 현재 보유 데이터를 판매가 가능한 데이터로 전환합니다.

@@ -225,7 +225,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         if(statisticPrice != null && statisticPrice > 0) {
             log.info("[getFeedDetail] 시세 존재. 시세와 비교 계산 시작");
 
-            double feedPricePerMB = ((double) feed.getSalesPrice() / feed.getSalesDataAmount()) * PRICE_PER_MB;
+            Long salesPrice = (auctionType.equals(feed.getSalesType().getName())) ? currentHeightPrice : feed.getSalesPrice();
+            double feedPricePerMB = ((double) salesPrice / feed.getSalesDataAmount()) * PRICE_PER_MB;
             rate = ((feedPricePerMB - statisticPrice) / (double) statisticPrice) * 100.0;
             if(rate > 0) priceCompare = PriceCompare.EXPENSIVE;
             else if(rate < 0) priceCompare = PriceCompare.CHEAPER;
@@ -613,7 +614,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         addTermsFilter(boolBuilder, "salesTypeId", request.getSalesTypeIds());
         addTermsFilter(boolBuilder, "status", request.getStatuses());
 
-        addRangeFilter(boolBuilder, "salesPrice", request.getMinPrice(), request.getMaxPrice());
+        addRangeFilter(boolBuilder, "sortPrice", request.getMinPrice(), request.getMaxPrice());
         addRangeFilter(boolBuilder, "salesDataAmount", request.getMinDataAmount(), request.getMaxDataAmount());
 
         addExclusionFilter(boolBuilder, request.getExcludeFeedIds());

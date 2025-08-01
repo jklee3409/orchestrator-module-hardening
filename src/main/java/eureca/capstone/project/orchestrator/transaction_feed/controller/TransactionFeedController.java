@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -176,6 +177,7 @@ public class TransactionFeedController {
             * `60001` (INVALID_TELECOM_COMPANY): 가입된 통신사와 판매글의 통신사가 다른 경우
             * '60004' (METHOD_ARGUMENT_NOT_VALID): 제목이나 내용 등 파라미터 형식이 유효하지 않은 경우 (공백, 음수 등)
             """)
+    @PreAuthorize("hasAuthority('WRITE')")
     public BaseResponseDto<CreateFeedResponseDto> createFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @Valid @RequestBody CreateFeedRequestDto createFeedRequestDto
@@ -219,6 +221,7 @@ public class TransactionFeedController {
             * '30017' (FEED_NOT_ON_SALE): 판매 중이 아닌 판매글을 수정하려는 경우
             * '60004' (METHOD_ARGUMENT_NOT_VALID): 제목이나 내용 등 파라미터 형식이 유효하지 않은 경우 (공백, 음수 등)
             """)
+    @PreAuthorize("hasAuthority('WRITE')")
     public BaseResponseDto<UpdateFeedResponseDto> updateFeed(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
             @Valid @RequestBody UpdateFeedRequestDto updateFeedRequestDto
@@ -227,6 +230,7 @@ public class TransactionFeedController {
         return BaseResponseDto.success(updateFeedResponse);
     }
 
+    @PreAuthorize("hasAuthority('WRITE')")
     @DeleteMapping("/{transactionFeedId}")
     @Operation(summary = "판매글 삭제", description = """
             ## 로그인한 사용자가 자신의 판매글을 삭제합니다.

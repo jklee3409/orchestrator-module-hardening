@@ -62,6 +62,8 @@ public class BidServiceImpl implements BidService {
         validateBidPrecondition(bidder, feed, request.getBidAmount());
         log.info("[placeBid] 입찰 사전 검증 통과");
 
+        LocalDateTime bidTimeStamp = LocalDateTime.now();
+
         // 레디스 키 정의
         String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
         String highestBidderKey = String.format("bids:%d:highest_bidder_id", feed.getTransactionFeedId());
@@ -71,11 +73,12 @@ public class BidServiceImpl implements BidService {
                 bidScript,
                 List.of(highestPriceKey, highestBidderKey),
                 request.getBidAmount().toString(),
-                bidder.getUserId().toString()
+                bidder.getUserId().toString(),
+                feed.getSalesPrice().toString()
         );
         log.info("[placeBid] 레디스 스크립트 실행 결과: {}", result);
 
-        handleBidResult(result, feed, bidder, request.getBidAmount());
+        handleBidResult(result, feed, bidder, request.getBidAmount(), bidTimeStamp);
     }
 
     @Override
@@ -148,11 +151,6 @@ public class BidServiceImpl implements BidService {
                     feed.getTransactionFeedId());
             throw new BidException(ErrorCode.AUCTION_EXPIRED);
         }
-        if (bidAmount <= feed.getSalesPrice()) {
-            log.error("[validateBidPrecondition] 입찰 금액이 판매가보다 낮습니다. 사용자 ID: {}, 판매글 ID: {}, 입찰가: {}",
-                    bidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
-            throw new BidException(ErrorCode.BID_AMOUNT_TOO_LOW);
-        }
         if (bidAmount % 100 != 0) {
             log.error("[validateBidPrecondition] 입찰 금액은 100원 단위로 입력해야 합니다. 사용자 ID: {}, 판매글 ID: {}, 입찰가: {}",
                     bidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
@@ -160,7 +158,7 @@ public class BidServiceImpl implements BidService {
         }
     }
 
-    private void handleBidResult(List<Object> result, TransactionFeed feed, User newBidder, Long bidAmount) {
+    private void handleBidResult(List<Object> result, TransactionFeed feed, User newBidder, Long bidAmount, LocalDateTime bidTimeStamp) {
         if (result == null || result.isEmpty()) {
             log.error("[handleBidResult] 루아 스크립트 반환값이 비어있습니다.");
             throw new InternalServerException(ErrorCode.LUA_SCRIPT_ERROR);
@@ -192,7 +190,7 @@ public class BidServiceImpl implements BidService {
                     userPayService.usePay(newBidder, bidAmount);
                     log.info("[handleBidResult] 새로운 입찰자 페이 사용 완료. 사용자 ID: {}, 사용 금액: {}", newBidder.getUserId(), bidAmount);
 
-                    saveBidHistory(feed, newBidder, bidAmount);
+                    saveBidHistory(feed, newBidder, bidAmount, bidTimeStamp);
                     log.info("입찰 성공 - 사용자 ID: {}, 게시글 ID: {}, 입찰가: {}", newBidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
 
                     updateFeedDocumentHighestPrice(feed.getTransactionFeedId(), bidAmount);
@@ -205,17 +203,20 @@ public class BidServiceImpl implements BidService {
                     log.info("[handleBidResult] 입찰 참여자 {}명 조회 완료", participants.size());
 
                     for (User participant : participants) {
+                        log.info("transaction_feed_id: {}", feed.getTransactionFeedId());
                         if (participant.getUserId().equals(newBidder.getUserId())) {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 성공")
+                                    .transactionFeedId(feed.getTransactionFeedId())
                                     .content("'" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         } else {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 갱신")
-                                    .content(participant.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .transactionFeedId(feed.getTransactionFeedId())
+                                    .content(newBidder.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         }
                     }
@@ -244,11 +245,12 @@ public class BidServiceImpl implements BidService {
         }
     }
 
-    private void saveBidHistory(TransactionFeed feed, User bidder, Long bidAmount) {
+    private void saveBidHistory(TransactionFeed feed, User bidder, Long bidAmount, LocalDateTime bidTimeStamp) {
         bidsRepository.save(Bids.builder()
                 .transactionFeed(feed)
                 .user(bidder)
                 .bidAmount(bidAmount)
+                .bidTime(bidTimeStamp)
                 .build());
     }
 

@@ -1,10 +1,12 @@
 package eureca.capstone.project.orchestrator.auth.controller;
 
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
+import eureca.capstone.project.orchestrator.auth.dto.request.ReGenerateTokenRequestDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.ReGenerateTokenResponseDto;
 import eureca.capstone.project.orchestrator.auth.dto.response.TokenParsingResponseDto;
 import eureca.capstone.project.orchestrator.auth.service.TokenService;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.orchestrator.common.exception.custom.MismatchUserIdException;
 import eureca.capstone.project.orchestrator.common.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,11 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
@@ -194,9 +194,23 @@ public class TokenController {
             ```
             """
     )
-    @GetMapping("/re-generate-token")
-    public BaseResponseDto<ReGenerateTokenResponseDto> reGenerateToken(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto, HttpServletResponse httpServletResponse) throws IOException {
+    @PostMapping("/re-generate-token")
+    public BaseResponseDto<ReGenerateTokenResponseDto> reGenerateToken(
+            @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
+            HttpServletResponse httpServletResponse,
+            @RequestBody ReGenerateTokenRequestDto reGenerateTokenRequestDto
+    ) throws IOException {
         log.info("reGenerateToken customUserDetailsDto: {}", customUserDetailsDto);
+        Long requestDtoUserId = reGenerateTokenRequestDto.getUserId();
+        Long tokenParsingUserId = customUserDetailsDto.getUserId();
+        log.info("requestDtoUserId: {}", requestDtoUserId);
+        log.info("tokenParsingUserId: {}", tokenParsingUserId);
+
+        // 요청한 userId 값과, 실제 리프레쉬 토큰을 통한 인증 객체의 userId 값이 다르다면, 에외처리
+        if (!requestDtoUserId.equals(tokenParsingUserId)) {
+            throw new MismatchUserIdException();
+        }
+
         String accessToken = tokenService.reGenerateToken(customUserDetailsDto, httpServletResponse);
         ReGenerateTokenResponseDto reGenerateTokenResponseDto = ReGenerateTokenResponseDto.builder()
                 .accessToken(accessToken)
