@@ -72,7 +72,7 @@ public class SseEmitterService {
             log.info("[sendToClient] SSE 전송 성공: userId={}, eventName={}", userId, eventName);
         } catch (Exception e) {
             log.error("[sendToClient] SSE 전송 실패: userId={}, eventName={}, error={}", userId, eventName, e.getMessage());
-            emitter.completeWithError(e);
+            emitters.remove(userId);
         }
     }
 
@@ -82,7 +82,7 @@ public class SseEmitterService {
             log.info("[sendPing] Heartbeat 전송 성공: userId={}", userId);
         } catch (Exception e) {
             log.error("[sendPing] Heartbeat 전송 실패, 연결을 종료합니다. userId={}, error={}", userId, e.getMessage());
-            emitter.completeWithError(e);
+            emitters.remove(userId);
         }
     }
 }
