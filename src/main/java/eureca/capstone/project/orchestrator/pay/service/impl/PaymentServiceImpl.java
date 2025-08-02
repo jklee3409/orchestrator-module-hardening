@@ -14,6 +14,7 @@ import eureca.capstone.project.orchestrator.pay.dto.response.CouponCalculationRe
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentPrepareResponseDto;
 import eureca.capstone.project.orchestrator.pay.dto.response.PaymentResponseDto;
 import eureca.capstone.project.orchestrator.pay.entity.ChargeHistory;
+import eureca.capstone.project.orchestrator.pay.entity.EventCoupon;
 import eureca.capstone.project.orchestrator.pay.entity.PayType;
 import eureca.capstone.project.orchestrator.pay.entity.UserEventCoupon;
 import eureca.capstone.project.orchestrator.pay.repository.ChargeHistoryRepository;
@@ -134,10 +135,15 @@ public class PaymentServiceImpl implements PaymentService {
         String doneStatus = statusManager.getStatus("TOSS", "DONE").getCode();
         if (tossResponse != null && doneStatus.equals(tossResponse.get("status"))) {
             PayType actualPaymentMethod = getActualPaymentMethod(tossResponse);
+            PayType allPayType = payTypeManager.getPayType("전체");
             log.info("[confirmPayment] 토스 결제 승인 응답 확인 완료. 결제 수단: {}", actualPaymentMethod.getName());
-            if (chargeHistory.getUserEventCoupon() != null && chargeHistory.getUserEventCoupon().getEventCoupon().getPayType() != null) {
+            if (chargeHistory.getUserEventCoupon() != null
+                    && chargeHistory.getUserEventCoupon().getEventCoupon().getPayType() != null
+                    && !chargeHistory.getUserEventCoupon().getEventCoupon().getPayType().equals(allPayType)) {
+
                 PayType requiredPayType = chargeHistory.getUserEventCoupon().getEventCoupon().getPayType();
-                log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(), actualPaymentMethod.getName());
+                log.info("[confirmPayment] 결제 수단 검증. 필요: {}, 실제: {}", requiredPayType.getName(),
+                        actualPaymentMethod.getName());
 
                 if (!requiredPayType.equals(actualPaymentMethod)) {
                     log.info("[confirmPayment] 쿠폰에 필요한 결제 수단과 실제 결제 수단이 일치하지 않습니다. 주문 ID: {}", requestDto.getOrderId());
