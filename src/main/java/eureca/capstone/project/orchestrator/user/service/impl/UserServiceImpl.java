@@ -277,7 +277,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UpdateUserTelecomAndPhoneResponseDto updateUserTelecomAndPhone(String email, UpdateUserTelecomAndPhoneRequestDto requestDto) {
         log.info("[updateUserTelecomAndPhone] 사용자 {}의 통신사 및 전화번호 업데이트 요청", email);
-
+        Long couponId = 7L;
         User user = findUserByEmail(email);
         TelecomCompany telecomCompany = telecomCompanyRepository.findById(requestDto.getTelecomCompanyId())
                 .orElseThrow(TelecomCompanyNotFoundException::new);
@@ -308,6 +308,9 @@ public class UserServiceImpl implements UserService {
 
             userDataService.createUserData(createUserDataRequestDto);
             log.info("[updateUserTelecomAndPhone] 사용자 {}의 요금제 정보 할당 완료.", email);
+
+            userEventCouponService.issueEventCoupon(couponId, user.getEmail());
+            log.info("[updateUserTelecomAndPhone] 신규 사용자 {}에게 신규회원 쿠폰 발송 완료.", user.getEmail());
         }
 
         return UpdateUserTelecomAndPhoneResponseDto.builder()
