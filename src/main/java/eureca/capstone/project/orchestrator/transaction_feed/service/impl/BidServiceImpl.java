@@ -209,14 +209,14 @@ public class BidServiceImpl implements BidService {
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 성공")
                                     .transactionFeedId(feed.getTransactionFeedId())
-                                    .content("'" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .content("[" + feed.getTitle() + "]를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         } else {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 갱신")
                                     .transactionFeedId(feed.getTransactionFeedId())
-                                    .content(newBidder.getNickname() + "님이 '" + feed.getTitle() + "'를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .content(newBidder.getNickname() + "님이 [" + feed.getTitle() + "]를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         }
                     }
