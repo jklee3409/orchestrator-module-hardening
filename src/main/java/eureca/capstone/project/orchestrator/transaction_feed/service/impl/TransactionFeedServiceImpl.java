@@ -396,6 +396,10 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         boolQueryBuilder.filter(f -> f.term(t -> t.field("sellerId").value(user.getUserId())));
         boolQueryBuilder.filter(f -> f.term(t -> t.field("isDeleted").value(false)));
 
+        Status blurredStatus = statusManager.getStatus("FEED", "BLURRED");
+        boolQueryBuilder.mustNot(mn -> mn.term(t -> t.field("status").value(blurredStatus.getCode())));
+        log.info("[getMyFeeds] 'BLURRED' 상태 코드 '{}'를 검색에서 제외", blurredStatus.getCode());
+
         if (salesTypeFilter == SalesTypeFilter.NORMAL) {
             boolQueryBuilder.filter(f -> f.term(t -> t.field("salesTypeId").value(salesTypeManager.getNormalSaleType().getSalesTypeId())));
         } else if (salesTypeFilter == SalesTypeFilter.BID) {
