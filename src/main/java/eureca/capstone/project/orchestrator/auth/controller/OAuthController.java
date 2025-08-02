@@ -137,6 +137,7 @@ public class OAuthController {
         // 응답 객체 생성
         LoginResponseDto loginResponse = LoginResponseDto.builder()
                 .accessToken(accessToken)
+                .userId(userId)
                 .isNewUser(isNewUser)
                 .build();
 
