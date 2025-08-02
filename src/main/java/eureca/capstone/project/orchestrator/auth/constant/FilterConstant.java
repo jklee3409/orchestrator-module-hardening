@@ -26,6 +26,8 @@ public class FilterConstant {
             "/login/oauth2/code/**",
             "/oauth2/authorization/**",
 
+            "/orchestrator/common/**",
+
             "/error",
             "/favicon.ico",
             "/v3/api-docs/**",
