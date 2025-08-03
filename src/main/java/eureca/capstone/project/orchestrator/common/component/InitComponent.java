@@ -78,7 +78,9 @@ public class InitComponent {
             Status.builder().statusId(41L).code("COMPLETED").description("제재 완료").domain("REPORT").build(),
             Status.builder().statusId(42L).code("REJECTED").description("제재 미승인").domain("REPORT").build(),
             Status.builder().statusId(43L).code("DONE").description("결제 승인 완료").domain("TOSS").build(),
-            Status.builder().statusId(44L).code("PENDING").description("쿠폰 사용 대기 중").domain("COUPON").build()
+            Status.builder().statusId(44L).code("PENDING").description("쿠폰 사용 대기 중").domain("COUPON").build(),
+            Status.builder().statusId(45L).code("PENDING").description("진행중").domain("EVENT").build(),
+            Status.builder().statusId(46L).code("DONE").description("완료").domain("EVENT").build()
     );
 
     private static final List<SalesType> HARDCODED_SALES_TYPES = List.of(
