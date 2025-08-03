@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.event.service.impl;
 
 import eureca.capstone.project.orchestrator.common.component.RewardSelector;
 import eureca.capstone.project.orchestrator.common.entity.Status;
+import eureca.capstone.project.orchestrator.common.exception.custom.QuizAlreadyParticipatedException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.service.QuizAiService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
@@ -9,6 +10,7 @@ import eureca.capstone.project.orchestrator.event.dto.reponse.GetTodayQuizRespon
 import eureca.capstone.project.orchestrator.event.dto.reponse.ModifyQuizStatusResponseDto;
 import eureca.capstone.project.orchestrator.event.dto.request.ModifyQuizStatusRequestDto;
 import eureca.capstone.project.orchestrator.event.entity.Quiz;
+import eureca.capstone.project.orchestrator.event.entity.QuizParticipation;
 import eureca.capstone.project.orchestrator.event.repository.QuizParticipationRepository;
 import eureca.capstone.project.orchestrator.event.repository.QuizRepository;
 import eureca.capstone.project.orchestrator.event.service.QuizService;
@@ -51,28 +53,50 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public ModifyQuizStatusResponseDto modifyQuizStatusByEvent(Long userId, ModifyQuizStatusRequestDto modifyQuizStatusRequestDto) {
-        // TODO 예외처리 추가 예정
-        quizParticipationRepository.findQuizParticipationInfo(userId, modifyQuizStatusRequestDto).orElseThrow(
-                () -> new RuntimeException("Quiz participation not found")
-        );
+    public ModifyQuizStatusResponseDto modifyQuizStatusByEvent(Long userId, ModifyQuizStatusRequestDto dto) {
+        Quiz quiz = quizRepository.findById(dto.getQuizId())
+                .orElseThrow(RuntimeException::new);
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
 
-        // 랜덤한 포인트 값으로 user_data + 변경
+        Optional<QuizParticipation> participationOpt = quizParticipationRepository
+                .findQuizParticipationInfo(userId, dto);
+
+        if (participationOpt.isPresent() && isDoneStatus(participationOpt.get().getStatus())) {
+            throw new QuizAlreadyParticipatedException();
+        }
+
+        if (participationOpt.isEmpty()) {
+            QuizParticipation newParticipation = QuizParticipation.builder()
+                    .status(statusManager.getStatus("EVENT", "PENDING"))
+                    .quiz(quiz)
+                    .user(user)
+                    .reward(0L)
+                    .build();
+            quizParticipationRepository.save(newParticipation);
+        }
+
         long reward = rewardSelector.selectTodayReward(userId);
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         userPayService.charge(user, reward);
 
-        // 상태값을 완료로 변경 처리함
-        Status getStatus = statusManager.getStatus("EVENT", "DONE");
-        quizParticipationRepository.updateQuizParticipationStatus(userId, reward, getStatus, modifyQuizStatusRequestDto);
+        quizParticipationRepository.updateQuizParticipationStatus(
+                userId,
+                reward,
+                statusManager.getStatus("EVENT", "DONE"),
+                dto
+        );
 
-        ModifyQuizStatusResponseDto modifyQuizStatusResponseDto = ModifyQuizStatusResponseDto.builder()
+        ModifyQuizStatusResponseDto response = ModifyQuizStatusResponseDto.builder()
                 .userId(userId)
-                .quizId(modifyQuizStatusRequestDto.getQuizId())
+                .quizId(dto.getQuizId())
                 .reward(reward)
                 .build();
 
-        log.info("[modifyQuizStatusByEvent] modifyQuizStatusResponseDto : {}", modifyQuizStatusResponseDto);
-        return modifyQuizStatusResponseDto;
+        log.info("[modifyQuizStatusByEvent] response: {}", response);
+        return response;
+    }
+
+    private boolean isDoneStatus(Status status) {
+        return "EVENT".equals(status.getDomain()) && "DONE".equals(status.getCode());
     }
 }

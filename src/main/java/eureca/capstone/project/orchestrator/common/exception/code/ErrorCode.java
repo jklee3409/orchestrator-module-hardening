@@ -16,7 +16,7 @@ public enum ErrorCode {
     EMAIL_TOKEN_MISMATCH(10006, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Email Token, 요청값의 Email Token 값 불일치"),
     BLACK_LIST_USER_FOUND(10007, "BLACK_LIST_USER_FOUND", "해당 사용자는 BlackList 포함된 사용자 입니다."),
     BLOCK_USER(10008, "BLOCK_USER", "해당 계정은 차단된 User 입니다."),
-    MISMATCH_USERID(10009,"MISMATCH_USERID","요청 ID 값과, TOKEN PARSING ID 값이 다릅니다."),
+    MISMATCH_USERID(10009, "MISMATCH_USERID", "요청 ID 값과, TOKEN PARSING ID 값이 다릅니다."),
 
     // user 관련 에러코드 (20000 ~ 29999)
 
@@ -105,7 +105,10 @@ public enum ErrorCode {
     INVALID_TELECOM_COMPANY(60001, "INVALID_TELECOM_COMPANY", "통신사가 일치하지 않습니다."),
     STATUS_NOT_FOUND(60002, "STATUS_NOT_FOUND", "상태를 찾지 못하였습니다."),
     TELECOM_COMPANY_NOT_FOUND(60003, "TELECOM_COMPANY_NOT_FOUND", "통신사를 찾지 못하였습니다."),
-    METHOD_ARGUMENT_NOT_VALID(60004, "METHOD_ARGUMENT_NOT_VALID", "입력 파라미터가 유효하지 않습니다. ex) 이메일, 제목, 내용...");
+    METHOD_ARGUMENT_NOT_VALID(60004, "METHOD_ARGUMENT_NOT_VALID", "입력 파라미터가 유효하지 않습니다. ex) 이메일, 제목, 내용..."),
+    QUIZ_ALREADY_PARTICIPATED(60005, "QUIZ_ALREADY_PARTICIPATED", "이미 참여가 완료되었습니다."),
+    ;
+
 
     private final int code;
     private final String name;

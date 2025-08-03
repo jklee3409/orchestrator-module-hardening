@@ -9,10 +9,7 @@ import eureca.capstone.project.orchestrator.event.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -39,7 +36,7 @@ public class QuizController {
      * 여기서 진행중일때, 랜덤하게 지급 페이양을 정한다. (1 ~ 1,000,000)
      * void return
      */
-    @GetMapping("/modify-quiz-status")
+    @PostMapping("/modify-quiz-status")
     public BaseResponseDto<ModifyQuizStatusResponseDto> modifyQuizStatusByEvent(@AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
                                                                                 @RequestBody ModifyQuizStatusRequestDto modifyQuizStatusRequestDto
     ) {
@@ -50,16 +47,5 @@ public class QuizController {
         BaseResponseDto<ModifyQuizStatusResponseDto> success = BaseResponseDto.success(modifyQuizStatusResponseDto);
         log.info("[modifyQuizStatusByEvent] success : {}", success);
         return success;
-    }
-
-
-    /**
-     * 퀴즈 참여 여부를 조회하는 API
-     * 단순히 select 처리 하면 되고 > 여기서 row 생성
-     * boolean return
-     */
-    @GetMapping("/find-quiz-participant")
-    public void findQuizParticipantByEvent() {
-
     }
 }
