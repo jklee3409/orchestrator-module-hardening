@@ -1,5 +1,8 @@
 package eureca.capstone.project.orchestrator.common.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,7 @@ import static eureca.capstone.project.orchestrator.common.constant.RedisConstant
 public class RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     /**
      * 값을 저장 (TTL 없음)
@@ -108,5 +112,63 @@ public class RedisService {
      */
     public void clearAll() {
         redisTemplate.delete(SEARCH_RANKING_KEY);
+    }
+
+    public List<KeywordRankingDto> getTopSearchKeywordsWithTrend(int topN) {
+
+        /* 1. 현재 TopN 조회 */
+        Set<Object> currentSet = redisTemplate.opsForZSet()
+                .reverseRange(SEARCH_RANKING_KEY, 0, topN - 1);
+        List<String> current = currentSet == null ? List.of()
+                : currentSet.stream().map(Object::toString).toList();
+
+        /* 2. 이전 랭킹 JSON 문자열 안전하게 파싱 */
+        List<String> prev;
+        Object rawPrev = redisTemplate.opsForValue().get(SEARCH_RANKING_KEY + ":prev");
+
+        if (rawPrev instanceof String json) {
+            try {
+                prev = objectMapper.readValue(json, new TypeReference<>() {
+                });
+            } catch (Exception e) {          // 포맷이 잘못됐거나, 과거에 List 그대로 저장돼 있을 경우
+                prev = List.of();            // 깨끗이 초기화
+            }
+        } else {
+            /* 이전에 List 그대로 저장돼 있을 가능성 → 일단 버리고 초기화 */
+            prev = List.of();
+        }
+
+        /* 3. 현재·이전 비교 → DTO 생성 */
+        List<KeywordRankingDto> result = new ArrayList<>();
+        for (int i = 0; i < current.size(); i++) {
+            String kw = current.get(i);
+            int prevIdx = prev.indexOf(kw);
+
+            String trend;
+            Integer gap = null;
+
+            if (prevIdx == -1) {
+                trend = "NEW";
+            } else if (prevIdx > i) {
+                trend = "UP";
+                gap = prevIdx - i;
+            } else if (prevIdx < i) {
+                trend = "DOWN";
+                gap = i - prevIdx;
+            } else {
+                trend = "SAME";
+                gap = 0;
+            }
+            result.add(new KeywordRankingDto(kw, i + 1, trend, gap));
+        }
+
+        /* 4. 이번 TOP10 을 JSON 문자열로 저장 (다음 비교용) */
+        try {
+            String json = objectMapper.writeValueAsString(current);
+            redisTemplate.opsForValue().set(SEARCH_RANKING_KEY + ":prev", json);
+        } catch (Exception ignored) {
+        }
+
+        return result;
     }
 }

@@ -1,6 +1,6 @@
 package eureca.capstone.project.orchestrator.common.controller;
 
-import eureca.capstone.project.orchestrator.common.dto.GetRankingResponseDto;
+import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,29 +45,30 @@ public class RedisController {
     }
 
 
-    @Operation(summary = "📊 검색어 랭킹 조회 API", description = """
-            ## Redis에 저장된 인기 검색어 Top 10을 반환합니다.
-            
-            ***
-            
-            ### 🔁 반환 데이터
-            | 필드명 | 타입 | 설명 |
-            |--------|------|------|
-            | `top10` | `List<String>` | 점수순으로 정렬된 인기 검색어 목록 |
-            
-            ### 📝 참고 사항
-            * 인기 검색어는 Redis ZSET을 기반으로 실시간으로 누적되며, 점수가 높은 순서로 정렬됩니다.
-            * 내부적으로 특수문자나 제어문자는 자동 정제되어 저장됩니다.
-            """)
+    @Operation(
+            summary = "📊 검색어 랭킹·변동 조회 API",
+            description = """
+                    ## Redis에 저장된 인기 검색어 Top 10과 순위 변동 정보를 반환합니다.
+                    
+                    ***
+                    
+                    ### 🔁 반환 데이터 (배열 `List<KeywordRankingDto>`)
+                    | 필드명        | 타입        | 설명                                                   |
+                    |---------------|------------|--------------------------------------------------------|
+                    | `keyword`     | `String`   | 검색어(소문자·공백 정제 완료)                          |
+                    | `currentRank` | `Integer`  | 현재 순위 (1 ~ 10)                                     |
+                    | `trend`       | `String`   | 순위 변화<br/>`NEW`, `UP`, `DOWN`, `SAME`              |
+                    | `rankGap`     | `Integer`  | 순위 변화 폭<br/>(`UP` · `DOWN`일 때 양수, `SAME` → 0) |
+                    
+                    ### 📝 참고 사항
+                    * 인기 검색어는 Redis **ZSET** 점수를 기준으로 실시간 집계합니다.
+                    * `trend`가 `NEW`이면 이번 집계에서 처음 Top 10에 진입한 키워드입니다.
+                    * 내부적으로 특수문자·제어문자는 제거된 상태로 저장·집계됩니다.
+                    """
+    )
     @GetMapping("/ranking")
-    public BaseResponseDto<GetRankingResponseDto> getRanking() {
-        List<Object> top10 = redisService.getTopSearchKeywords(10);
-        GetRankingResponseDto getRankingResponseDto = GetRankingResponseDto.builder()
-                .top10(top10)
-                .build();
-        log.info("[getRanking] : {}", getRankingResponseDto);
-        BaseResponseDto<GetRankingResponseDto> success = BaseResponseDto.success(getRankingResponseDto);
-        log.info("[getRanking] success : {}", success);
-        return success;
+    public BaseResponseDto<List<KeywordRankingDto>> getRanking() {
+        List<KeywordRankingDto> trendingKeywords = redisService.getTopSearchKeywordsWithTrend(10);
+        return BaseResponseDto.success(trendingKeywords);
     }
 }

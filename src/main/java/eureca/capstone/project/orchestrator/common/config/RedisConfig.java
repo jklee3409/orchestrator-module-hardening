@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
@@ -45,7 +46,6 @@ public class RedisConfig {
 
         // 생성자 주입 방식 사용
         Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
-
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
         template.afterPropertiesSet();
