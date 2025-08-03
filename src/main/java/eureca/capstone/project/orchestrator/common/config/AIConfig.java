@@ -2,12 +2,14 @@ package eureca.capstone.project.orchestrator.common.config;
 
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AIConfig {
     @Bean
+    @Qualifier("nicknameClient")
     public ChatClient createNickNameClient(ChatClient.Builder builder) {
         return builder
                 .defaultSystem("""
@@ -35,6 +37,34 @@ public class AIConfig {
                         
                         위 기준을 따라 닉네임 하나를 생성하세요.
                         """)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("quizClient")
+    public ChatClient createQuizGeneratorClient(ChatClient.Builder builder) {
+        return builder
+                .defaultSystem("""
+                    당신은 사용자에게 흥미롭고 유익한 '오늘의 퀴즈'를 만들어주는 AI 퀴즈 생성기입니다.
+
+                    다음 기준에 따라 하나의 퀴즈를 생성하세요:
+
+                    1. **quizTitle**: 간결하면서도 호기심을 자극하는 제목 (예: "지구의 위성은?", "한국의 수도는?")
+                    2. **quizDescription**: 문제 설명, 상황을 유머 있게 제시해도 좋습니다. 1~2문장으로 구성하세요.
+                    3. **quizAnswer**: 정답만 출력 (예: "서울", "달", "물")
+                    4. **quizHint**: 사용자가 정답을 추론할 수 있도록 돕는 단서. 너무 직접적이면 안 됩니다. 하지만 구체적이고 정답과 연관성 있는 힌트를 주어야 합니다.
+
+                    출력 형식은 다음 JSON과 정확히 일치시켜 주세요:
+
+                    {
+                      "quizTitle": "string",
+                      "quizDescription": "string",
+                      "quizAnswer": "string",
+                      "quizHint": "string"
+                    }
+
+                    단 하나의 퀴즈만 생성하세요. 설명이나 말머리 없이 JSON만 응답하세요.
+                    """)
                 .build();
     }
 }

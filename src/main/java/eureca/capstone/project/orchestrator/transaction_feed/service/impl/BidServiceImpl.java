@@ -21,11 +21,9 @@ import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionF
 import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedSearchRepository;
-import eureca.capstone.project.orchestrator.transaction_feed.repository.custom.TransactionFeedRepositoryCustom;
 import eureca.capstone.project.orchestrator.transaction_feed.service.BidService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -36,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -233,7 +232,8 @@ public class BidServiceImpl implements BidService {
 
                     log.info("[handleBidResult] 보상 트랜잭션 완료: Redis 상태를 이전으로 롤백했습니다.");
 
-                    throw new InternalServerException(ErrorCode.BID_PROCESSING_FAILED);
+//                    throw new InternalServerException(ErrorCode.BID_PROCESSING_FAILED);
+                    throw e;
                 }
             }
             case "BID_TOO_LOW" -> throw new BidException(ErrorCode.BID_AMOUNT_TOO_LOW);

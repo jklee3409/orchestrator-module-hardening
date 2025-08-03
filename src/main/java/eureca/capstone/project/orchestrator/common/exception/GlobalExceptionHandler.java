@@ -187,4 +187,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.METHOD_ARGUMENT_NOT_VALID);
     }
+
+    @ExceptionHandler(QuizAlreadyParticipatedException.class)
+    public BaseResponseDto<ErrorResponseDto> handleMethodQuizAlreadyParticipatedException(QuizAlreadyParticipatedException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.QUIZ_ALREADY_PARTICIPATED);
+    }
 }

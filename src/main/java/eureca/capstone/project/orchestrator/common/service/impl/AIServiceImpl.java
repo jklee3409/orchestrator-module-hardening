@@ -1,16 +1,19 @@
 package eureca.capstone.project.orchestrator.common.service.impl;
 
 import eureca.capstone.project.orchestrator.common.service.AIService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AIServiceImpl implements AIService {
     private final ChatClient chatClient;
+
+    public AIServiceImpl(@Qualifier("nicknameClient") ChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
 
     @Override
     public String generateNickname() {
