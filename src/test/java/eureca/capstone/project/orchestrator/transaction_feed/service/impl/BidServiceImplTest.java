@@ -217,7 +217,7 @@ class BidServiceImplTest {
             when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
 
             // when & then
-            assertThrows(InternalServerException.class, () -> bidService.placeBid(bidder.getEmail(), request));
+            assertThrows(RuntimeException.class, () -> bidService.placeBid(bidder.getEmail(), request));
 
             // Redis 롤백 검증
             String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());

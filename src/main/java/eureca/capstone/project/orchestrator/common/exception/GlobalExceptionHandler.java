@@ -193,4 +193,10 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.QUIZ_ALREADY_PARTICIPATED);
     }
+
+    @ExceptionHandler(QuizNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleQuizNotFoundException(QuizNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.QUIZ_NOT_FOUND);
+    }
 }

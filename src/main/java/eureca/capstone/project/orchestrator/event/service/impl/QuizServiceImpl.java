@@ -3,6 +3,7 @@ package eureca.capstone.project.orchestrator.event.service.impl;
 import eureca.capstone.project.orchestrator.common.component.RewardSelector;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.custom.QuizAlreadyParticipatedException;
+import eureca.capstone.project.orchestrator.common.exception.custom.QuizNotFoundException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.service.QuizAiService;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
@@ -55,7 +56,7 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public ModifyQuizStatusResponseDto modifyQuizStatusByEvent(Long userId, ModifyQuizStatusRequestDto dto) {
         Quiz quiz = quizRepository.findById(dto.getQuizId())
-                .orElseThrow(RuntimeException::new);
+                .orElseThrow(QuizNotFoundException::new);
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
