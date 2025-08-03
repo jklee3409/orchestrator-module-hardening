@@ -107,7 +107,7 @@ public enum ErrorCode {
     TELECOM_COMPANY_NOT_FOUND(60003, "TELECOM_COMPANY_NOT_FOUND", "통신사를 찾지 못하였습니다."),
     METHOD_ARGUMENT_NOT_VALID(60004, "METHOD_ARGUMENT_NOT_VALID", "입력 파라미터가 유효하지 않습니다. ex) 이메일, 제목, 내용..."),
     QUIZ_ALREADY_PARTICIPATED(60005, "QUIZ_ALREADY_PARTICIPATED", "이미 참여가 완료되었습니다."),
-    ;
+    QUIZ_NOT_FOUND(60006, "QUIZ_NOT_FOUND", "퀴즈를 찾을 수 없습니다.");
 
 
     private final int code;
