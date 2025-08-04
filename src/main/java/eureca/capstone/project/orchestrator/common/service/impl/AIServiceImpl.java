@@ -18,7 +18,7 @@ public class AIServiceImpl implements AIService {
     @Override
     public String generateNickname() {
         String nickName = chatClient.prompt()
-                .user("닉네임 만들어줘")
+                .user("프롬프트를 잘 참고해서 만들어줘")
                 .call()
                 .entity(String.class);
         log.info("[generateNickname] AI 를 통해 정상적으로 닉네임이 생성되었습니다. {}", nickName);

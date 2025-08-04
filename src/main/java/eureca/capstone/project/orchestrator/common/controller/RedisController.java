@@ -1,9 +1,11 @@
 package eureca.capstone.project.orchestrator.common.controller;
 
+import eureca.capstone.project.orchestrator.common.dto.GetRankingResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "실시간 검색어 API")
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -67,8 +70,8 @@ public class RedisController {
                     """
     )
     @GetMapping("/ranking")
-    public BaseResponseDto<List<KeywordRankingDto>> getRanking() {
-        List<KeywordRankingDto> trendingKeywords = redisService.getTopSearchKeywordsWithTrend(10);
+    public BaseResponseDto<GetRankingResponseDto> getRanking() {
+        GetRankingResponseDto trendingKeywords = redisService.getTopSearchKeywordsWithTrend(10);
         return BaseResponseDto.success(trendingKeywords);
     }
 }

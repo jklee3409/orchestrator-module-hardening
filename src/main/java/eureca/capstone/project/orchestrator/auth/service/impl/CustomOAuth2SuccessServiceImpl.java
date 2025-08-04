@@ -7,6 +7,7 @@ import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -39,6 +40,12 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
             log.warn("[onAuthenticationSuccess] 인증 코드가 누락되었습니다.");
             httpServletResponse.sendRedirect(REDIRECT_URI + "?error=auth_code_missing");
             return;
+        }
+
+        // 현재 HTTP 세션 제거
+        HttpSession session = httpServletRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
         }
 
         // authCode와 함께 프론트엔드로 리다이렉트

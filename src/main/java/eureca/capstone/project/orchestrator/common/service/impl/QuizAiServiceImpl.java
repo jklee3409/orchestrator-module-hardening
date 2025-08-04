@@ -19,7 +19,7 @@ public class QuizAiServiceImpl implements QuizAiService {
     @Override
     public GetTodayQuizResponseDto generateQuiz() {
         GetTodayQuizResponseDto quiz = chatClient.prompt()
-                .user("재밌는 넌센스 문제 잘 만들어줘")
+                .user("프롬프트를 잘 보고 만들어줘")
                 .call()
                 .entity(GetTodayQuizResponseDto.class);
         log.info("[generateQuiz] AI 를 통해 정상적으로 퀴즈가 생성되었습니다. {}", quiz);

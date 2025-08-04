@@ -25,4 +25,15 @@ public class AIServiceImplTest {
                 .isNotBlank()
                 .hasSizeBetween(1, 12);
     }
+
+    @Test
+    public void createManyNickName() {
+        // given
+        // 별도의 사전 조건은 없음 (AIService 주입 상태)
+
+        // when
+        for (int i = 0; i < 10; i++) {
+            aiService.generateNickname();
+        }
+    }
 }
