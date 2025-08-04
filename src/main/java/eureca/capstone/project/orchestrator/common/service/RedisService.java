@@ -1,9 +1,15 @@
 package eureca.capstone.project.orchestrator.common.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,12 +23,31 @@ import static eureca.capstone.project.orchestrator.common.constant.RedisConstant
 
 ;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    @PostConstruct
+    public void init() {
+        log.info("[RedisService] 초기화: 랭킹 스냅샷 스케줄러를 시작합니다.");
+        scheduler.scheduleAtFixedRate(
+                () -> updatePreviousRankingSnapshot(10),
+                10,
+                10,
+                TimeUnit.MINUTES
+        );
+    }
+
+    @PreDestroy
+    public void destroy() {
+        log.info("RedisService 소멸: 스케줄러를 종료합니다.");
+        scheduler.shutdown();
+    }
 
     /**
      * 값을 저장 (TTL 없음)
@@ -123,20 +148,7 @@ public class RedisService {
                 : currentSet.stream().map(Object::toString).toList();
 
         /* 2. 이전 랭킹 JSON 문자열 안전하게 파싱 */
-        List<String> prev;
-        Object rawPrev = redisTemplate.opsForValue().get(SEARCH_RANKING_KEY + ":prev");
-
-        if (rawPrev instanceof String json) {
-            try {
-                prev = objectMapper.readValue(json, new TypeReference<>() {
-                });
-            } catch (Exception e) {          // 포맷이 잘못됐거나, 과거에 List 그대로 저장돼 있을 경우
-                prev = List.of();            // 깨끗이 초기화
-            }
-        } else {
-            /* 이전에 List 그대로 저장돼 있을 가능성 → 일단 버리고 초기화 */
-            prev = List.of();
-        }
+        List<String> prev = getPreviousRanking();
 
         /* 3. 현재·이전 비교 → DTO 생성 */
         List<KeywordRankingDto> result = new ArrayList<>();
@@ -162,13 +174,35 @@ public class RedisService {
             result.add(new KeywordRankingDto(kw, i + 1, trend, gap));
         }
 
-        /* 4. 이번 TOP10 을 JSON 문자열로 저장 (다음 비교용) */
+        return result;
+    }
+
+    private List<String> getPreviousRanking() {
+        Object rawPrev = redisTemplate.opsForValue().get(SEARCH_RANKING_KEY + ":prev");
+        if (rawPrev instanceof String json) {
+            try {
+                return objectMapper.readValue(json, new TypeReference<>() {}
+                );
+            } catch (Exception e) {
+                log.warn("이전 랭킹 파싱 실패. 빈 리스트를 반환합니다.", e);
+                return List.of();
+            }
+        }
+        return List.of();
+    }
+
+    private void updatePreviousRankingSnapshot(int topN) {
+        Set<Object> currentSet = redisTemplate.opsForZSet()
+                .reverseRange(SEARCH_RANKING_KEY, 0, topN - 1);
+        List<String> current = currentSet == null ? List.of()
+                : currentSet.stream().map(Object::toString).toList();
+
         try {
             String json = objectMapper.writeValueAsString(current);
             redisTemplate.opsForValue().set(SEARCH_RANKING_KEY + ":prev", json);
-        } catch (Exception ignored) {
+            log.info("실시간 검색어 랭킹 스냅샷을 갱신했습니다.");
+        } catch (JsonProcessingException e) {
+            log.error("랭킹 스냅샷 JSON 변환 중 오류가 발생했습니다.", e);
         }
-
-        return result;
     }
 }
