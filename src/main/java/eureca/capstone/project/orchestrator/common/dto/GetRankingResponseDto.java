@@ -8,5 +8,6 @@ import java.util.List;
 @Data
 @Builder
 public class GetRankingResponseDto {
-    private List<Object> top10;
+    private String lastUpdatedAt;
+    private List<KeywordRankingDto> top10;
 }

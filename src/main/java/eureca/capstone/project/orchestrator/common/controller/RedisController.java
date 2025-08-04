@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.common.controller;
 
+import eureca.capstone.project.orchestrator.common.dto.GetRankingResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
@@ -69,8 +70,8 @@ public class RedisController {
                     """
     )
     @GetMapping("/ranking")
-    public BaseResponseDto<List<KeywordRankingDto>> getRanking() {
-        List<KeywordRankingDto> trendingKeywords = redisService.getTopSearchKeywordsWithTrend(10);
+    public BaseResponseDto<GetRankingResponseDto> getRanking() {
+        GetRankingResponseDto trendingKeywords = redisService.getTopSearchKeywordsWithTrend(10);
         return BaseResponseDto.success(trendingKeywords);
     }
 }

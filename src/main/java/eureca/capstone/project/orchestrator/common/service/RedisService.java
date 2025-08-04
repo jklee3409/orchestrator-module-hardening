@@ -1,13 +1,13 @@
 package eureca.capstone.project.orchestrator.common.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eureca.capstone.project.orchestrator.common.dto.GetRankingResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.KeywordRankingDto;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -30,23 +30,21 @@ public class RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    @PostConstruct
-    public void init() {
-        log.info("[RedisService] 초기화: 랭킹 스냅샷 스케줄러를 시작합니다.");
-        scheduler.scheduleAtFixedRate(
-                () -> updatePreviousRankingSnapshot(10),
-                10,
-                10,
-                TimeUnit.MINUTES
-        );
+    private static final DateTimeFormatter KEY_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd:HH");
+    private static final DateTimeFormatter UPDATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
+    private String generateRankingKey(LocalDateTime dateTime) {
+        String timeBlock = dateTime.getMinute() < 30 ? "00" : "30";
+        return "search_ranking:" + dateTime.format(KEY_DATE_FORMATTER) + "_" + timeBlock;
     }
 
-    @PreDestroy
-    public void destroy() {
-        log.info("RedisService 소멸: 스케줄러를 종료합니다.");
-        scheduler.shutdown();
+    private String getCurrentRankingKey() {
+        return generateRankingKey(LocalDateTime.now());
+    }
+
+    private String getPreviousRankingKey() {
+        return generateRankingKey(LocalDateTime.now().minusMinutes(30));
     }
 
     /**
@@ -105,7 +103,12 @@ public class RedisService {
     public void increaseSearchKeyword(String keyword) {
         if (keyword == null || keyword.isBlank()) return;
         keyword = sanitizeKeyword(keyword);
-        redisTemplate.opsForZSet().incrementScore(SEARCH_RANKING_KEY, keyword.toLowerCase(), 1);
+        String key = getCurrentRankingKey();
+
+        redisTemplate.opsForZSet().incrementScore(key, keyword.toLowerCase(), 1);
+        if (redisTemplate.getExpire(key) == null || redisTemplate.getExpire(key) < 0) {
+            redisTemplate.expire(key, 24, TimeUnit.HOURS);
+        }
     }
 
     public String sanitizeKeyword(String rawKeyword) {
@@ -139,70 +142,53 @@ public class RedisService {
         redisTemplate.delete(SEARCH_RANKING_KEY);
     }
 
-    public List<KeywordRankingDto> getTopSearchKeywordsWithTrend(int topN) {
+    public GetRankingResponseDto getTopSearchKeywordsWithTrend(int topN) {
+        LocalDateTime now = LocalDateTime.now();
+        String currentKey = getCurrentRankingKey();
+        String prevKey = getPreviousRankingKey();
 
-        /* 1. 현재 TopN 조회 */
-        Set<Object> currentSet = redisTemplate.opsForZSet()
-                .reverseRange(SEARCH_RANKING_KEY, 0, topN - 1);
-        List<String> current = currentSet == null ? List.of()
-                : currentSet.stream().map(Object::toString).toList();
-
-        /* 2. 이전 랭킹 JSON 문자열 안전하게 파싱 */
-        List<String> prev = getPreviousRanking();
-
-        /* 3. 현재·이전 비교 → DTO 생성 */
-        List<KeywordRankingDto> result = new ArrayList<>();
-        for (int i = 0; i < current.size(); i++) {
-            String kw = current.get(i);
-            int prevIdx = prev.indexOf(kw);
-
-            String trend;
-            Integer gap = null;
-
-            if (prevIdx == -1) {
-                trend = "NEW";
-            } else if (prevIdx > i) {
-                trend = "UP";
-                gap = prevIdx - i;
-            } else if (prevIdx < i) {
-                trend = "DOWN";
-                gap = i - prevIdx;
-            } else {
-                trend = "SAME";
-                gap = 0;
-            }
-            result.add(new KeywordRankingDto(kw, i + 1, trend, gap));
-        }
-
-        return result;
-    }
-
-    private List<String> getPreviousRanking() {
-        Object rawPrev = redisTemplate.opsForValue().get(SEARCH_RANKING_KEY + ":prev");
-        if (rawPrev instanceof String json) {
-            try {
-                return objectMapper.readValue(json, new TypeReference<>() {}
-                );
-            } catch (Exception e) {
-                log.warn("이전 랭킹 파싱 실패. 빈 리스트를 반환합니다.", e);
-                return List.of();
-            }
-        }
-        return List.of();
-    }
-
-    private void updatePreviousRankingSnapshot(int topN) {
-        Set<Object> currentSet = redisTemplate.opsForZSet()
-                .reverseRange(SEARCH_RANKING_KEY, 0, topN - 1);
-        List<String> current = currentSet == null ? List.of()
-                : currentSet.stream().map(Object::toString).toList();
+        // 1. 임시 키 생성
+        String tempKey = "temp_ranking:" + UUID.randomUUID().toString();
 
         try {
-            String json = objectMapper.writeValueAsString(current);
-            redisTemplate.opsForValue().set(SEARCH_RANKING_KEY + ":prev", json);
-            log.info("실시간 검색어 랭킹 스냅샷을 갱신했습니다.");
-        } catch (JsonProcessingException e) {
-            log.error("랭킹 스냅샷 JSON 변환 중 오류가 발생했습니다.", e);
+            // 2. 이전 키와 현재 키를 합산하여 임시 키에 저장
+            // 동일 멤버는 점수가 합산됨
+            redisTemplate.opsForZSet().unionAndStore(prevKey, Collections.singletonList(currentKey), tempKey);
+
+            // 3. 임시 키에서 최종 TopN 조회
+            Set<Object> currentSet = redisTemplate.opsForZSet().reverseRange(tempKey, 0, topN - 1);
+            List<String> currentHybridRank = (currentSet == null) ? List.of() : currentSet.stream().map(Object::toString).toList();
+
+            // 4. 순위 비교 기준은 '이전 시간대의 랭킹'으로 설정
+            Set<Object> prevSet = redisTemplate.opsForZSet().reverseRange(prevKey, 0, topN - 1);
+            List<String> prevRank = (prevSet == null) ? List.of() : prevSet.stream().map(Object::toString).toList();
+
+            // 5. DTO 생성
+            List<KeywordRankingDto> rankingList = new ArrayList<>();
+            for (int i = 0; i < currentHybridRank.size(); i++) {
+                String kw = currentHybridRank.get(i);
+                int prevIdx = prevRank.indexOf(kw);
+                String trend;
+                Integer gap = null;
+
+                if (prevIdx == -1) trend = "NEW";
+                else if (prevIdx > i) { trend = "UP"; gap = prevIdx - i; }
+                else if (prevIdx < i) { trend = "DOWN"; gap = i - prevIdx; }
+                else { trend = "SAME"; gap = 0; }
+
+                rankingList.add(new KeywordRankingDto(kw, i + 1, trend, gap));
+            }
+
+            // 6. 갱신 시각 생성 및 최종 DTO 반환
+            String lastUpdatedAt = now.withMinute(now.getMinute() < 30 ? 0 : 30).format(UPDATE_TIME_FORMATTER);
+            return GetRankingResponseDto.builder()
+                    .lastUpdatedAt(lastUpdatedAt)
+                    .top10(rankingList)
+                    .build();
+
+        } finally {
+            // 7. 임시 키 삭제
+            redisTemplate.delete(tempKey);
         }
     }
 }
