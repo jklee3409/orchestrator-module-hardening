@@ -26,16 +26,16 @@ public class RewardSelector {
         int reward;
         if (rand < 30.0) {
             reward = 1;             // 30%
-        } else if (rand < 55.0) {
-            reward = 100;           // 25%
-        } else if (rand < 75.0) {
-            reward = 1_000;         // 20%
-        } else if (rand < 90.0) {
-            reward = 10_000;        // 15%
-        } else if (rand < 98.0) {
-            reward = 100_000;       // 8%
+        } else if (rand < 65.0) {
+            reward = 100;           // 35%
+        } else if (rand < 99.0) {
+            reward = 1_000;         // 34%
+        } else if (rand < 99.9) {
+            reward = 10_000;        // 0.9%
+        } else if (rand < 99.9999) {
+            reward = 100_000;       // 0.0999%
         } else {
-            reward = 1_000_000;     // 2%
+            reward = 1_000_000;     // 0.0001%
         }
 
         log.info("[selectTodayReward] userId={}, rand={}, reward={}", userId, rand, reward);
