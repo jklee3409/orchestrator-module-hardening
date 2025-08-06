@@ -10,6 +10,8 @@ import eureca.capstone.project.orchestrator.common.exception.custom.TransactionF
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.orchestrator.common.util.SalesTypeManager;
 import eureca.capstone.project.orchestrator.common.util.StatusManager;
+import eureca.capstone.project.orchestrator.pay.entity.UserPay;
+import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.pay.service.UserPayService;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.BidDto;
@@ -45,6 +47,7 @@ public class BidServiceImpl implements BidService {
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final BidsRepository bidsRepository;
     private final UserPayService userPayService;
+    private final UserPayRepository userPayRepository;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisScript<List> bidScript;
     private final StatusManager statusManager;
@@ -124,6 +127,8 @@ public class BidServiceImpl implements BidService {
 
         Status salesStatus = statusManager.getStatus("FEED", "ON_SALE");
         SalesType bidSalesType = salesTypeManager.getBidSaleType();
+        UserPay userPay = userPayRepository.findByUserId(bidder.getUserId()).orElseThrow(UserNotFoundException::new);
+        Long bidderPay = userPay.getPay();
 
         if (feed.getUser().getUserId().equals(bidder.getUserId())) {
             log.error("[validateBidPrecondition] 판매자는 자신의 판매글에 입찰할 수 없습니다. 사용자 ID: {}, 판매글 ID: {}", bidder.getUserId(),
@@ -149,6 +154,11 @@ public class BidServiceImpl implements BidService {
             log.error("[validateBidPrecondition] 입찰 판매글이 만료되었습니다. 사용자 ID: {}, 판매글 ID: {}", bidder.getUserId(),
                     feed.getTransactionFeedId());
             throw new BidException(ErrorCode.AUCTION_EXPIRED);
+        }
+        if (bidderPay < bidAmount) {
+            log.error("[validateBidPrecondition] 보유 페이가 부족합니다. 사용자 ID: {}, 보유 페이: {}, 입찰가: {}",
+                    bidder.getUserId(), bidderPay, bidAmount);
+            throw new BidException(ErrorCode.USER_PAY_LACK);
         }
         if (bidAmount % 100 != 0) {
             log.error("[validateBidPrecondition] 입찰 금액은 100원 단위로 입력해야 합니다. 사용자 ID: {}, 판매글 ID: {}, 입찰가: {}",
