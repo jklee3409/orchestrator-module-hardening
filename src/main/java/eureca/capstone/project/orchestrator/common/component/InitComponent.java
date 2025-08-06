@@ -98,7 +98,10 @@ public class InitComponent {
             PayType.builder().payTypeId(7L).name("휴대폰").build(),
             PayType.builder().payTypeId(8L).name("문화상품권").build(),
             PayType.builder().payTypeId(9L).name("가상계좌").build(),
-            PayType.builder().payTypeId(10L).name("전체").build()
+            PayType.builder().payTypeId(10L).name("전체").build(),
+            PayType.builder().payTypeId(11L).name("삼성페이").build(),
+            PayType.builder().payTypeId(12L).name("SSG페이").build(),
+            PayType.builder().payTypeId(13L).name("엘페이").build()
     );
 
     private static final List<ChangeType> HARDCODED_CHANGE_TYPES = List.of(
