@@ -1,37 +1,34 @@
 package eureca.capstone.project.orchestrator.pay.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import eureca.capstone.project.orchestrator.pay.entity.UserPay;
+import eureca.capstone.project.orchestrator.common.exception.custom.PayLackException;
 import eureca.capstone.project.orchestrator.pay.repository.UserPayRepository;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-public class UserPayServiceConcurrencyTest {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-    private UserRepository userRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class UserPayServiceImplConcurrencyTest {
+
     private UserPayRepository userPayRepository;
+    private UserRepository userRepository;
     private UserPayServiceImpl userPayService;
 
     private User user;
@@ -47,33 +44,21 @@ public class UserPayServiceConcurrencyTest {
         when(user.getUserId()).thenReturn(1L);
 
         storedPay = new AtomicLong(10_000L);
+
+        when(userPayRepository.decreasePayIfEnough(1L, 8_000L)).thenAnswer(invocation -> {
+            synchronized (storedPay) {
+                if (storedPay.get() < 8_000L) {
+                    return 0;
+                }
+                storedPay.addAndGet(-8_000L);
+                return 1;
+            }
+        });
     }
 
     @Test
     @DisplayName("동시에 같은 사용자가 열 번 차감하면 한 건만 성공해야 한다")
     void 동시에_같은_사용자가_열_번_차감하면_한_건만_성공해야_한다() throws Exception {
-        // 2개의 스레드가 특정 지점에 도달할 때까지 대기
-        CyclicBarrier readBarrier = new CyclicBarrier(2);
-
-        when(userPayRepository.findById(1L)).thenAnswer(invocation -> {
-            long snapshot = storedPay.get();
-            awaitBarrier(readBarrier); // 동시에 잔액 조회하는 상황
-
-            return Optional.of(
-                    UserPay.builder()
-                            .userId(1L)
-                            .user(user)
-                            .pay(snapshot)
-                            .build()
-            );
-        });
-
-        when(userPayRepository.save(any(UserPay.class))).thenAnswer(invocation -> {
-            UserPay saved = invocation.getArgument(0); // == userPay, invocation = mock 메서드가 호출된 상황 정보
-            storedPay.set(saved.getPay());
-            return saved;
-        });
-
         ExecutorService executor = Executors.newFixedThreadPool(10);
         CountDownLatch ready = new CountDownLatch(10);
         CountDownLatch start = new CountDownLatch(1);
@@ -95,17 +80,9 @@ public class UserPayServiceConcurrencyTest {
             }
         };
 
-        // 10개 스레드가 동시 실행
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
-        executor.submit(task);
+        for (int i = 0; i < 10; i++) {
+            executor.submit(task);
+        }
 
         assertThat(ready.await(1, TimeUnit.SECONDS)).isTrue();
         start.countDown();
@@ -117,20 +94,18 @@ public class UserPayServiceConcurrencyTest {
                 .isEqualTo(1);
 
         assertThat(failures)
-                .as("나머지 1건은 잔액 부족 등으로 실패해야 한다")
-                .hasSize(1);
+                .as("나머지 9건은 잔액 부족으로 실패해야 한다")
+                .hasSize(9);
+
+        assertThat(failures.get(0))
+                .isInstanceOf(PayLackException.class);
 
         assertThat(storedPay.get())
                 .as("최종 잔액은 한 번만 차감된 2,000원이어야 한다")
                 .isEqualTo(2_000L);
-    }
 
-    private static void awaitBarrier(CyclicBarrier barrier) {
-        try {
-            barrier.await(2, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        verify(userPayRepository, times(10)).decreasePayIfEnough(1L, 8_000L);
+        verify(userPayRepository, never()).save(any());
     }
 
     private static void awaitLatch(CountDownLatch latch) {
