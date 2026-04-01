@@ -20,6 +20,7 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.scripting.support.ResourceScriptSource;
 
 @Configuration
 @RequiredArgsConstructor
@@ -59,6 +60,14 @@ public class RedisConfig {
         redisScript.setLocation(new ClassPathResource("scripts/bid.lua"));
         redisScript.setResultType(List.class);
         return redisScript;
+    }
+
+    @Bean
+    public RedisScript<Long> bidRollbackScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("bid_rollback.lua")));
+        script.setResultType(Long.class);
+        return script;
     }
 
     @Bean
