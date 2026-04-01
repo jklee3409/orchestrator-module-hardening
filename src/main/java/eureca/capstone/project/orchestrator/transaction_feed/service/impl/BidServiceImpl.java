@@ -2,6 +2,7 @@ package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
 import eureca.capstone.project.orchestrator.alarm.dto.AlarmCreationDto;
 import eureca.capstone.project.orchestrator.alarm.service.impl.NotificationProducer;
+import eureca.capstone.project.orchestrator.common.constant.RedisConstant;
 import eureca.capstone.project.orchestrator.common.entity.Status;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.BidException;
@@ -28,6 +29,7 @@ import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class BidServiceImpl implements BidService {
+
     private final UserRepository userRepository;
     private final TransactionFeedRepository transactionFeedRepository;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
@@ -49,7 +52,8 @@ public class BidServiceImpl implements BidService {
     private final UserPayService userPayService;
     private final UserPayRepository userPayRepository;
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedisScript<List> bidScript;
+    @Qualifier("bidScript") private final RedisScript<List> bidScript;
+    @Qualifier("bidRollbackScript") private final RedisScript<Long> bidRollbackScript;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
     private final NotificationProducer notificationProducer;
@@ -65,22 +69,18 @@ public class BidServiceImpl implements BidService {
         log.info("[placeBid] 입찰 사전 검증 통과");
 
         LocalDateTime bidTimeStamp = LocalDateTime.now();
+        BidRedisKeys redisKeys = BidRedisKeys.fromFeedId(feed.getTransactionFeedId());
 
-        // 레디스 키 정의
-        String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
-        String highestBidderKey = String.format("bids:%d:highest_bidder_id", feed.getTransactionFeedId());
-
-        // 루아 스크립트 실행
         List result = stringRedisTemplate.execute(
                 bidScript,
-                List.of(highestPriceKey, highestBidderKey),
+                redisKeys.asList(),
                 request.getBidAmount().toString(),
                 bidder.getUserId().toString(),
                 feed.getSalesPrice().toString()
         );
         log.info("[placeBid] 레디스 스크립트 실행 결과: {}", result);
 
-        handleBidResult(result, feed, bidder, request.getBidAmount(), bidTimeStamp);
+        handleBidResult(result, feed, bidder, request.getBidAmount(), bidTimeStamp, redisKeys);
     }
 
     @Override
@@ -167,40 +167,49 @@ public class BidServiceImpl implements BidService {
         }
     }
 
-    private void handleBidResult(List<Object> result, TransactionFeed feed, User newBidder, Long bidAmount, LocalDateTime bidTimeStamp) {
+    private void handleBidResult(
+            List<Object> result,
+            TransactionFeed feed,
+            User newBidder,
+            Long bidAmount,
+            LocalDateTime bidTimeStamp,
+            BidRedisKeys redisKeys
+    ) {
         if (result == null || result.isEmpty()) {
             log.error("[handleBidResult] 루아 스크립트 반환값이 비어있습니다.");
             throw new InternalServerException(ErrorCode.LUA_SCRIPT_ERROR);
         }
 
         log.info("[handleBidResult] 입찰 결과 처리 시작 - 결과: {}", result);
-
-        String status = (String) result.get(0).toString();
+        String status = String.valueOf(result.get(0));
 
         switch (Objects.requireNonNull(status)) {
             case "SUCCESS" -> {
-                String prevBidderIdStr = (String) result.get(1);
-                String prevBidAmountStr = (String) result.get(2);
-                log.info("[handleBidResult] 입찰 성공");
+                BidRedisSuccessResult successResult = BidRedisSuccessResult.from(result);
+                log.info("[handleBidResult] 입찰 성공. 적용 버전: {}, 이전 버전: {}",
+                        successResult.appliedVersion(), successResult.previousVersion());
 
                 try {
-                    if (!"0".equals(prevBidderIdStr)) {
-                        Long prevBidderId = Long.parseLong(prevBidderIdStr);
-                        Long prevBidAmount = Long.parseLong(prevBidAmountStr);
+                    if (successResult.hasPreviousBid()) {
+                        Long prevBidderId = Long.parseLong(successResult.prevBidderId);
+                        Long prevBidAmount = Long.parseLong(successResult.prevBidAmount);
                         log.info("[handleBidResult] 이전 입찰자 정보 - ID: {}, 금액: {}", prevBidderId, prevBidAmount);
 
                         User prevBidder = userRepository.findById(prevBidderId)
                                 .orElseThrow(UserNotFoundException::new);
 
                         userPayService.refundPay(prevBidder, prevBidAmount);
-                        log.info("[handleBidResult] 이전 입찰자 페이 환불 완료. 사용자 ID: {}, 환불 금액: {}", prevBidderId, prevBidAmount);
+                        log.info("[handleBidResult] 이전 입찰자 페이 환불 완료. 사용자 ID: {}, 환불 금액: {}",
+                                prevBidderId, prevBidAmount);
                     }
 
                     userPayService.usePay(newBidder, bidAmount);
-                    log.info("[handleBidResult] 새로운 입찰자 페이 사용 완료. 사용자 ID: {}, 사용 금액: {}", newBidder.getUserId(), bidAmount);
+                    log.info("[handleBidResult] 새로운 입찰자 페이 사용 완료. 사용자 ID: {}, 사용 금액: {}",
+                            newBidder.getUserId(), bidAmount);
 
                     saveBidHistory(feed, newBidder, bidAmount, bidTimeStamp);
-                    log.info("입찰 성공 - 사용자 ID: {}, 게시글 ID: {}, 입찰가: {}", newBidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
+                    log.info("입찰 성공 - 사용자 ID: {}, 게시글 ID: {}, 입찰가: {}",
+                            newBidder.getUserId(), feed.getTransactionFeedId(), bidAmount);
 
                     updateFeedDocumentHighestPrice(feed.getTransactionFeedId(), bidAmount);
 
@@ -209,10 +218,8 @@ public class BidServiceImpl implements BidService {
                             .map(Bids::getUser)
                             .distinct()
                             .toList();
-                    log.info("[handleBidResult] 입찰 참여자 {}명 조회 완료", participants.size());
 
                     for (User participant : participants) {
-                        log.info("transaction_feed_id: {}", feed.getTransactionFeedId());
                         if (participant.getUserId().equals(newBidder.getUserId())) {
                             notificationProducer.send(AlarmCreationDto.builder()
                                     .userId(participant.getUserId())
@@ -225,24 +232,16 @@ public class BidServiceImpl implements BidService {
                                     .userId(participant.getUserId())
                                     .alarmType("입찰 갱신")
                                     .transactionFeedId(feed.getTransactionFeedId())
-                                    .content(newBidder.getNickname() + "님이 [" + feed.getTitle() + "]를(을) (다챠페이)" + bidAmount + "원에 입찰했습니다.")
+                                    .content(newBidder.getNickname() + "님이 [" + feed.getTitle() + "]를(을) (다챠페이)"
+                                            + bidAmount + "원에 입찰했습니다.")
                                     .build());
                         }
                     }
                     log.info("[handleBidResult] 입찰 알림 전송 완료");
 
                 } catch (Exception e) {
-                    log.error("[handleBidResult] DB 작업 중 예외 발생. 보상 트랜잭션을 시작합니다.", e);
-
-                    String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
-                    String highestBidderKey = String.format("bids:%d:highest_bidder_id", feed.getTransactionFeedId());
-
-                    stringRedisTemplate.opsForValue().set(highestPriceKey, prevBidAmountStr);
-                    stringRedisTemplate.opsForValue().set(highestBidderKey, prevBidderIdStr);
-
-                    log.info("[handleBidResult] 보상 트랜잭션 완료: Redis 상태를 이전으로 롤백했습니다.");
-
-//                    throw new InternalServerException(ErrorCode.BID_PROCESSING_FAILED);
+                    log.error("[handleBidResult] DB 작업 중 예외 발생. 버전 기반 보상 롤백을 시도합니다.", e);
+                    rollbackRedisBidState(redisKeys, successResult);
                     throw e;
                 }
             }
@@ -253,6 +252,25 @@ public class BidServiceImpl implements BidService {
                 throw new InternalServerException(ErrorCode.LUA_SCRIPT_ERROR);
             }
         }
+    }
+
+    private void rollbackRedisBidState(BidRedisKeys redisKeys, BidRedisSuccessResult successResult) {
+        Long rollbackResult = stringRedisTemplate.execute(
+                bidRollbackScript,
+                redisKeys.asList(),
+                successResult.appliedVersion(),
+                successResult.prevBidderId(),
+                successResult.prevBidAmount(),
+                successResult.previousVersion()
+        );
+
+        if (Long.valueOf(1L).equals(rollbackResult)) {
+            log.info("[rollbackRedisBidState] Redis 상태 롤백 완료. 적용 버전: {}", successResult.appliedVersion());
+            return;
+        }
+
+        log.warn("[rollbackRedisBidState] Redis 상태 롤백을 건너뜁니다. 더 새로운 버전이 이미 반영되었을 수 있습니다. 적용 버전: {}",
+                successResult.appliedVersion());
     }
 
     private void saveBidHistory(TransactionFeed feed, User bidder, Long bidAmount, LocalDateTime bidTimeStamp) {
@@ -274,6 +292,47 @@ public class BidServiceImpl implements BidService {
 
         } catch (Exception e) {
             log.error("[updateFeedDocumentHighestPrice] Elasticsearch 문서 업데이트 실패. Document ID: {}. Error: {}", feedId, e.getMessage());
+        }
+    }
+
+    private record BidRedisKeys(String highestPriceKey, String highestBidderKey, String stateVersionKey) {
+        private static BidRedisKeys fromFeedId(Long feedId) {
+            String keyPrefix = "bids:{" + feedId + "}";
+
+            return new BidRedisKeys(
+                    keyPrefix + ":highest_price",
+                    keyPrefix + ":highest_bidder_id",
+                    keyPrefix + ":state_version"
+            );
+        }
+
+        private List<String> asList() {
+            return List.of(highestPriceKey, highestBidderKey, stateVersionKey);
+        }
+    }
+
+    private record BidRedisSuccessResult(
+            String prevBidderId,
+            String prevBidAmount,
+            String appliedVersion,
+            String previousVersion
+    ) {
+        private static BidRedisSuccessResult from(List<Object> result) {
+            if (result.size() < 5) {
+                throw new InternalServerException(ErrorCode.LUA_SCRIPT_ERROR);
+            }
+
+            return new BidRedisSuccessResult(
+                    String.valueOf(result.get(1)),
+                    String.valueOf(result.get(2)),
+                    String.valueOf(result.get(3)),
+                    String.valueOf(result.get(4))
+            );
+        }
+
+        private boolean hasPreviousBid() {
+            return !RedisConstant.REDIS_NULL_SENTINEL.equals(prevBidderId)
+                    && !RedisConstant.REDIS_NULL_SENTINEL.equals(prevBidAmount);
         }
     }
 }
