@@ -1,34 +1,48 @@
--- KEYS[1]: 최고가(highest_price)를 저장할 키 (ex bids:{feedId}:highest_price)
--- KEYS[2]: 최고 입찰자 ID(highest_bidder_id)를 저장할 키 (ex bids:{feedId}:highest_bidder_id)
--- ARGV[1]: 새로 들어온 입찰가 (newBidAmount)
--- ARGV[2]: 입찰자 ID (bidderId)
+-- KEYS[1]: highest_price 저장
+-- KEYS[2]: highest_bidder_id 저장
+-- KEYS[3]: state_version 저장
+--
+-- ARGV[1]: newBidAmount
+-- ARGV[2]: bidderId
+-- ARGV[3]: salesPrice
+--
+-- RETURN[1]: status ('SUCCESS' | 'SAME_BIDDER' | 'BID_TOO_LOW')
+-- RETURN[2]: prev_bidder_id (없으면 '__nil__')
+-- RETURN[3]: prev_price (없으면 '__nil__')
+-- RETURN[4]: new_version (실패 시 -1)
+-- RETURN[5]: prev_version
 
--- 현재 저장된 최고가와 최고 입찰자 정보
+local NULL_TOKEN = '__nil__'
+
 local prev_price = redis.call('get', KEYS[1])
 local prev_bidder_id = redis.call('get', KEYS[2])
+local prev_version = tonumber(redis.call('get', KEYS[3]) or '0')
 
--- 새로운 입찰가와 입찰자 정보
 local new_price = tonumber(ARGV[1])
 local new_bidder_id = ARGV[2]
 local sales_price = tonumber(ARGV[3])
 
--- 이전에 입찰한 사람이 현재 최고가로 다시 입찰하려는 경우
+-- 현재 최고 입찰자가 다시 자기 자신을 올리려는 경우
 if prev_bidder_id and prev_bidder_id == new_bidder_id then
-    return { 'SAME_BIDDER', '0', '0' }
+    return { 'SAME_BIDDER', NULL_TOKEN, NULL_TOKEN, '-1', tostring(prev_version) }
 end
 
 local floor_price = prev_price and tonumber(prev_price) or sales_price
 
--- 새로운 입찰가가 비교 기준 가격보다 높은 경우
 if new_price > floor_price then
-    -- 새로운 정보로 갱신
-    redis.call('set', KEYS[1], new_price)
-    redis.call('set', KEYS[2], new_bidder_id)
+    local new_version = prev_version + 1
 
-    -- 성공 상태와 '이전' 입찰자 정보를 반환
-    -- 만약 첫 입찰이라 이전 정보가 없으면, 0 을 반환
-    return { 'SUCCESS', prev_bidder_id or '0', prev_price or '0' }
+    redis.call('set', KEYS[1], tostring(new_price))
+    redis.call('set', KEYS[2], new_bidder_id)
+    redis.call('set', KEYS[3], tostring(new_version))
+
+    return {
+        'SUCCESS',
+        prev_bidder_id or NULL_TOKEN,
+        prev_price or NULL_TOKEN,
+        tostring(new_version),
+        tostring(prev_version)
+    }
 else
-    -- 입찰가가 현재 최고가 또는 시작가보다 낮거나 같은 경우
-    return { 'BID_TOO_LOW', '0', '0' }
+    return { 'BID_TOO_LOW', NULL_TOKEN, NULL_TOKEN, '-1', tostring(prev_version) }
 end

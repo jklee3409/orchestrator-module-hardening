@@ -5,4 +5,5 @@ public class RedisConstant {
     public static final String REDIS_REFRESH_TOKEN = "RefreshToken:";
     public static final String REDIS_PENDING_EMAIL = "PendingEmail:";
     public static final String SEARCH_RANKING_KEY = "SearchRanking";
+    public static final String REDIS_NULL_SENTINEL = "__nil__";
 }
