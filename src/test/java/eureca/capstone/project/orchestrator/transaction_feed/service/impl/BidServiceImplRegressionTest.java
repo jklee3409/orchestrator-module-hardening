@@ -25,7 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.LocalDateTime;
@@ -55,10 +54,10 @@ class BidServiceImplRegressionTest {
     private UserPayRepository userPayRepository;
     private StringRedisTemplate stringRedisTemplate;
     private RedisScript<List> bidScript;
+    private RedisScript<Long> bidRollbackScript;
     private StatusManager statusManager;
     private SalesTypeManager salesTypeManager;
     private NotificationProducer notificationProducer;
-    private ValueOperations<String, String> valueOperations;
 
     private BidServiceImpl bidService;
 
@@ -79,10 +78,10 @@ class BidServiceImplRegressionTest {
         userPayRepository = mock(UserPayRepository.class);
         stringRedisTemplate = mock(StringRedisTemplate.class);
         bidScript = mock(RedisScript.class);
+        bidRollbackScript = mock(RedisScript.class);
         statusManager = mock(StatusManager.class);
         salesTypeManager = mock(SalesTypeManager.class);
         notificationProducer = mock(NotificationProducer.class);
-        valueOperations = mock(ValueOperations.class);
 
         bidService = new BidServiceImpl(
                 userRepository,
@@ -93,6 +92,7 @@ class BidServiceImplRegressionTest {
                 userPayRepository,
                 stringRedisTemplate,
                 bidScript,
+                bidRollbackScript,
                 statusManager,
                 salesTypeManager,
                 notificationProducer
@@ -110,9 +110,9 @@ class BidServiceImplRegressionTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("레디스 멀티키 Lua 호출은 같은 hash tag 키를 사용해야 한다")
-    void 레디스_멀티키_Lua_호출은_같은_hash_tag_키를_사용해야_한다() {
-        doReturn((List) List.of("BID_TOO_LOW", "0", "0"))
+    @DisplayName("레디스 멀티키 Lua 호출은 같은 hash tag 키와 버전 키를 사용해야 한다")
+    void 레디스_멀티키_Lua_호출은_같은_hash_tag_키와_버전_키를_사용해야_한다() {
+        doReturn(List.of("BID_TOO_LOW", "__nil__", "__nil__", "-1", "0"))
                 .when(stringRedisTemplate)
                 .execute(eq(bidScript), anyList(), any(), any(), any());
 
@@ -129,20 +129,23 @@ class BidServiceImplRegressionTest {
                 eq(SALES_PRICE.toString())
         );
 
-        assertThat(keysCaptor.getValue())
-                .containsExactly(
-                        "bids:{100}:highest_price",
-                        "bids:{100}:highest_bidder_id"
-                );
+        assertThat(keysCaptor.getValue()).containsExactly(
+                "bids:{100}:highest_price",
+                "bids:{100}:highest_bidder_id",
+                "bids:{100}:state_version"
+        );
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("첫 입찰 후속 처리 실패 시 Redis 최고가를 0으로 복원하면 안 된다")
-    void 첫_입찰_후속_처리_실패시_Redis_최고가를_0으로_복원하면_안_된다() {
-        doReturn((List) List.of("SUCCESS", "0", "0"))
+    @DisplayName("첫 입찰 후속 처리 실패 시 직접 0으로 복원하지 않고 버전 기반 롤백 Lua를 호출해야 한다")
+    void 첫_입찰_후속_처리_실패시_직접_0으로_복원하지_않고_버전_기반_롤백_Lua를_호출해야_한다() {
+        doReturn(List.of("SUCCESS", "__nil__", "__nil__", "1", "0"))
                 .when(stringRedisTemplate)
                 .execute(eq(bidScript), anyList(), any(), any(), any());
+
+        doReturn(1L).when(stringRedisTemplate)
+                .execute(eq(bidRollbackScript), anyList(), any(), any(), any(), any());
 
         doThrow(new RuntimeException("pay use failed"))
                 .when(userPayService)
@@ -151,16 +154,32 @@ class BidServiceImplRegressionTest {
         assertThatThrownBy(() -> bidService.placeBid(EMAIL, request))
                 .isInstanceOf(RuntimeException.class);
 
-        verify(valueOperations, never()).set(anyString(), eq("0"));
+        verify(stringRedisTemplate).execute(
+                eq(bidRollbackScript),
+                eq(List.of(
+                        "bids:{100}:highest_price",
+                        "bids:{100}:highest_bidder_id",
+                        "bids:{100}:state_version"
+                )),
+                eq("1"),
+                eq("__nil__"),
+                eq("__nil__"),
+                eq("0")
+        );
+
+        verify(stringRedisTemplate, never()).opsForValue();
     }
 
     @SuppressWarnings("unchecked")
     @Test
     @DisplayName("입찰 확정 도중 예외가 나면 ES 반영과 알림 발송은 커밋 이후로 미뤄야 한다")
     void 입찰_확정_도중_예외가_나면_ES_반영과_알림_발송은_커밋_이후로_미뤄야_한다() {
-        doReturn((List) List.of("SUCCESS", "0", "0"))
+        doReturn((List) List.of("SUCCESS", "__nil__", "__nil__", "1", "0"))
                 .when(stringRedisTemplate)
                 .execute(eq(bidScript), anyList(), any(), any(), any());
+
+        doReturn(1L).when(stringRedisTemplate)
+                .execute(eq(bidRollbackScript), anyList(), any(), any(), any(), any());
 
         when(transactionFeedSearchRepository.findById(FEED_ID)).thenReturn(Optional.of(document));
         when(transactionFeedSearchRepository.save(any(TransactionFeedDocument.class)))
@@ -186,14 +205,12 @@ class BidServiceImplRegressionTest {
         when(transactionFeedRepository.findById(FEED_ID)).thenReturn(Optional.of(feed));
         when(statusManager.getStatus("FEED", "ON_SALE")).thenReturn(onSaleStatus);
         when(salesTypeManager.getBidSaleType()).thenReturn(bidSalesType);
-        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
 
         when(request.getTransactionFeedId()).thenReturn(FEED_ID);
         when(request.getBidAmount()).thenReturn(BID_AMOUNT);
 
         when(feed.getTransactionFeedId()).thenReturn(FEED_ID);
         when(feed.getSalesPrice()).thenReturn(SALES_PRICE);
-        when(feed.getTitle()).thenReturn("무선 데이터 거래 글");
         when(feed.getStatus()).thenReturn(onSaleStatus);
         when(feed.getSalesType()).thenReturn(bidSalesType);
         when(feed.getExpiresAt()).thenReturn(LocalDateTime.now().plusHours(1));
@@ -201,7 +218,6 @@ class BidServiceImplRegressionTest {
         when(feed.getTelecomCompany().getTelecomCompanyId()).thenReturn(10L);
 
         when(bidder.getUserId()).thenReturn(BIDDER_ID);
-        when(bidder.getNickname()).thenReturn("새입찰자");
         when(bidder.getTelecomCompany().getTelecomCompanyId()).thenReturn(10L);
 
         when(userPayRepository.findByUserId(BIDDER_ID))
