@@ -65,7 +65,7 @@ public class RedisConfig {
     @Bean
     public RedisScript<Long> bidRollbackScript() {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("bid_rollback.lua")));
+        script.setLocation(new ClassPathResource("scripts/bid_rollback.lua"));
         script.setResultType(Long.class);
         return script;
     }
