@@ -1,0 +1,12 @@
+reviews:
+  auto_review:
+    enabled: true
+    base_branches:
+      - main
+      - develop
+
+  language: ko
+
+  instructions: |
+    모든 코드 리뷰는 반드시 한국어로 작성하세요.
+    설명은 간결하고 실무적인 톤으로 작성하세요.
