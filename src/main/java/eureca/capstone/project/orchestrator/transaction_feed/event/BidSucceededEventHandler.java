@@ -17,6 +17,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -33,20 +34,34 @@ public class BidSucceededEventHandler {
         log.info("[BidSucceededEventHandler] AFTER_COMMIT 입찰 후속 처리 시작. 판매글 ID: {}, 입찰자 ID: {}, 입찰가: {}",
                 event.transactionFeedId(), event.bidderUserId(), event.bidAmount());
 
-        updateFeedDocumentHighestPrice(event.transactionFeedId(), event.bidAmount());
+        updateFeedDocumentHighestPrice(event.transactionFeedId());
         sendBidNotifications(event);
     }
 
-    private void updateFeedDocumentHighestPrice(Long feedId, Long highestPrice) {
+    private void updateFeedDocumentHighestPrice(Long feedId) {
         try {
+            TransactionFeed feed = transactionFeedRepository.findById(feedId)
+                    .orElseThrow(TransactionFeedNotFoundException::new);
+
+            Long committedHighestPrice = bidsRepository.findTopByTransactionFeedOrderByBidAmountDescBidTimeDesc(feed)
+                    .map(Bids::getBidAmount)
+                    .orElse(feed.getSalesPrice());
+
             TransactionFeedDocument document = transactionFeedSearchRepository.findById(feedId)
                     .orElseThrow(TransactionFeedNotFoundException::new);
 
-            document.updateHighestPrice(highestPrice);
-            transactionFeedSearchRepository.save(document);
+            Long indexedHighestPrice = document.getCurrentHighestPrice() != null
+                    ? document.getCurrentHighestPrice()
+                    : feed.getSalesPrice();
+            Long highestPriceToIndex = Math.max(indexedHighestPrice, committedHighestPrice);
 
-            log.info("[BidSucceededEventHandler] Elasticsearch 문서 업데이트 완료. Document ID: {}, Highest Price: {}",
-                    feedId, highestPrice);
+            if (!Objects.equals(document.getCurrentHighestPrice(), highestPriceToIndex)) {
+                document.updateHighestPrice(highestPriceToIndex);
+                transactionFeedSearchRepository.save(document);
+            }
+
+            log.info("[BidSucceededEventHandler] Elasticsearch 문서 업데이트 완료. Document ID: {}, Indexed Highest Price: {}, Committed Highest Price: {}, Stored Highest Price: {}",
+                    feedId, indexedHighestPrice, committedHighestPrice, highestPriceToIndex);
         } catch (Exception e) {
             log.error("[BidSucceededEventHandler] Elasticsearch 문서 업데이트 실패. Document ID: {}. Error: {}",
                     feedId, e.getMessage(), e);
