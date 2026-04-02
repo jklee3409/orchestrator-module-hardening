@@ -82,16 +82,21 @@ dependencies {
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    testImplementation 'org.testcontainers:testcontainers'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 ext {
     springAiVersion = "1.0.0"
+    testcontainersVersion = "1.21.4"
 }
 
 dependencyManagement {
     imports {
         mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+        mavenBom "org.testcontainers:testcontainers-bom:$testcontainersVersion"
     }
 }
 
@@ -112,4 +117,14 @@ tasks.named('compileJava') {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    def sanitizedPath = (System.getenv('PATH') ?: '')
+            .split(java.io.File.pathSeparator)
+            .findAll { entry -> entry && !entry.startsWith("\\\\?\\") }
+            .join(java.io.File.pathSeparator)
+
+    if (sanitizedPath) {
+        environment 'PATH', sanitizedPath
+        environment 'Path', sanitizedPath
+    }
 }
