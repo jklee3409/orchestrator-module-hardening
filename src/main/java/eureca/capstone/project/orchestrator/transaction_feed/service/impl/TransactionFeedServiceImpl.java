@@ -42,6 +42,8 @@ import eureca.capstone.project.orchestrator.user.repository.UserDataRepository;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.repository.custom.UserDataRepositoryCustom;
 import eureca.capstone.project.orchestrator.user.service.UserDataService;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -63,8 +65,6 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Service;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
@@ -689,23 +689,44 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return bidsRepository.findHighestBidAmountsByTransactionFeedIds(auctionFeedIds);
     }
 
+    private Map<Long, Long> getHighestPricesFromDbForDocuments(List<TransactionFeedDocument> documents) {
+        if (CollectionUtils.isEmpty(documents)) {
+            return Collections.emptyMap();
+        }
+
+        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
+        List<Long> auctionFeedIds = documents.stream()
+                .filter(document -> bidSalesTypeId.equals(document.getSalesTypeId()))
+                .map(TransactionFeedDocument::getId)
+                .toList();
+
+        return bidsRepository.findHighestBidAmountsByTransactionFeedIds(auctionFeedIds);
+    }
+
     private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {
         log.info("[toDtoPage] searchHits -> dto 변환 시작.");
 
         SalesType normalSalesType = salesTypeManager.getNormalSaleType();
         SalesType auctionSalesType = salesTypeManager.getBidSaleType();
-
-        List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
+        List<TransactionFeedDocument> documents = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
+                .toList();
+        Map<Long, Long> highestPriceMap = getHighestPricesFromDbForDocuments(documents);
+
+        List<GetFeedSummaryResponseDto> dtoList = documents.stream()
                 .map(doc -> {
                     String salesType = doc.getSalesTypeId().equals(normalSalesType.getSalesTypeId()) ? normalSalesType.getName() : auctionSalesType.getName();
+                    boolean isAuction = doc.getSalesTypeId().equals(auctionSalesType.getSalesTypeId());
+                    Long currentHighestPrice = isAuction
+                            ? highestPriceMap.getOrDefault(doc.getId(), doc.getSalesPrice())
+                            : doc.getCurrentHighestPrice();
 
                     return GetFeedSummaryResponseDto.builder()
                             .transactionFeedId(doc.getId())
                             .title(doc.getTitle())
                             .nickname(doc.getNickname())
                             .salesPrice(doc.getSalesPrice())
-                            .currentHeightPrice(doc.getCurrentHighestPrice())
+                            .currentHeightPrice(currentHighestPrice)
                             .salesDataAmount(doc.getSalesDataAmount())
                             .telecomCompany(doc.getTelecomCompanyName())
                             .createdAt(doc.getCreatedAt())
@@ -720,4 +741,5 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         log.info("[toDtoPage] searchHits -> dto 변환 완료.");
         return new PageImpl<>(dtoList, pageable, searchHits.getTotalHits());
     }
+
 }
