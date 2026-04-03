@@ -24,6 +24,7 @@ import eureca.capstone.project.orchestrator.common.util.StatusManager;
 import eureca.capstone.project.orchestrator.market_statistics.repository.MarketStatisticsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.CreateFeedRequestDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.request.FeedSearchRequestDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveWishFeedsRequestDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.request.UpdateFeedRequestDto;
@@ -33,6 +34,7 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.request.AddWish
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.CreateFeedResponseDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 
@@ -83,8 +85,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 
 
 import java.lang.reflect.Field;
@@ -457,6 +463,56 @@ class TransactionFeedServiceImplTest {
             // when & then
             assertThrows(FeedModifyPermissionException.class,
                     () -> transactionFeedService.updateFeed(otherUser.getEmail(), request));
+        }
+    }
+
+
+    @Nested
+    @DisplayName("판매글 검색")
+    class SearchFeeds {
+
+        @Test
+        @DisplayName("검색 결과의 입찰 최고가는 ES 문서값이 아니라 DB 커밋값을 사용")
+        void searchFeeds_AuctionUsesCommittedHighestBidFromDb() {
+            FeedSearchRequestDto request = FeedSearchRequestDto.builder().build();
+            TransactionFeedDocument document = TransactionFeedDocument.builder()
+                    .id(1L)
+                    .title("입찰 판매글")
+                    .nickname(user.getNickname())
+                    .salesPrice(10_000L)
+                    .currentHighestPrice(20_000L)
+                    .salesDataAmount(1_000L)
+                    .telecomCompanyName(telecomCompany.getName())
+                    .createdAt(LocalDateTime.now())
+                    .status(onSaleStatus.getCode())
+                    .salesTypeId(bidSaleType.getSalesTypeId())
+                    .defaultImageNumber(1L)
+                    .build();
+            Status blurredStatus = Status.builder()
+                    .statusId(2L)
+                    .domain("FEED")
+                    .code("BLURRED")
+                    .build();
+            @SuppressWarnings("unchecked")
+            SearchHit<TransactionFeedDocument> searchHit = mock(SearchHit.class);
+            @SuppressWarnings("unchecked")
+            SearchHits<TransactionFeedDocument> searchHits = mock(SearchHits.class);
+
+            when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
+            when(salesTypeManager.getNormalSaleType()).thenReturn(normalSaleType);
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(elasticsearchOperations.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(TransactionFeedDocument.class)))
+                    .thenReturn(searchHits);
+            when(searchHits.getSearchHits()).thenReturn(List.of(searchHit));
+            when(searchHits.getTotalHits()).thenReturn(1L);
+            when(searchHit.getContent()).thenReturn(document);
+            when(bidsRepository.findHighestBidAmountsByTransactionFeedIds(List.of(1L)))
+                    .thenReturn(Map.of(1L, 14_000L));
+
+            Page<GetFeedSummaryResponseDto> result = transactionFeedService.searchFeeds(request, PageRequest.of(0, 10), null);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getCurrentHeightPrice()).isEqualTo(14_000L);
         }
     }
 
