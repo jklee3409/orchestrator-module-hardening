@@ -5,6 +5,7 @@ import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2Succes
 import eureca.capstone.project.orchestrator.auth.service.impl.CustomOAuth2UserServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.config.properties.JmeterBypassProperties;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomOAuth2UserServiceImpl customOAuth2UserService;
     private final CustomOAuth2SuccessServiceImpl customOAuth2SuccessService;
+    private final JmeterBypassProperties jmeterBypassProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -65,7 +67,13 @@ public class SecurityConfig {
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 등록
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService, userDetailsService),
+                        new JwtAuthenticationFilter(
+                                jwtUtil,
+                                cookieUtil,
+                                redisService,
+                                userDetailsService,
+                                jmeterBypassProperties
+                        ),
                         UsernamePasswordAuthenticationFilter.class
                 )
 
