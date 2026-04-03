@@ -31,6 +31,7 @@ class BidSucceededEventHandlerTest {
     private static final Long SALES_PRICE = 10_000L;
     private static final Long EVENT_BID_AMOUNT = 12_000L;
     private static final Long COMMITTED_HIGHEST_PRICE = 15_000L;
+    private static final Long STALE_INDEXED_PRICE = 20_000L;
 
     private TransactionFeedRepository transactionFeedRepository;
     private TransactionFeedSearchRepository transactionFeedSearchRepository;
@@ -55,8 +56,8 @@ class BidSucceededEventHandlerTest {
     }
 
     @Test
-    @DisplayName("AFTER_COMMIT stale event does not overwrite the indexed highest bid with a lower event amount")
-    void afterCommitStaleEventUsesCommittedHighestBidWhenUpdatingSearchDocument() {
+    @DisplayName("AFTER_COMMIT corrects the Elasticsearch highest bid back to the committed DB highest bid")
+    void afterCommitUsesCommittedHighestBidAsSearchDocumentSourceOfTruth() {
         TransactionFeed feed = mock(TransactionFeed.class);
         when(feed.getSalesPrice()).thenReturn(SALES_PRICE);
 
@@ -66,8 +67,8 @@ class BidSucceededEventHandlerTest {
         TransactionFeedDocument indexedDocument = TransactionFeedDocument.builder()
                 .id(FEED_ID)
                 .salesPrice(SALES_PRICE)
-                .currentHighestPrice(EVENT_BID_AMOUNT)
-                .sortPrice(EVENT_BID_AMOUNT)
+                .currentHighestPrice(STALE_INDEXED_PRICE)
+                .sortPrice(STALE_INDEXED_PRICE)
                 .build();
 
         when(transactionFeedRepository.findById(FEED_ID)).thenReturn(Optional.of(feed));

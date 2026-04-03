@@ -36,12 +36,14 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFee
 
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
 
+import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
 
 import eureca.capstone.project.orchestrator.transaction_feed.entity.Liked;
 
+import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
@@ -64,6 +66,7 @@ import eureca.capstone.project.orchestrator.user.service.UserDataService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 
 import org.junit.jupiter.api.DisplayName;
@@ -74,11 +77,14 @@ import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 
 import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 
 
 import java.lang.reflect.Field;
@@ -122,6 +128,9 @@ class TransactionFeedServiceImplTest {
     private TransactionFeedRepository transactionFeedRepository;
 
     @Mock
+    private BidsRepository bidsRepository;
+
+    @Mock
     private MarketStatisticsRepository marketStatisticsRepository;
 
     @Mock
@@ -135,6 +144,12 @@ class TransactionFeedServiceImplTest {
 
     @Mock
     private TransactionFeedSearchRepository transactionFeedSearchRepository;
+
+    @Mock
+    private ElasticsearchOperations elasticsearchOperations;
+
+    @Mock
+    private IndexOperations indexOperations;
 
     @Mock
     private LikedRepository likedRepository;
@@ -471,6 +486,86 @@ class TransactionFeedServiceImplTest {
             assertThat(response.getTitle()).isEqualTo(transactionFeed.getTitle());
             assertThat(response.getNickname()).isEqualTo(user.getNickname());
             assertThat(response.getCurrentHeightPrice()).isNull();
+        }
+
+        @Test
+        @DisplayName("입찰 판매글 상세 조회는 DB 커밋 최고가를 사용한다")
+        void getFeedDetail_AuctionUsesCommittedHighestBidFromDb() {
+            // given
+            Long feedId = 1L;
+            Bids highestBid = mock(Bids.class);
+
+            transactionFeed = TransactionFeed.builder()
+                    .transactionFeedId(1L)
+                    .user(user)
+                    .title("입찰 판매글")
+                    .content("입찰 내용")
+                    .telecomCompany(telecomCompany)
+                    .salesType(bidSaleType)
+                    .salesPrice(10000L)
+                    .salesDataAmount(1000L)
+                    .defaultImageNumber(1L)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .status(onSaleStatus)
+                    .isDeleted(false)
+                    .build();
+
+            when(highestBid.getBidAmount()).thenReturn(13_500L);
+            when(transactionFeedRepository.findFeedDetailById(feedId)).thenReturn(Optional.of(transactionFeed));
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(userRepository.findByEmail(userDetailsDto.getEmail())).thenReturn(Optional.of(user));
+            when(likedRepository.existsByFeedAndUser(transactionFeed, user)).thenReturn(false);
+            when(likedRepository.countByTransactionFeed(transactionFeed)).thenReturn(0L);
+            when(bidsRepository.findTopByTransactionFeedOrderByBidAmountDescBidTimeDesc(transactionFeed))
+                    .thenReturn(Optional.of(highestBid));
+
+            // when
+            GetFeedDetailResponseDto response = transactionFeedService.getFeedDetail(feedId, userDetailsDto);
+
+            // then
+            assertThat(response.getCurrentHeightPrice()).isEqualTo(13_500L);
+        }
+
+        @Test
+        @DisplayName("재색인은 DB 최고가를 기준으로 ES 문서를 복원한다")
+        void reindexAllFeeds_UsesCommittedHighestBidFromDb() {
+            // given
+            Long feedId = 1L;
+            transactionFeed = TransactionFeed.builder()
+                    .transactionFeedId(feedId)
+                    .user(user)
+                    .title("입찰 판매글")
+                    .content("입찰 내용")
+                    .telecomCompany(telecomCompany)
+                    .salesType(bidSaleType)
+                    .salesPrice(10000L)
+                    .salesDataAmount(1000L)
+                    .defaultImageNumber(1L)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .status(onSaleStatus)
+                    .isDeleted(false)
+                    .build();
+
+            when(elasticsearchOperations.indexOps(TransactionFeedDocument.class)).thenReturn(indexOperations);
+            when(indexOperations.exists()).thenReturn(false);
+            when(transactionFeedRepository.findAll()).thenReturn(List.of(transactionFeed));
+            when(salesTypeManager.getBidSaleType()).thenReturn(bidSaleType);
+            when(bidsRepository.findHighestBidAmountsByTransactionFeedIds(List.of(feedId)))
+                    .thenReturn(Map.of(feedId, 14_000L));
+
+            // when
+            long reindexedCount = transactionFeedService.reindexAllFeeds();
+
+            // then
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Iterable<TransactionFeedDocument>> documentsCaptor =
+                    ArgumentCaptor.forClass(Iterable.class);
+            verify(transactionFeedSearchRepository).saveAll(documentsCaptor.capture());
+
+            TransactionFeedDocument savedDocument = documentsCaptor.getValue().iterator().next();
+            assertThat(reindexedCount).isEqualTo(1L);
+            assertThat(savedDocument.getCurrentHighestPrice()).isEqualTo(14_000L);
+            assertThat(savedDocument.getSortPrice()).isEqualTo(14_000L);
         }
 
 
