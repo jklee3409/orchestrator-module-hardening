@@ -1,35 +1,40 @@
 package eureca.capstone.project.orchestrator.auth.util;
 
+import eureca.capstone.project.orchestrator.common.config.properties.AppCookieProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.REFRESH_TOKEN_COOKIE_NAME;
 import static eureca.capstone.project.orchestrator.auth.constant.TokenConstant.REFRESH_TOKEN_MAX_AGE_SEC;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class CookieUtil {
+    private final AppCookieProperties cookieProperties;
 
     public void createRefreshTokenCookie(String refreshToken, HttpServletResponse httpServletResponse) {
-        log.info("[createRefreshTokenCookie] 쿠키 생성 시작 - refreshToken : {}", refreshToken);
+        log.info("[createRefreshTokenCookie] creating refresh token cookie");
 
-        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
+        ResponseCookie.ResponseCookieBuilder refreshCookieBuilder = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieProperties.secure())
                 .path("/")
                 .maxAge(REFRESH_TOKEN_MAX_AGE_SEC)
-                .sameSite("None")
-                .domain("visiblego.com")
-                .build();
+                .sameSite(cookieProperties.sameSite());
 
+        if (StringUtils.hasText(cookieProperties.domain())) {
+            refreshCookieBuilder.domain(cookieProperties.domain());
+        }
+
+        ResponseCookie refreshCookie = refreshCookieBuilder.build();
         httpServletResponse.addHeader("Set-Cookie", refreshCookie.toString());
-
-        log.info("[createRefreshTokenCookie] 쿠키 설정 완료 - name: {}, maxAge: {}, secure: {}, sameSite: {}",
-                REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_MAX_AGE_SEC, true, "None");
     }
 
     public String extractTokenFromCookie(HttpServletRequest request) {
