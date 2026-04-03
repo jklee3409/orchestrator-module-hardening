@@ -53,7 +53,7 @@ public class BidSucceededEventHandler {
             Long indexedHighestPrice = document.getCurrentHighestPrice() != null
                     ? document.getCurrentHighestPrice()
                     : feed.getSalesPrice();
-            Long highestPriceToIndex = Math.max(indexedHighestPrice, committedHighestPrice);
+            Long highestPriceToIndex = committedHighestPrice;
 
             if (!Objects.equals(document.getCurrentHighestPrice(), highestPriceToIndex)) {
                 document.updateHighestPrice(highestPriceToIndex);

@@ -1,8 +1,6 @@
 package eureca.capstone.project.orchestrator.transaction_feed.service.impl;
 
-import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.TransactionFeedNotFoundException;
@@ -15,29 +13,24 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.request.RemoveW
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.Liked;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.LikedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.service.LikedService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -49,6 +42,7 @@ public class LikedServiceImpl implements LikedService {
     private final LikedRepository likedRepository;
     private final UserRepository userRepository;
     private final TransactionFeedRepository transactionFeedRepository;
+    private final BidsRepository bidsRepository;
     private final SalesTypeManager salesTypeManager;
     private final ElasticsearchOperations elasticsearchOperations;
 
@@ -88,19 +82,27 @@ public class LikedServiceImpl implements LikedService {
         SearchHits<TransactionFeedDocument> searchHits = elasticsearchOperations.search(nativeQuery, TransactionFeedDocument.class);
         log.info("[getWishList] Elasticsearch 쿼리 실행 완료. 총 {}개 검색.", searchHits.getTotalHits());
 
-        List<GetFeedSummaryResponseDto> dtoList = searchHits.getSearchHits().stream()
+        List<TransactionFeedDocument> documents = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
+                .toList();
+        Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
+        Map<Long, Long> highestPriceMap = getHighestPricesFromDbForDocuments(documents, bidSalesTypeId);
+
+        List<GetFeedSummaryResponseDto> dtoList = documents.stream()
                 .map(doc -> {
                     String salesType = doc.getSalesTypeId().equals(salesTypeManager.getNormalSaleType().getSalesTypeId())
                             ? salesTypeManager.getNormalSaleType().getName()
                             : salesTypeManager.getBidSaleType().getName();
+                    Long currentHighestPrice = doc.getSalesTypeId().equals(bidSalesTypeId)
+                            ? highestPriceMap.getOrDefault(doc.getId(), doc.getSalesPrice())
+                            : doc.getCurrentHighestPrice();
 
                     return GetFeedSummaryResponseDto.builder()
                             .transactionFeedId(doc.getId())
                             .title(doc.getTitle())
                             .nickname(doc.getNickname())
                             .salesPrice(doc.getSalesPrice())
-                            .currentHeightPrice(doc.getCurrentHighestPrice())
+                            .currentHeightPrice(currentHighestPrice)
                             .salesDataAmount(doc.getSalesDataAmount())
                             .telecomCompany(doc.getTelecomCompanyName())
                             .createdAt(doc.getCreatedAt())
@@ -159,5 +161,14 @@ public class LikedServiceImpl implements LikedService {
     private TransactionFeed findTransactionFeedById(Long transactionFeedId) {
         return transactionFeedRepository.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
+    }
+
+    private Map<Long, Long> getHighestPricesFromDbForDocuments(List<TransactionFeedDocument> documents, Long bidSalesTypeId) {
+        List<Long> auctionFeedIds = documents.stream()
+                .filter(document -> bidSalesTypeId.equals(document.getSalesTypeId()))
+                .map(TransactionFeedDocument::getId)
+                .toList();
+
+        return bidsRepository.findHighestBidAmountsByTransactionFeedIds(auctionFeedIds);
     }
 }
