@@ -26,16 +26,40 @@
 
 ## JMeter 인증 방식
 
-`JwtAuthenticationFilter`에는 JMeter 부하 테스트용 인증 우회 로직이 이미 포함되어 있다.
+`JwtAuthenticationFilter`에는 non-prod 환경에서만 사용할 수 있는 JMeter 인증 우회 기능이 포함되어 있다.
+
+서버 실행 전 아래 값을 별도로 설정해야 한다.
+
+- `SECURITY_JMETER_BYPASS_ENABLED=true`
+- `SECURITY_JMETER_BYPASS_TEST_KEY={테스트용 비밀값}`
+
+로컬 서버 실행 기준:
+
+- 일반 로컬 실행만 할 때는 설정하지 않아도 된다.
+- JMeter 우회 인증으로 부하 테스트를 수행할 때만 설정하면 된다.
+
+IntelliJ 설정 예시:
+
+- `Run/Debug Configurations` > `OrchestratorApplication` > `Environment variables`
+- `SECURITY_JMETER_BYPASS_ENABLED=true`
+- `SECURITY_JMETER_BYPASS_TEST_KEY=local-jmeter-secret`
+
+PowerShell 설정 예시:
+
+```powershell
+$env:SECURITY_JMETER_BYPASS_ENABLED='true'
+$env:SECURITY_JMETER_BYPASS_TEST_KEY='local-jmeter-secret'
+```
 
 요청 헤더는 아래와 같이 설정한다.
 
-- `X-JMeter-Test-Key: URECA-TEST-SECRET-KEY-!@#$`
+- `X-JMeter-Test-Key: ${SECURITY_JMETER_BYPASS_TEST_KEY}`
 - `Authorization: Bearer ${user_email}`
 - `Content-Type: application/json`
 
 주의:
 
+- 운영 프로필에서는 해당 우회 기능이 비활성화된다.
 - 우회 모드에서는 JWT를 넣는 것이 아니라, `Bearer ` 뒤 값을 사용자 이메일로 해석한다.
 - 따라서 CSV에 들어가는 `user_email`은 실제 DB에 존재하는 사용자 이메일이어야 한다.
 
