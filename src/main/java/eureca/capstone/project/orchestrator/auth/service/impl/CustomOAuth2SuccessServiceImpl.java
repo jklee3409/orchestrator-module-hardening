@@ -3,19 +3,19 @@ package eureca.capstone.project.orchestrator.auth.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.config.properties.AppUrlProperties;
 import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 @Slf4j
 @Service
@@ -26,43 +26,40 @@ public class CustomOAuth2SuccessServiceImpl implements AuthenticationSuccessHand
     private final UserRepository userRepository;
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
-
-    private static final String REDIRECT_URI = "https://ureca-final.com/oauth/callback";
-    private static final String LOCAL_REDIRECT_URI = "http://localhost:5173/oauth/callback";
+    private final AppUrlProperties appUrlProperties;
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Authentication authentication) throws IOException {
+    public void onAuthenticationSuccess(
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse,
+            Authentication authentication
+    ) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String authCode = (String) oAuth2User.getAttributes().get("authCode");
-        log.info("[onAuthenticationSuccess] 인증 코드: {}", authCode);
+        log.info("[onAuthenticationSuccess] authCode={}", authCode);
 
         if (authCode == null) {
-            log.warn("[onAuthenticationSuccess] 인증 코드가 누락되었습니다.");
-            httpServletResponse.sendRedirect(REDIRECT_URI + "?error=auth_code_missing");
+            httpServletResponse.sendRedirect(appUrlProperties.oauthSuccessRedirect() + "?error=auth_code_missing");
             return;
         }
 
-        // 현재 HTTP 세션 제거
         HttpSession session = httpServletRequest.getSession(false);
         if (session != null) {
             session.invalidate();
         }
 
-        // authCode와 함께 프론트엔드로 리다이렉트
-        String redirectUrl = REDIRECT_URI + "?authCode=" + authCode;
-        log.info("[onAuthenticationSuccess] 리다이렉트 URL: {}", redirectUrl);
-        httpServletResponse.sendRedirect(redirectUrl);
+        httpServletResponse.sendRedirect(appUrlProperties.oauthSuccessRedirect() + "?authCode=" + authCode);
     }
 
     public void writeJsonResponse(HttpServletResponse httpServletResponse, Object dto) {
         try {
             String json = objectMapper.writeValueAsString(dto);
-            httpServletResponse.setStatus(HttpServletResponse.SC_OK); // 200
+            httpServletResponse.setStatus(HttpServletResponse.SC_OK);
             httpServletResponse.setContentType("application/json");
             httpServletResponse.setCharacterEncoding("UTF-8");
             httpServletResponse.getWriter().write(json);
         } catch (Exception e) {
-            throw new RuntimeException("JSON 응답 처리 실패", e);
+            throw new RuntimeException("JSON response write failed", e);
         }
     }
 }

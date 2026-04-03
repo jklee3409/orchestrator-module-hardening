@@ -3,9 +3,9 @@ package eureca.capstone.project.orchestrator.auth.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.orchestrator.auth.constant.FilterConstant;
 import eureca.capstone.project.orchestrator.auth.dto.common.CustomUserDetailsDto;
-import eureca.capstone.project.orchestrator.auth.service.impl.CustomUserDetailsServiceImpl;
 import eureca.capstone.project.orchestrator.auth.util.CookieUtil;
 import eureca.capstone.project.orchestrator.auth.util.JwtUtil;
+import eureca.capstone.project.orchestrator.common.config.properties.JmeterBypassProperties;
 import eureca.capstone.project.orchestrator.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.orchestrator.common.dto.base.ErrorResponseDto;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
@@ -27,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -46,31 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final RedisService redisService;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final UserDetailsService userDetailsService;
+    private final JmeterBypassProperties jmeterBypassProperties;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String requestURI = request.getRequestURI();
 
-        // Jmeter 부하 테스트를 위한 인증 우회 로직
-        final String jmeterSecretHeader = request.getHeader("X-JMeter-Test-Key");
-
-        if ("URECA-TEST-SECRET-KEY-!@#$".equals(jmeterSecretHeader)) {
-            final String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                // "Bearer " 뒷부분을 실제 토큰이 아닌 이메일로 간주
-                String userEmail = authHeader.substring(7);
-
-                // 이메일로 사용자 정보를 DB 에서 조회하고, 강제로 인증 세션을 만듦
-                CustomUserDetailsDto userDetails = (CustomUserDetailsDto) userDetailsService.loadUserByUsername(userEmail);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                log.info("[JMeter-Bypass] Authentication successful for user: {}", userEmail);
-            }
-
+        if (authenticateForJmeterLoadTest(request)) {
             chain.doFilter(request, response);
             return;
         }
@@ -148,6 +131,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    private boolean authenticateForJmeterLoadTest(HttpServletRequest request) {
+        if (!jmeterBypassProperties.enabled()) {
+            return false;
+        }
+
+        String configuredTestKey = jmeterBypassProperties.testKey();
+        String requestTestKey = request.getHeader("X-JMeter-Test-Key");
+        if (!StringUtils.hasText(configuredTestKey) || !configuredTestKey.equals(requestTestKey)) {
+            return false;
+        }
+
+        String authHeader = request.getHeader("Authorization");
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+            log.warn("[JMeter-Bypass] missing or invalid Authorization header");
+            return false;
+        }
+
+        String userEmail = authHeader.substring(7);
+        CustomUserDetailsDto userDetails = (CustomUserDetailsDto) userDetailsService.loadUserByUsername(userEmail);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        log.info("[JMeter-Bypass] Authentication successful for user: {}", userEmail);
+        return true;
     }
 
     private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {

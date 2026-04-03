@@ -1,5 +1,6 @@
 package eureca.capstone.project.orchestrator.user.service.impl;
 
+import eureca.capstone.project.orchestrator.common.config.properties.AppUrlProperties;
 import eureca.capstone.project.orchestrator.common.exception.code.ErrorCode;
 import eureca.capstone.project.orchestrator.common.exception.custom.InternalServerException;
 import eureca.capstone.project.orchestrator.common.exception.custom.UserNotFoundException;
@@ -8,24 +9,23 @@ import eureca.capstone.project.orchestrator.common.service.RedisService;
 import eureca.capstone.project.orchestrator.user.entity.User;
 import eureca.capstone.project.orchestrator.user.repository.UserRepository;
 import eureca.capstone.project.orchestrator.user.service.PasswordResetService;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static eureca.capstone.project.orchestrator.common.constant.EmailConstant.*;
-import static eureca.capstone.project.orchestrator.common.constant.UrlConstant.*;
+import static eureca.capstone.project.orchestrator.common.constant.EmailConstant.PASSWORD_RESET_BODY;
+import static eureca.capstone.project.orchestrator.common.constant.EmailConstant.PASSWORD_RESET_SUBJECT;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PasswordResetServiceImpl implements PasswordResetService {
-
+    private final AppUrlProperties appUrlProperties;
     private final UserRepository userRepository;
     private final RedisService redisService;
     private final EmailService emailService;
@@ -33,27 +33,22 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     @Override
     public void requestPasswordReset(String email) {
-        log.info("[requestPasswordReset] 비밀번호 재설정 요청: {}", email);
+        log.info("[requestPasswordReset] {}", email);
 
         Optional<User> optionalUser = userRepository.findByEmail(email);
-
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            String token = UUID.randomUUID().toString();
-            String redisKey = "password-reset-token:" + token;
-
-            // Redis에 토큰 저장 (15분 유효)
-            redisService.setValue(redisKey, String.valueOf(user.getUserId()), 15, TimeUnit.MINUTES);
-
-            // 이메일 발송
-            String resetLink = RESET_PASSWORD_TOKEN_URL + token; // 배포 주소
-//            String resetLink = "http://localhost:5173/reset-password?token="+token; // 로컬 주소
-            String emailBody = String.format(PASSWORD_RESET_BODY, resetLink);
-            emailService.sendEmail(email, PASSWORD_RESET_SUBJECT, emailBody);
-
-        } else {
-            log.warn("[requestPasswordReset] 존재하지 않는 이메일 주소로 비밀번호 재설정 요청: {}", email);
+        if (optionalUser.isEmpty()) {
+            log.warn("[requestPasswordReset] user not found for email={}", email);
+            return;
         }
+
+        User user = optionalUser.get();
+        String token = UUID.randomUUID().toString();
+        String redisKey = "password-reset-token:" + token;
+        redisService.setValue(redisKey, String.valueOf(user.getUserId()), 15, TimeUnit.MINUTES);
+
+        String resetLink = appUrlProperties.resetPasswordBase() + token;
+        String emailBody = String.format(PASSWORD_RESET_BODY, resetLink);
+        emailService.sendEmail(email, PASSWORD_RESET_SUBJECT, emailBody);
     }
 
     @Override
@@ -63,7 +58,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         String userIdStr = (String) redisService.getValue(redisKey);
 
         if (userIdStr == null) {
-            log.warn("[resetPassword] 유효하지 않거나 만료된 비밀번호 재설정 토큰: {}", token);
+            log.warn("[resetPassword] expired token={}", token);
             throw new InternalServerException(ErrorCode.PASSWORD_RESET_LINK_EXPIRED);
         }
 
@@ -71,14 +66,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
-        // 새 비밀번호 암호화 및 업데이트
         user.updateUserPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user); // 변경사항 저장
-
-        // 사용된 토큰 삭제
+        userRepository.save(user);
         redisService.deleteValue(redisKey);
-        log.info("[resetPassword] 사용자 {} 비밀번호 재설정 완료 및 토큰 삭제.",
-                user.getEmail());
     }
-
 }

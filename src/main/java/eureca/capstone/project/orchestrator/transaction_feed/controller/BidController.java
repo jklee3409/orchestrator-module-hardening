@@ -113,6 +113,7 @@ public class BidController {
             ### ❌ 주요 실패 코드
             * Redis 버전과 동일한 실패 코드를 반환합니다. (단, `LUA_SCRIPT_ERROR`는 발생하지 않음)
             """)
+    @PreAuthorize("hasAuthority('TRANSACTION')")
     @PostMapping("/db-lock")
     public BaseResponseDto<Void> placeBidWithDbLock(
             @AuthenticationPrincipal CustomUserDetailsDto customUserDetailsDto,
