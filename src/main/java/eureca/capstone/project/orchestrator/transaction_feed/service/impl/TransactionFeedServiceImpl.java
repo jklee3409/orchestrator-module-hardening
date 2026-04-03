@@ -27,8 +27,10 @@ import eureca.capstone.project.orchestrator.transaction_feed.dto.response.Create
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedDetailResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.GetFeedSummaryResponseDto;
 import eureca.capstone.project.orchestrator.transaction_feed.dto.response.UpdateFeedResponseDto;
+import eureca.capstone.project.orchestrator.transaction_feed.entity.Bids;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.SalesType;
 import eureca.capstone.project.orchestrator.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.orchestrator.transaction_feed.repository.BidsRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.LikedRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.SalesTypeRepository;
 import eureca.capstone.project.orchestrator.transaction_feed.repository.TransactionFeedRepository;
@@ -49,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -61,8 +62,6 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import co.elastic.clients.elasticsearch._types.Script;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -80,13 +79,13 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
     private final TelecomCompanyRepository telecomCompanyRepository;
     private final SalesTypeRepository salesTypeRepository;
     private final TransactionFeedRepository transactionFeedRepository;
+    private final BidsRepository bidsRepository;
     private final LikedRepository likedRepository;
     private final UserDataService userDataService;
     private final StatusManager statusManager;
     private final SalesTypeManager salesTypeManager;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
-    private final StringRedisTemplate stringRedisTemplate;
     private final MarketStatisticsRepository marketStatisticsRepository;
 
     private static final Map<String, Long> TELECOM_SYNONYM_MAP = new java.util.HashMap<>();
@@ -201,17 +200,10 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
 
         String auctionType = salesTypeManager.getBidSaleType().getName();
         if (auctionType.equals(feed.getSalesType().getName())) {
-            log.info("[getFeedDetail] 입찰 판매글입니다. 현재 최고가 조회");
-            String highestPriceKey = String.format("bids:%d:highest_price", feed.getTransactionFeedId());
-            String highestPriceStr = stringRedisTemplate.opsForValue().get(highestPriceKey);
-
-            if (highestPriceStr != null) {
-                log.info("[getFeedDetail] 입찰 내역이 존재합니다. 최고가: {}", highestPriceStr);
-                currentHeightPrice = Long.parseLong(highestPriceStr);
-            } else {
-                log.info("[getFeedDetail] 입찰 내역이 존재하지 않습니다. 판매글의 최초 가격을 조회합니다.");
-                currentHeightPrice = feed.getSalesPrice();
-            }
+            log.info("[getFeedDetail] 입찰 판매글입니다. DB 기준 현재 최고가 조회");
+            currentHeightPrice = bidsRepository.findTopByTransactionFeedOrderByBidAmountDescBidTimeDesc(feed)
+                    .map(Bids::getBidAmount)
+                    .orElse(feed.getSalesPrice());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -456,8 +448,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
             return 0;
         }
 
-        Map<Long, Long> highestPriceMap = getHighestPricesFromRedisForFeeds(allFeeds);
-        log.info("[reindexAllFeeds] Redis에서 {}개의 입찰 판매글 현재가 정보를 조회.", highestPriceMap.size());
+        Map<Long, Long> highestPriceMap = getHighestPricesFromDbForFeeds(allFeeds);
+        log.info("[reindexAllFeeds] DB에서 {}개의 입찰 판매글 최고가 정보를 조회.", highestPriceMap.size());
 
         Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
 
@@ -685,8 +677,8 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
         return new HashSet<>(likedRepository.findLikedFeedIdsByUserAndFeedIds(user, feedIds));
     }
 
-    private Map<Long, Long> getHighestPricesFromRedisForFeeds(List<TransactionFeed> feeds) {
-        log.info("[getHighestPrices] Redis 에서 판매글 최고가 조회 시작. 판매글 수: {}", feeds.size());
+    private Map<Long, Long> getHighestPricesFromDbForFeeds(List<TransactionFeed> feeds) {
+        log.info("[getHighestPrices] DB에서 판매글 최고가 조회 시작. 판매글 수: {}", feeds.size());
         Long bidSalesTypeId = salesTypeManager.getBidSaleType().getSalesTypeId();
 
         List<Long> auctionFeedIds = feeds.stream()
@@ -694,28 +686,7 @@ public class TransactionFeedServiceImpl implements TransactionFeedService {
                 .map(TransactionFeed::getTransactionFeedId)
                 .collect(Collectors.toList());
 
-        return fetchHighestPricesFromRedis(auctionFeedIds);
-    }
-
-    private Map<Long, Long> fetchHighestPricesFromRedis(List<Long> auctionFeedIds) {
-        if (CollectionUtils.isEmpty(auctionFeedIds)) {
-            return Collections.emptyMap();
-        }
-
-        List<String> redisKeys = auctionFeedIds.stream()
-                .map(id -> String.format("bids:%d:highest_price", id))
-                .collect(Collectors.toList());
-
-        log.info("[fetchHighestPrices] {}개의 입찰 판매글 최고가를 Redis 에서 조회", redisKeys.size());
-        List<String> highestPrices = stringRedisTemplate.opsForValue().multiGet(redisKeys);
-
-        return IntStream.range(0, auctionFeedIds.size())
-                .filter(i -> highestPrices != null && highestPrices.get(i) != null)
-                .boxed()
-                .collect(Collectors.toMap(
-                        auctionFeedIds::get,
-                        i -> Long.parseLong(highestPrices.get(i))
-                ));
+        return bidsRepository.findHighestBidAmountsByTransactionFeedIds(auctionFeedIds);
     }
 
     private Page<GetFeedSummaryResponseDto> toDtoPage(SearchHits<TransactionFeedDocument> searchHits, Pageable pageable, Set<Long> likedFeedIds) {
