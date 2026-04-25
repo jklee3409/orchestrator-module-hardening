@@ -22,6 +22,7 @@
 
 - pipeline 순서를 변경하면 안 된다.
 - Redis Lua 성공을 최종 비즈니스 성공으로 처리하면 안 된다.
+- 명시적 사용자 요청 없이 `BidServiceImpl`의 Redis Lua 최고가 갱신 흐름과 state version 기반 CAS 롤백 흐름(`bid.lua`, `bid_rollback.lua`, 관련 Java rollback wiring)을 수정하면 안 된다.
 - DB commit 전에 Elasticsearch 갱신 또는 Kafka 알림 발행을 하면 안 된다.
 - 명시적 사용자 승인 없이 domain table을 통합하거나 schema 의미를 바꾸면 안 된다.
 - production profile에 local test bypass 값, secret, benchmark 기본값을 추가하면 안 된다.

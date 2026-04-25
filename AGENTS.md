@@ -16,6 +16,7 @@ This is a Spring Boot microservice for the "Datcha" mobile data trading platform
 - **Validation**: Custom exceptions in `common.exception` package with error codes
 - **Redis Keys**: Structured as `bids:{feedId}:highest_price`, `bids:{feedId}:highest_bidder_id`, `bids:{feedId}:state_version`
 - **Bid Logic**: Lua script handles atomic bid updates; Java code validates preconditions and finalizes DB state with rollback on failure
+- **Bid Logic Guardrail**: Do not modify `BidServiceImpl`'s Redis Lua highest-bid update flow or version-based CAS rollback flow (`bid.lua`, `bid_rollback.lua`, related rollback wiring) unless the user explicitly asks for that logic to change
 - **Event Publishing**: Use `ApplicationEventPublisher` for decoupling (e.g., `applicationEventPublisher.publishEvent(BidSucceededEvent.of(...))`)
 - **QueryDSL**: Generated Q-classes in `build/generated/` for complex queries
 - **DTOs**: Separate request/response DTOs in `dto.request` and `dto.response` subpackages

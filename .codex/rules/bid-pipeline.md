@@ -17,6 +17,7 @@
 - DB lock confirmation을 생략하면 안 된다.
 - Redis highest price를 Pay 환불 또는 차감의 최종 기준으로 사용하면 안 된다.
 - `bid.lua` 또는 `bid_rollback.lua`를 임시 Java-only concurrency logic으로 대체하면 안 된다.
+- 명시적 사용자 요청 없이 `BidServiceImpl`의 Redis Lua 최고가 갱신 흐름, state version 기반 CAS rollback 조건, `bid.lua`/`bid_rollback.lua` 연동 방식을 수정하면 안 된다.
 - transaction commit 전에 Kafka notification을 발행하면 안 된다.
 - transaction commit 전에 `TransactionFeedDocument.currentHighestPrice`를 갱신하면 안 된다.
 

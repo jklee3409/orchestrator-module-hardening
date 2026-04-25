@@ -6,6 +6,7 @@
 - benchmark seed data는 명시적 SQL 또는 fixture 파일로 생성해야 한다.
 - benchmark CSV user는 JMeter plan이 사용하는 authentication mode와 일치해야 한다.
 - Redis benchmark와 DB-lock benchmark 비교는 동일한 bidder count, bid amount, feed setup, runtime profile을 사용해야 한다.
+- 하나의 JMeter plan에서 여러 구현을 비교할 때는 구현별 measured feed, warm-up feed, bidder CSV를 분리하고 thread group을 직렬 실행해야 한다.
 - benchmark 실행은 profile, JVM/app properties, JMeter properties, seed SQL version, dataset size를 기록해야 한다.
 - benchmark 전용 security bypass는 명시적이어야 하며 기본값은 disabled여야 한다.
 
@@ -20,4 +21,5 @@
 ## 검증
 
 - `jmeter/bid-benchmark.jmx`, bidder CSV, seed SQL의 user count, bid amount, test key, endpoint 가정이 서로 맞는지 확인해야 한다.
+- warm-up sampler가 measured feed 상태를 오염시키지 않는지, Synchronizing Timer와 thread count가 같은 경합 조건을 만드는지 확인해야 한다.
 - benchmark에 사용하는 local properties가 production security posture를 바꾸지 않는지 확인해야 한다.
