@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Bid Hot Path Benchmark Rewrite">
-      <stringProp name="TestPlan.comments">Measure POST /orchestrator/bid hot path only. Run this plan once per implementation using -JimplMode=redis or -JimplMode=db-lock. Run winner-heavy and loser-heavy separately using -JworkloadType. Winner-heavy expects a feed where increasing bids can succeed. Loser-heavy expects a feed already seeded with a committed highest bid greater than fixedBidAmount so most requests fail fast as too low.</stringProp>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Bid Pure Logic Benchmark | Redis vs DB Lock">
+      <stringProp name="TestPlan.comments">Run both bid implementations in one GUI execution with serialized thread groups: CONFIG_VALIDATE -&gt; REDIS_WARMUP -&gt; REDIS_MEASURE -&gt; DB_LOCK_WARMUP -&gt; DB_LOCK_MEASURE. Paste feed ids from jmeter/setup-bid-benchmark.sql output before starting. Warm-up feeds are isolated from measured feeds to avoid JIT/thread initialization noise from polluting the measured comparison. Keep loops at 1 and think time at 0 for pure bid hot path benchmarking.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments">
           <elementProp name="protocol" elementType="Argument">
@@ -27,7 +30,7 @@
           </elementProp>
           <elementProp name="responseTimeoutMs" elementType="Argument">
             <stringProp name="Argument.name">responseTimeoutMs</stringProp>
-            <stringProp name="Argument.value">${__P(responseTimeoutMs,15000)}</stringProp>
+            <stringProp name="Argument.value">${__P(responseTimeoutMs,30000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="jmeterTestKey" elementType="Argument">
@@ -35,39 +38,59 @@
             <stringProp name="Argument.value">${__P(jmeterTestKey,local-bid-hotpath)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="implMode" elementType="Argument">
-            <stringProp name="Argument.name">implMode</stringProp>
-            <stringProp name="Argument.value">${__P(implMode,redis)}</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
           <elementProp name="workloadType" elementType="Argument">
             <stringProp name="Argument.name">workloadType</stringProp>
             <stringProp name="Argument.value">${__P(workloadType,winner)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="usersCsv" elementType="Argument">
-            <stringProp name="Argument.name">usersCsv</stringProp>
-            <stringProp name="Argument.value">${__P(usersCsv,redis-bidders.csv)}</stringProp>
+          <elementProp name="bidderCount" elementType="Argument">
+            <stringProp name="Argument.name">bidderCount</stringProp>
+            <stringProp name="Argument.value">${__P(bidderCount,500)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="threads" elementType="Argument">
-            <stringProp name="Argument.name">threads</stringProp>
-            <stringProp name="Argument.value">${__P(threads,500)}</stringProp>
+          <elementProp name="bidderInitialPay" elementType="Argument">
+            <stringProp name="Argument.name">bidderInitialPay</stringProp>
+            <stringProp name="Argument.value">${__P(bidderInitialPay,2000000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="rampUpSeconds" elementType="Argument">
-            <stringProp name="Argument.name">rampUpSeconds</stringProp>
-            <stringProp name="Argument.value">${__P(rampUpSeconds,10)}</stringProp>
+          <elementProp name="winnerFeedSalesPrice" elementType="Argument">
+            <stringProp name="Argument.name">winnerFeedSalesPrice</stringProp>
+            <stringProp name="Argument.value">${__P(winnerFeedSalesPrice,10000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="loops" elementType="Argument">
-            <stringProp name="Argument.name">loops</stringProp>
-            <stringProp name="Argument.value">${__P(loops,1)}</stringProp>
+          <elementProp name="loserSeedBidAmount" elementType="Argument">
+            <stringProp name="Argument.name">loserSeedBidAmount</stringProp>
+            <stringProp name="Argument.value">${__P(loserSeedBidAmount,10300)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="feedId" elementType="Argument">
-            <stringProp name="Argument.name">feedId</stringProp>
-            <stringProp name="Argument.value">${__P(feedId,1001)}</stringProp>
+          <elementProp name="warmupThreads" elementType="Argument">
+            <stringProp name="Argument.name">warmupThreads</stringProp>
+            <stringProp name="Argument.value">${__P(warmupThreads,50)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="measureThreads" elementType="Argument">
+            <stringProp name="Argument.name">measureThreads</stringProp>
+            <stringProp name="Argument.value">${__P(measureThreads,200)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="warmupRampUpSeconds" elementType="Argument">
+            <stringProp name="Argument.name">warmupRampUpSeconds</stringProp>
+            <stringProp name="Argument.value">${__P(warmupRampUpSeconds,5)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="measureRampUpSeconds" elementType="Argument">
+            <stringProp name="Argument.name">measureRampUpSeconds</stringProp>
+            <stringProp name="Argument.value">${__P(measureRampUpSeconds,10)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="warmupLoops" elementType="Argument">
+            <stringProp name="Argument.name">warmupLoops</stringProp>
+            <stringProp name="Argument.value">${__P(warmupLoops,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="measureLoops" elementType="Argument">
+            <stringProp name="Argument.name">measureLoops</stringProp>
+            <stringProp name="Argument.value">${__P(measureLoops,1)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="winnerBidStartAmount" elementType="Argument">
@@ -95,6 +118,56 @@
             <stringProp name="Argument.value">${__P(thinkRangeMs,0)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="redisUsersCsv" elementType="Argument">
+            <stringProp name="Argument.name">redisUsersCsv</stringProp>
+            <stringProp name="Argument.value">${__P(redisUsersCsv,redis-bidders.csv)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="dbLockUsersCsv" elementType="Argument">
+            <stringProp name="Argument.name">dbLockUsersCsv</stringProp>
+            <stringProp name="Argument.value">${__P(dbLockUsersCsv,db-lock-bidders.csv)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="redisWarmupWinnerFeedId" elementType="Argument">
+            <stringProp name="Argument.name">redisWarmupWinnerFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(redisWarmupWinnerFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="redisWarmupLoserFeedId" elementType="Argument">
+            <stringProp name="Argument.name">redisWarmupLoserFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(redisWarmupLoserFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="redisWinnerFeedId" elementType="Argument">
+            <stringProp name="Argument.name">redisWinnerFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(redisWinnerFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="redisLoserFeedId" elementType="Argument">
+            <stringProp name="Argument.name">redisLoserFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(redisLoserFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="dbLockWarmupWinnerFeedId" elementType="Argument">
+            <stringProp name="Argument.name">dbLockWarmupWinnerFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(dbLockWarmupWinnerFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="dbLockWarmupLoserFeedId" elementType="Argument">
+            <stringProp name="Argument.name">dbLockWarmupLoserFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(dbLockWarmupLoserFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="dbLockWinnerFeedId" elementType="Argument">
+            <stringProp name="Argument.name">dbLockWinnerFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(dbLockWinnerFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="dbLockLoserFeedId" elementType="Argument">
+            <stringProp name="Argument.name">dbLockLoserFeedId</stringProp>
+            <stringProp name="Argument.value">${__P(dbLockLoserFeedId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
           <elementProp name="simpleDataWriterFile" elementType="Argument">
             <stringProp name="Argument.name">simpleDataWriterFile</stringProp>
             <stringProp name="Argument.value">${__P(simpleDataWriterFile,)}</stringProp>
@@ -102,6 +175,7 @@
           </elementProp>
         </collectionProp>
       </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
       <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
@@ -116,36 +190,56 @@
         <stringProp name="HTTPSampler.implementation"></stringProp>
       </ConfigTestElement>
       <hashTree/>
-      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager">
+      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
         <collectionProp name="CookieManager.cookies"/>
         <boolProp name="CookieManager.clearEachIteration">false</boolProp>
         <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
       </CookieManager>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="HOT_PATH_ONLY">
-        <stringProp name="ThreadGroup.num_threads">${threads}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${rampUpSeconds}</stringProp>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="CONFIG_VALIDATE" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">${loops}</stringProp>
+          <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Bidder CSV">
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validate Benchmark Configuration" enabled="true">
+          <stringProp name="cacheKey">bid-benchmark-validate</stringProp>
+          <stringProp name="filename">bid-benchmark-validate.groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="REDIS_WARMUP" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${warmupThreads}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${warmupRampUpSeconds}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">${warmupLoops}</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Redis Bidder CSV" enabled="true">
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
-          <stringProp name="filename">${__groovy(new File(org.apache.jmeter.services.FileServer.getFileServer().getBaseDir(), vars.get(&apos;usersCsv&apos;)).path)}</stringProp>
+          <stringProp name="filename">${redisUsersCsv}</stringProp>
           <boolProp name="ignoreFirstLine">true</boolProp>
           <boolProp name="quotedData">false</boolProp>
           <boolProp name="recycle">false</boolProp>
-          <stringProp name="shareMode">shareMode.all</stringProp>
+          <stringProp name="shareMode">shareMode.group</stringProp>
           <boolProp name="stopThread">true</boolProp>
           <stringProp name="variableNames">email,password</stringProp>
         </CSVDataSet>
         <hashTree/>
-        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Global Bid Sequence">
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Global Bid Sequence" enabled="true">
           <stringProp name="CounterConfig.start">1</stringProp>
           <stringProp name="CounterConfig.end"></stringProp>
           <stringProp name="CounterConfig.incr">1</stringProp>
@@ -154,17 +248,22 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Client Think Time">
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Client Think Time" enabled="true">
           <stringProp name="ConstantTimer.delay">${thinkMs}</stringProp>
           <stringProp name="RandomTimer.range">${thinkRangeMs}</stringProp>
         </UniformRandomTimer>
         <hashTree/>
-        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="BID HOT PATH | POST ONLY">
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
+          <intProp name="groupSize">0</intProp>
+          <longProp name="timeoutInMs">45000</longProp>
+        </SyncTimer>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="REDIS | WARMUP | POST ONLY" enabled="true">
           <boolProp name="TransactionController.parent">true</boolProp>
           <boolProp name="TransactionController.includeTimers">false</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Place Bid">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Place Bid" enabled="true">
             <stringProp name="HTTPSampler.path">${bidPath}</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -182,49 +281,11 @@
           </HTTPSamplerProxy>
           <hashTree>
             <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Prepare Request" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-prepare-request</stringProp>
+              <stringProp name="filename">bid-benchmark-prepare-request.groovy</stringProp>
+              <stringProp name="parameters">redis,warmup,${redisWarmupWinnerFeedId},${redisWarmupLoserFeedId}</stringProp>
+              <stringProp name="script"></stringProp>
               <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="cacheKey">true</stringProp>
-              <stringProp name="script">def email = vars.get(&apos;email&apos;)
-if (!email) {
-    throw new IllegalStateException(&apos;CSV email is required for bypass bid benchmarking&apos;)
-}
-vars.put(&apos;authToken&apos;, email)
-
-def impl = (vars.get(&apos;implMode&apos;) ?: &apos;redis&apos;).trim()
-switch (impl) {
-    case &apos;redis&apos;:
-        vars.put(&apos;bidPath&apos;, &apos;/orchestrator/bid&apos;)
-        break
-    case &apos;db-lock&apos;:
-        vars.put(&apos;bidPath&apos;, &apos;/orchestrator/bid/db-lock&apos;)
-        break
-    default:
-        throw new IllegalArgumentException(&apos;Unsupported implMode: &apos; + impl)
-}
-
-def workload = (vars.get(&apos;workloadType&apos;) ?: &apos;winner&apos;).trim()
-long seq = (vars.get(&apos;globalBidSeq&apos;) ?: &apos;1&apos;) as long
-long winnerBase = (vars.get(&apos;winnerBidStartAmount&apos;) ?: &apos;0&apos;) as long
-long step = (vars.get(&apos;bidIncrement&apos;) ?: &apos;100&apos;) as long
-long fixed = (vars.get(&apos;fixedBidAmount&apos;) ?: &apos;0&apos;) as long
-long amount
-switch (workload) {
-    case &apos;winner&apos;:
-        amount = winnerBase + ((seq - 1L) * step)
-        break
-    case &apos;loser&apos;:
-        amount = fixed
-        break
-    case &apos;mixed&apos;:
-        amount = (seq % 10L == 0L) ? (winnerBase + (((seq / 10L) - 1L) * step)) : fixed
-        break
-    default:
-        throw new IllegalArgumentException(&apos;Unsupported workloadType: &apos; + workload)
-}
-vars.put(&apos;bidAmount&apos;, String.valueOf(amount))
-vars.put(&apos;benchmarkCase&apos;, impl + &apos;-&apos; + workload)</stringProp>
-              <stringProp name="parameters"></stringProp>
-              <stringProp name="filename"></stringProp>
             </JSR223PreProcessor>
             <hashTree/>
             <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Bid Headers" enabled="true">
@@ -253,34 +314,335 @@ vars.put(&apos;benchmarkCase&apos;, impl + &apos;-&apos; + workload)</stringProp
             </HeaderManager>
             <hashTree/>
             <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Classify Response" enabled="true">
-              <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="cacheKey">true</stringProp>
-              <stringProp name="script">import groovy.json.JsonSlurper
-
-def body = prev.getResponseDataAsString()
-if (!body) {
-    prev.setSuccessful(false)
-    prev.setResponseMessage(&apos;Empty response body&apos;)
-    return
-}
-
-try {
-    def parsed = new JsonSlurper().parseText(body)
-    def status = parsed?.statusCode?.toString() ?: &apos;&apos;
-    if (!status) {
-        prev.setSuccessful(false)
-        prev.setResponseMessage(&apos;Missing application statusCode&apos;)
-        return
-    }
-    vars.put(&apos;appStatusCode&apos;, status)
-    prev.setResponseCode(status)
-    prev.setSampleLabel(prev.getSampleLabel() + &apos; [&apos; + vars.get(&apos;benchmarkCase&apos;) + &apos;] [app=&apos; + status + &apos;]&apos;)
-} catch (Exception e) {
-    prev.setSuccessful(false)
-    prev.setResponseMessage(&apos;Response parse failure: &apos; + e.getMessage())
-}</stringProp>
+              <stringProp name="cacheKey">bid-benchmark-classify-response</stringProp>
+              <stringProp name="filename">bid-benchmark-classify-response.groovy</stringProp>
               <stringProp name="parameters"></stringProp>
-              <stringProp name="filename"></stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PostProcessor>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="REDIS_MEASURE" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${measureThreads}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${measureRampUpSeconds}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">${measureLoops}</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Redis Bidder CSV" enabled="true">
+          <stringProp name="delimiter">,</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="filename">${redisUsersCsv}</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="quotedData">false</boolProp>
+          <boolProp name="recycle">false</boolProp>
+          <stringProp name="shareMode">shareMode.group</stringProp>
+          <boolProp name="stopThread">true</boolProp>
+          <stringProp name="variableNames">email,password</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Global Bid Sequence" enabled="true">
+          <stringProp name="CounterConfig.start">1</stringProp>
+          <stringProp name="CounterConfig.end"></stringProp>
+          <stringProp name="CounterConfig.incr">1</stringProp>
+          <stringProp name="CounterConfig.name">globalBidSeq</stringProp>
+          <stringProp name="CounterConfig.format"></stringProp>
+          <boolProp name="CounterConfig.per_user">false</boolProp>
+        </CounterConfig>
+        <hashTree/>
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Client Think Time" enabled="true">
+          <stringProp name="ConstantTimer.delay">${thinkMs}</stringProp>
+          <stringProp name="RandomTimer.range">${thinkRangeMs}</stringProp>
+        </UniformRandomTimer>
+        <hashTree/>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
+          <intProp name="groupSize">0</intProp>
+          <longProp name="timeoutInMs">45000</longProp>
+        </SyncTimer>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="REDIS | MEASURE | POST ONLY" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Place Bid" enabled="true">
+            <stringProp name="HTTPSampler.path">${bidPath}</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;transactionFeedId&quot;: ${feedId}, &quot;bidAmount&quot;: ${bidAmount}}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Prepare Request" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-prepare-request</stringProp>
+              <stringProp name="filename">bid-benchmark-prepare-request.groovy</stringProp>
+              <stringProp name="parameters">redis,measure,${redisWinnerFeedId},${redisLoserFeedId}</stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PreProcessor>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Bid Headers" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Accept" elementType="Header">
+                  <stringProp name="Header.name">Accept</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Authorization" elementType="Header">
+                  <stringProp name="Header.name">Authorization</stringProp>
+                  <stringProp name="Header.value">Bearer ${authToken}</stringProp>
+                </elementProp>
+                <elementProp name="X-JMeter-Test-Key" elementType="Header">
+                  <stringProp name="Header.name">X-JMeter-Test-Key</stringProp>
+                  <stringProp name="Header.value">${jmeterTestKey}</stringProp>
+                </elementProp>
+                <elementProp name="X-Benchmark-Case" elementType="Header">
+                  <stringProp name="Header.name">X-Benchmark-Case</stringProp>
+                  <stringProp name="Header.value">${benchmarkCase}</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Classify Response" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-classify-response</stringProp>
+              <stringProp name="filename">bid-benchmark-classify-response.groovy</stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PostProcessor>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="DB_LOCK_WARMUP" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${warmupThreads}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${warmupRampUpSeconds}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">${warmupLoops}</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="DB Lock Bidder CSV" enabled="true">
+          <stringProp name="delimiter">,</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="filename">${dbLockUsersCsv}</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="quotedData">false</boolProp>
+          <boolProp name="recycle">false</boolProp>
+          <stringProp name="shareMode">shareMode.group</stringProp>
+          <boolProp name="stopThread">true</boolProp>
+          <stringProp name="variableNames">email,password</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Global Bid Sequence" enabled="true">
+          <stringProp name="CounterConfig.start">1</stringProp>
+          <stringProp name="CounterConfig.end"></stringProp>
+          <stringProp name="CounterConfig.incr">1</stringProp>
+          <stringProp name="CounterConfig.name">globalBidSeq</stringProp>
+          <stringProp name="CounterConfig.format"></stringProp>
+          <boolProp name="CounterConfig.per_user">false</boolProp>
+        </CounterConfig>
+        <hashTree/>
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Client Think Time" enabled="true">
+          <stringProp name="ConstantTimer.delay">${thinkMs}</stringProp>
+          <stringProp name="RandomTimer.range">${thinkRangeMs}</stringProp>
+        </UniformRandomTimer>
+        <hashTree/>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
+          <intProp name="groupSize">0</intProp>
+          <longProp name="timeoutInMs">45000</longProp>
+        </SyncTimer>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="DB_LOCK | WARMUP | POST ONLY" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Place Bid" enabled="true">
+            <stringProp name="HTTPSampler.path">${bidPath}</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;transactionFeedId&quot;: ${feedId}, &quot;bidAmount&quot;: ${bidAmount}}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Prepare Request" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-prepare-request</stringProp>
+              <stringProp name="filename">bid-benchmark-prepare-request.groovy</stringProp>
+              <stringProp name="parameters">db-lock,warmup,${dbLockWarmupWinnerFeedId},${dbLockWarmupLoserFeedId}</stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PreProcessor>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Bid Headers" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Accept" elementType="Header">
+                  <stringProp name="Header.name">Accept</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Authorization" elementType="Header">
+                  <stringProp name="Header.name">Authorization</stringProp>
+                  <stringProp name="Header.value">Bearer ${authToken}</stringProp>
+                </elementProp>
+                <elementProp name="X-JMeter-Test-Key" elementType="Header">
+                  <stringProp name="Header.name">X-JMeter-Test-Key</stringProp>
+                  <stringProp name="Header.value">${jmeterTestKey}</stringProp>
+                </elementProp>
+                <elementProp name="X-Benchmark-Case" elementType="Header">
+                  <stringProp name="Header.name">X-Benchmark-Case</stringProp>
+                  <stringProp name="Header.value">${benchmarkCase}</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Classify Response" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-classify-response</stringProp>
+              <stringProp name="filename">bid-benchmark-classify-response.groovy</stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PostProcessor>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="DB_LOCK_MEASURE" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${measureThreads}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${measureRampUpSeconds}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">${measureLoops}</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="DB Lock Bidder CSV" enabled="true">
+          <stringProp name="delimiter">,</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="filename">${dbLockUsersCsv}</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="quotedData">false</boolProp>
+          <boolProp name="recycle">false</boolProp>
+          <stringProp name="shareMode">shareMode.group</stringProp>
+          <boolProp name="stopThread">true</boolProp>
+          <stringProp name="variableNames">email,password</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Global Bid Sequence" enabled="true">
+          <stringProp name="CounterConfig.start">1</stringProp>
+          <stringProp name="CounterConfig.end"></stringProp>
+          <stringProp name="CounterConfig.incr">1</stringProp>
+          <stringProp name="CounterConfig.name">globalBidSeq</stringProp>
+          <stringProp name="CounterConfig.format"></stringProp>
+          <boolProp name="CounterConfig.per_user">false</boolProp>
+        </CounterConfig>
+        <hashTree/>
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Client Think Time" enabled="true">
+          <stringProp name="ConstantTimer.delay">${thinkMs}</stringProp>
+          <stringProp name="RandomTimer.range">${thinkRangeMs}</stringProp>
+        </UniformRandomTimer>
+        <hashTree/>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
+          <intProp name="groupSize">0</intProp>
+          <longProp name="timeoutInMs">45000</longProp>
+        </SyncTimer>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="DB_LOCK | MEASURE | POST ONLY" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Place Bid" enabled="true">
+            <stringProp name="HTTPSampler.path">${bidPath}</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;transactionFeedId&quot;: ${feedId}, &quot;bidAmount&quot;: ${bidAmount}}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Prepare Request" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-prepare-request</stringProp>
+              <stringProp name="filename">bid-benchmark-prepare-request.groovy</stringProp>
+              <stringProp name="parameters">db-lock,measure,${dbLockWinnerFeedId},${dbLockLoserFeedId}</stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PreProcessor>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Bid Headers" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Accept" elementType="Header">
+                  <stringProp name="Header.name">Accept</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="Authorization" elementType="Header">
+                  <stringProp name="Header.name">Authorization</stringProp>
+                  <stringProp name="Header.value">Bearer ${authToken}</stringProp>
+                </elementProp>
+                <elementProp name="X-JMeter-Test-Key" elementType="Header">
+                  <stringProp name="Header.name">X-JMeter-Test-Key</stringProp>
+                  <stringProp name="Header.value">${jmeterTestKey}</stringProp>
+                </elementProp>
+                <elementProp name="X-Benchmark-Case" elementType="Header">
+                  <stringProp name="Header.name">X-Benchmark-Case</stringProp>
+                  <stringProp name="Header.value">${benchmarkCase}</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Classify Response" enabled="true">
+              <stringProp name="cacheKey">bid-benchmark-classify-response</stringProp>
+              <stringProp name="filename">bid-benchmark-classify-response.groovy</stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script"></stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
@@ -360,7 +722,7 @@ try {
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer">
+      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer" enabled="false">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>

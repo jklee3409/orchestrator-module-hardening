@@ -90,6 +90,35 @@ $env:SECURITY_JMETER_BYPASS_TEST_KEY='local-jmeter-secret'
 - `View Results Tree`는 디버깅 단계에서만 사용하고, 본 부하 테스트에서는 비활성화하는 것을 권장한다.
 - 동시 시작 효과를 높이려면 `Synchronizing Timer`를 HTTP Request 바로 앞에 둔다.
 
+### 현재 `bid-benchmark.jmx` 설계
+
+현재 JMX는 한 번의 GUI 실행에서 아래 순서로 두 구현을 모두 실행하도록 설계한다.
+
+1. `CONFIG_VALIDATE`
+2. `REDIS_WARMUP`
+3. `REDIS_MEASURE`
+4. `DB_LOCK_WARMUP`
+5. `DB_LOCK_MEASURE`
+
+중요 포인트:
+
+- Test Plan에서 thread group을 **직렬 실행**한다.
+- warm-up feed와 measured feed를 분리해 JIT, thread start, 첫 Redis/DB access 비용이 측정 feed 상태를 오염시키지 않게 한다.
+- 구현별 bidder CSV도 분리해 한 번의 실행 안에서도 사용자 풀을 섞지 않는다.
+- `workloadType`은 `winner` 또는 `loser`만 사용한다.
+- measured run은 `loops=1`, `think time=0`을 유지해 "한 유저당 한 번 입찰" hot path만 비교한다.
+
+GUI에서 실행하기 전 `jmeter/setup-bid-benchmark.sql` 결과에서 아래 값을 복사해 JMX 변수에 넣어야 한다.
+
+- `redis_warmup_winner_feed_id`
+- `redis_warmup_loser_feed_id`
+- `redis_winner_feed_id`
+- `redis_loser_feed_id`
+- `db_lock_warmup_winner_feed_id`
+- `db_lock_warmup_loser_feed_id`
+- `db_lock_winner_feed_id`
+- `db_lock_loser_feed_id`
+
 ### CSV 예시
 
 ```text
@@ -128,28 +157,32 @@ bidder3@test.com,100,10300
 
 ## 실행 절차
 
-1. 비교 대상 판매글 1건을 준비한다.
-2. 입찰 대상 사용자 계정과 페이 잔액을 충분히 세팅한다.
-3. Redis 방식 API로 1차 실행한다.
-4. DB, Redis, 사용자 잔액, 입찰 이력을 초기화한다.
-5. 동일한 CSV와 동일한 JMeter 설정으로 DB Lock 방식 API를 2차 실행한다.
-6. 두 결과를 같은 기준으로 비교한다.
+1. `jmeter/setup-bid-benchmark.sql`을 다시 실행한다.
+2. SQL 결과에서 warm-up/measured feed id, bidder count, test key를 확인한다.
+3. 서버를 `SECURITY_JMETER_BYPASS_ENABLED=true`와 대응하는 test key로 실행한다.
+4. JMeter GUI에서 `bid-benchmark.jmx`를 열고 feed id 변수를 채운다.
+5. `workloadType=winner`로 1회 실행해 고경합 winner path를 비교한다.
+6. SQL을 다시 실행해 상태를 초기화한다.
+7. `workloadType=loser`로 1회 실행해 fast-fail loser path를 비교한다.
+8. 각 실행 뒤 DB 최고가, bid history, user_pay를 확인한다.
 
 ## 1차 권장 부하 구간
 
-- 20 users / ramp-up 1s / loop 1
-- 50 users / ramp-up 1s / loop 1
-- 100 users / ramp-up 1s / loop 1
+- 50 measured users / warm-up 20 users / loop 1
+- 100 measured users / warm-up 25 users / loop 1
+- 200 measured users / warm-up 50 users / loop 1
 
 필요 시 아래 순서로 확장한다.
 
-- 200 users / ramp-up 1s / loop 1
-- 500 users / ramp-up 1s / loop 1
+- 300 measured users / warm-up 50 users / loop 1
+- 500 measured users / warm-up 50 users / loop 1
 
 실무 팁:
 
 - 처음부터 큰 부하로 가지 말고, 작은 구간에서 오류 패턴과 데이터 정합성을 먼저 확인한 뒤 확대하는 편이 안전하다.
 - 응답시간만 보지 말고 실패 건의 성격도 함께 확인해야 한다.
+- 500은 현재 seed SQL이 준비하는 bidder 수 상한이므로, 그 이상은 CSV와 SQL을 함께 늘리지 않으면 안 된다.
+- 포트폴리오용 수치는 최소 3회 반복 실행 후 median/p95 기준으로 정리하고, 각 실행 전에는 seed SQL을 다시 적용해 feed/user_pay 상태를 초기화하는 편이 좋다.
 
 ## 비교 지표
 

@@ -5,8 +5,8 @@
 -- - benchmark users and sellers
 -- - ROLE_USER / TRANSACTION authority mapping
 -- - user_pay balances
--- - winner and loser auction feeds for both implementations
--- - one committed loser bid so db-lock loser-heavy also fails fast
+-- - warm-up winner/loser auction feeds and measured winner/loser auction feeds for both implementations
+-- - one committed loser bid per loser feed so loser-heavy runs fail fast deterministically
 --
 -- Notes:
 -- - JMeter bypass authenticates with Authorization: Bearer {email}.
@@ -32,8 +32,12 @@ SET @db_lock_seed_email = 'bidbench-db-lock-seed@loadtest.local';
 
 SET @redis_winner_feed_title = '[JMeter][BidBenchmark][Redis][Winner] Auction';
 SET @redis_loser_feed_title = '[JMeter][BidBenchmark][Redis][Loser] Auction';
+SET @redis_warmup_winner_feed_title = '[JMeter][BidBenchmark][Redis][Warmup][Winner] Auction';
+SET @redis_warmup_loser_feed_title = '[JMeter][BidBenchmark][Redis][Warmup][Loser] Auction';
 SET @db_lock_winner_feed_title = '[JMeter][BidBenchmark][DB-Lock][Winner] Auction';
 SET @db_lock_loser_feed_title = '[JMeter][BidBenchmark][DB-Lock][Loser] Auction';
+SET @db_lock_warmup_winner_feed_title = '[JMeter][BidBenchmark][DB-Lock][Warmup][Winner] Auction';
+SET @db_lock_warmup_loser_feed_title = '[JMeter][BidBenchmark][DB-Lock][Warmup][Loser] Auction';
 
 DROP TEMPORARY TABLE IF EXISTS `tmp_bidbench_seq`;
 CREATE TEMPORARY TABLE `tmp_bidbench_seq` (
@@ -360,6 +364,74 @@ INSERT INTO `transaction_feed` (
 SELECT
     NOW(),
     NOW(),
+    'Redis warmup winner benchmark auction',
+    @default_image_number,
+    @expires_at,
+    0,
+    @sales_data_amount,
+    @winner_feed_sales_price,
+    @redis_warmup_winner_feed_title,
+    0,
+    2,
+    14,
+    1,
+    u.`user_id`
+FROM `user` u
+WHERE u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_seller_email USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `transaction_feed` (
+    `created_at`,
+    `updated_at`,
+    `content`,
+    `default_image_number`,
+    `expires_at`,
+    `is_deleted`,
+    `sales_data_amount`,
+    `sales_price`,
+    `title`,
+    `version`,
+    `sales_type_id`,
+    `status_id`,
+    `telecome_company_id`,
+    `seller_id`
+)
+SELECT
+    NOW(),
+    NOW(),
+    'Redis warmup loser benchmark auction',
+    @default_image_number,
+    @expires_at,
+    0,
+    @sales_data_amount,
+    @loser_seed_bid_amount,
+    @redis_warmup_loser_feed_title,
+    0,
+    2,
+    14,
+    1,
+    u.`user_id`
+FROM `user` u
+WHERE u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_seller_email USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `transaction_feed` (
+    `created_at`,
+    `updated_at`,
+    `content`,
+    `default_image_number`,
+    `expires_at`,
+    `is_deleted`,
+    `sales_data_amount`,
+    `sales_price`,
+    `title`,
+    `version`,
+    `sales_type_id`,
+    `status_id`,
+    `telecome_company_id`,
+    `seller_id`
+)
+SELECT
+    NOW(),
+    NOW(),
     'Redis winner benchmark auction',
     @default_image_number,
     @expires_at,
@@ -408,6 +480,74 @@ SELECT
     u.`user_id`
 FROM `user` u
 WHERE u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_seller_email USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `transaction_feed` (
+    `created_at`,
+    `updated_at`,
+    `content`,
+    `default_image_number`,
+    `expires_at`,
+    `is_deleted`,
+    `sales_data_amount`,
+    `sales_price`,
+    `title`,
+    `version`,
+    `sales_type_id`,
+    `status_id`,
+    `telecome_company_id`,
+    `seller_id`
+)
+SELECT
+    NOW(),
+    NOW(),
+    'DB lock warmup winner benchmark auction',
+    @default_image_number,
+    @expires_at,
+    0,
+    @sales_data_amount,
+    @winner_feed_sales_price,
+    @db_lock_warmup_winner_feed_title,
+    0,
+    2,
+    14,
+    1,
+    u.`user_id`
+FROM `user` u
+WHERE u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_seller_email USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `transaction_feed` (
+    `created_at`,
+    `updated_at`,
+    `content`,
+    `default_image_number`,
+    `expires_at`,
+    `is_deleted`,
+    `sales_data_amount`,
+    `sales_price`,
+    `title`,
+    `version`,
+    `sales_type_id`,
+    `status_id`,
+    `telecome_company_id`,
+    `seller_id`
+)
+SELECT
+    NOW(),
+    NOW(),
+    'DB lock warmup loser benchmark auction',
+    @default_image_number,
+    @expires_at,
+    0,
+    @sales_data_amount,
+    @loser_seed_bid_amount,
+    @db_lock_warmup_loser_feed_title,
+    0,
+    2,
+    14,
+    1,
+    u.`user_id`
+FROM `user` u
+WHERE u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_seller_email USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
 INSERT INTO `transaction_feed` (
     `created_at`,
@@ -495,7 +635,47 @@ SELECT
 FROM `transaction_feed` tf
 JOIN `user` u
     ON u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_seed_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_warmup_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `bids` (
+    `created_at`,
+    `updated_at`,
+    `transaction_feed_id`,
+    `user_id`,
+    `bid_amount`,
+    `bid_time`
+)
+SELECT
+    NOW(),
+    NOW(),
+    tf.`transaction_feed_id`,
+    u.`user_id`,
+    @loser_seed_bid_amount,
+    NOW()
+FROM `transaction_feed` tf
+JOIN `user` u
+    ON u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_seed_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `bids` (
+    `created_at`,
+    `updated_at`,
+    `transaction_feed_id`,
+    `user_id`,
+    `bid_amount`,
+    `bid_time`
+)
+SELECT
+    NOW(),
+    NOW(),
+    tf.`transaction_feed_id`,
+    u.`user_id`,
+    @loser_seed_bid_amount,
+    NOW()
+FROM `transaction_feed` tf
+JOIN `user` u
+    ON u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_seed_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_warmup_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
 INSERT INTO `bids` (
     `created_at`,
@@ -517,6 +697,14 @@ JOIN `user` u
     ON u.`email` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_seed_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
+SELECT 'redis_warmup_winner_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
+FROM `transaction_feed` tf
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_warmup_winner_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
+UNION ALL
+SELECT 'redis_warmup_loser_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
+FROM `transaction_feed` tf
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_warmup_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
+UNION ALL
 SELECT 'redis_winner_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
 FROM `transaction_feed` tf
 WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_winner_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
@@ -524,6 +712,14 @@ UNION ALL
 SELECT 'redis_loser_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
 FROM `transaction_feed` tf
 WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@redis_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
+UNION ALL
+SELECT 'db_lock_warmup_winner_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
+FROM `transaction_feed` tf
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_warmup_winner_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
+UNION ALL
+SELECT 'db_lock_warmup_loser_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
+FROM `transaction_feed` tf
+WHERE tf.`title` COLLATE utf8mb4_unicode_ci = CONVERT(@db_lock_warmup_loser_feed_title USING utf8mb4) COLLATE utf8mb4_unicode_ci
 UNION ALL
 SELECT 'db_lock_winner_feed_id' AS `label`, CAST(tf.`transaction_feed_id` AS CHAR) AS `value`
 FROM `transaction_feed` tf
@@ -539,6 +735,8 @@ SELECT 'db_lock_users_csv' AS `label`, 'db-lock-bidders.csv' AS `value`
 UNION ALL
 SELECT 'jmeter_test_key' AS `label`, 'local-bid-hotpath' AS `value`
 UNION ALL
-SELECT 'loser_seed_bid_amount' AS `label`, CAST(@loser_seed_bid_amount AS CHAR) AS `value`;
+SELECT 'loser_seed_bid_amount' AS `label`, CAST(@loser_seed_bid_amount AS CHAR) AS `value`
+UNION ALL
+SELECT 'bidder_count' AS `label`, CAST(@bidder_count AS CHAR) AS `value`;
 
 DROP TEMPORARY TABLE IF EXISTS `tmp_bidbench_seq`;
